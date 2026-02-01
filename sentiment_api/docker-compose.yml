@@ -1,0 +1,85 @@
+# sentiment_api — local dev stack
+# Run from sentiment_api/: docker compose up -d
+
+version: "3.9"
+services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    environment:
+      POSTGRES_USER: sentiment
+      POSTGRES_PASSWORD: sentiment
+      POSTGRES_DB: sentiment
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentiment"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SENTIMENT_API_ENV: dev
+      DATABASE_URL: postgresql://sentiment:sentiment@postgres:5432/sentiment
+      REDIS_URL: redis://redis:6379/0
+      ARTIFACT_ROOT: /data/artifacts
+      SOURCE_REGISTRY_PATH: /etc/sentiment_api/source_registry.yaml
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      - ../Docs/sentiment_api_tech_package_v1.0/registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
+      - artifacts:/data/artifacts
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  worker:
+    build: .
+    command: ["python", "-c", "import asyncio; from sentiment_api.ingest.worker import run_worker; asyncio.run(run_worker())"]
+    environment:
+      SENTIMENT_API_ENV: dev
+      DATABASE_URL: postgresql://sentiment:sentiment@postgres:5432/sentiment
+      REDIS_URL: redis://redis:6379/0
+      SOURCE_REGISTRY_PATH: /etc/sentiment_api/source_registry.yaml
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      - ../Docs/sentiment_api_tech_package_v1.0/registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
+      - artifacts:/data/artifacts
+    depends_on:
+      api: { condition: service_started }
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  daemon:
+    build: .
+    command: ["python", "-c", "import asyncio; from sentiment_api.ingest.daemon import run_daemon; asyncio.run(run_daemon())"]
+    environment:
+      SENTIMENT_API_ENV: dev
+      DATABASE_URL: postgresql://sentiment:sentiment@postgres:5432/sentiment
+      REDIS_URL: redis://redis:6379/0
+      SOURCE_REGISTRY_PATH: /etc/sentiment_api/source_registry.yaml
+    volumes:
+      - ../Docs/sentiment_api_tech_package_v1.0/registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+volumes:
+  pgdata:
+  artifacts:
