@@ -14,7 +14,7 @@ from sentiment_api.collectors.scrape import ScrapeCollector
 from sentiment_api.queue.client import get_queue, QUEUE_INGEST
 from sentiment_api.registry import load_registry
 from sentiment_api.collectors.circuit_breaker import is_open, record_success, record_failure
-from sentiment_api.metrics import ingestion_errors_total, ingestion_lag_seconds
+from sentiment_api.metrics import ingestion_errors_total, ingestion_lag_seconds, fetch_duration_seconds
 
 logger = logging.getLogger("sentiment_api.daemon")
 
@@ -46,10 +46,12 @@ async def _record_run(pool, run_type: str, source_id: str | None, status: str, s
 
 async def poll_source(source, queue, rss: RSSCollector, gdelt: GDELTCollector, scrape: ScrapeCollector) -> int:
     """Poll one source, push items to ingest queue. Returns count pushed."""
+    import time
     if is_open(source.source_id):
         logger.debug("Circuit open for %s, skipping", source.source_id)
         return 0
     count = 0
+    t0 = time.perf_counter()
     try:
         if source.type == "rss" and source.feed_url:
             for item in rss.collect(source, source.feed_url):
@@ -74,6 +76,8 @@ async def poll_source(source, queue, rss: RSSCollector, gdelt: GDELTCollector, s
                 await _record_run(p, "ingest", source.source_id, "fail", {"items_pushed": 0}, {"message": str(e), "source_id": source.source_id})
         except Exception:
             pass
+    finally:
+        fetch_duration_seconds(source.source_id, time.perf_counter() - t0)
     if count > 0:
         record_success(source.source_id)
         ingestion_lag_seconds(source.source_id, None)  # record success

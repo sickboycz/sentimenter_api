@@ -142,7 +142,8 @@ CREATE TABLE IF NOT EXISTS articles (
   translation_confidence double precision,
   content_hash          text, -- sha256 of content_en for dedupe
   metadata              jsonb NOT NULL DEFAULT '{}'::jsonb, -- author, section, tags, etc.
-  created_at            timestamptz NOT NULL DEFAULT now()
+  created_at            timestamptz NOT NULL DEFAULT now(),
+  deleted_at            timestamptz  -- tombstone for retention (AC-M7.3)
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_articles_canonical_url ON articles (canonical_url);

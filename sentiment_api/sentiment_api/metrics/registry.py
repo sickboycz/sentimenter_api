@@ -13,7 +13,9 @@ _translation_failures: dict[str, int] = defaultdict(int)
 _queue_depth: dict[str, int] = {}
 _api_latency: list[tuple[str, float]] = []
 _api_errors: dict[tuple[str, str], int] = defaultdict(int)
+_fetch_duration_seconds: list[tuple[str, float]] = []  # (source_id, duration)
 _MAX_LATENCY_SAMPLES = 1000
+_MAX_FETCH_SAMPLES = 500
 _MAX_ERROR_SAMPLES = 10000
 
 
@@ -48,6 +50,13 @@ def api_latency_ms(route: str, ms: float) -> None:
         _api_latency.append((route, ms))
         if len(_api_latency) > _MAX_LATENCY_SAMPLES:
             _api_latency.pop(0)
+
+
+def fetch_duration_seconds(source_id: str, seconds: float) -> None:
+    with _lock:
+        _fetch_duration_seconds.append((source_id, seconds))
+        if len(_fetch_duration_seconds) > _MAX_FETCH_SAMPLES:
+            _fetch_duration_seconds.pop(0)
 
 
 def api_errors_total(route: str, code: str, inc: int = 1) -> None:
@@ -93,6 +102,15 @@ def collect_metrics() -> str:
             parts.append("# TYPE api_errors_total counter")
             for (route, code), v in _api_errors.items():
                 parts.append(f'api_errors_total{{route="{_esc(route)}",code="{_esc(code)}"}} {v}')
+        if _fetch_duration_seconds:
+            parts.append("# TYPE fetch_duration_seconds gauge")
+            by_src: dict[str, list[float]] = defaultdict(list)
+            for sid, sec in _fetch_duration_seconds:
+                by_src[sid].append(sec)
+            for sid, vals in by_src.items():
+                p95_idx = int(len(vals) * 0.95) or 0
+                p95 = sorted(vals)[p95_idx] if vals else 0
+                parts.append(f'fetch_duration_seconds_p95{{source_id="{_esc(sid)}"}} {p95:.2f}')
     return "\n".join(parts) + "\n" if parts else "# No metrics yet\n"
 
 

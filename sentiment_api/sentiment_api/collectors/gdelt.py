@@ -19,15 +19,34 @@ class GDELTCollector:
     def __init__(self, timeout_sec: int = 20):
         self.timeout = timeout_sec
 
-    def _query(self, base_url: str, query: str, mode: str = "artlist", max_records: int = 250) -> list[dict]:
+    def _query(
+        self,
+        base_url: str,
+        query: str,
+        mode: str = "artlist",
+        max_records: int = 250,
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ) -> list[dict]:
         params = {"query": query, "mode": mode, "maxrecords": max_records, "format": "json"}
+        if start_date:
+            params["startdatetime"] = start_date.replace("-", "") + "000000" if len(start_date) == 10 else start_date
+        if end_date:
+            params["enddatetime"] = end_date.replace("-", "") + "235959" if len(end_date) == 10 else end_date
         resp = fetch_with_retry(base_url, params=params, timeout=float(self.timeout))
         data = resp.json()
         articles = data.get("articles", []) if isinstance(data, dict) else []
         return articles if isinstance(articles, list) else []
 
-    def collect(self, source: Source, base_url: str, query_profiles: list[QueryProfile] | None = None) -> Iterator[RawItem]:
-        """Yield raw items from GDELT API."""
+    def collect(
+        self,
+        source: Source,
+        base_url: str,
+        query_profiles: list[QueryProfile] | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ) -> Iterator[RawItem]:
+        """Yield raw items from GDELT API. Optional start_date/end_date (YYYY-MM-DD) for backfill."""
         profiles = query_profiles or []
         if not profiles:
             profiles = [QueryProfile(profile_id="default", query="economy OR inflation OR politics")]
@@ -35,7 +54,7 @@ class GDELTCollector:
         now = datetime.now(timezone.utc)
         for profile in profiles:
             try:
-                articles = self._query(base_url, profile.query)
+                articles = self._query(base_url, profile.query, start_date=start_date, end_date=end_date)
             except Exception as e:
                 logger.warning("GDELT query failed %s: %s", profile.profile_id, e)
                 continue

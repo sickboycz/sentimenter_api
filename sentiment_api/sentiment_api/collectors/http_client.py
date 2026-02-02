@@ -1,8 +1,9 @@
-"""Shared HTTP client with retries and backoff for 429/5xx (AC-M1.3)."""
+"""Shared HTTP client with retries, backoff, robots.txt (AC-M1.3, 14.4)."""
 
 import logging
 import time
-from typing import Any
+from urllib.parse import urlparse
+from urllib.robotparser import RobotFileParser
 
 import httpx
 
@@ -15,6 +16,35 @@ INITIAL_BACKOFF = 1.0
 MAX_BACKOFF = 60.0
 
 
+_robots_cache: dict[str, tuple[RobotFileParser, float]] = {}
+_ROBOTS_CACHE_TTL = 3600
+_USER_AGENT = "SentimentAPI/1.1 (+https://sentiment-api.local)"
+
+
+def _check_robots(url: str) -> bool:
+    """Return True if fetch allowed by robots.txt."""
+    parsed = urlparse(url)
+    scheme = parsed.scheme or "https"
+    netloc = parsed.netloc or ""
+    robots_url = f"{scheme}://{netloc}/robots.txt"
+    now = time.time()
+    if robots_url in _robots_cache:
+        rp, ts = _robots_cache[robots_url]
+        if now - ts < _ROBOTS_CACHE_TTL:
+            return rp.can_fetch(_USER_AGENT, url)
+    try:
+        rp = RobotFileParser()
+        rp.set_url(robots_url)
+        with httpx.Client(timeout=5.0) as c:
+            resp = c.get(robots_url)
+            if resp.status_code == 200:
+                rp.parse(resp.text.splitlines())
+        _robots_cache[robots_url] = (rp, now)
+        return rp.can_fetch(_USER_AGENT, url)
+    except Exception:
+        return True  # allow on parse error
+
+
 def fetch_with_retry(
     url: str,
     *,
@@ -22,11 +52,15 @@ def fetch_with_retry(
     params: dict | None = None,
     timeout: float = 20.0,
     follow_redirects: bool = True,
+    respect_robots: bool = True,
 ) -> httpx.Response:
     """Fetch URL with retries and exponential backoff on 429/5xx (AC-M1.3)."""
+    if respect_robots and not _check_robots(url):
+        raise PermissionError("robots.txt disallows this URL")
     last_exc: Exception | None = None
     backoff = INITIAL_BACKOFF
-    with httpx.Client(timeout=timeout, follow_redirects=follow_redirects) as client:
+    headers = {"User-Agent": _USER_AGENT}
+    with httpx.Client(timeout=timeout, follow_redirects=follow_redirects, headers=headers) as client:
         for attempt in range(MAX_RETRIES):
             try:
                 if method.upper() == "GET":

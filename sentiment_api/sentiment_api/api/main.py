@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, Response
 
 from sentiment_api.api.auth import get_api_key
 from sentiment_api.api.keys import validate_api_key
@@ -113,6 +113,24 @@ async def metrics():
 
 
 # -----------------------------------------------------------------------------
+# /ready — Readiness probe (DB ready)
+# -----------------------------------------------------------------------------
+@app.get("/ready")
+async def ready():
+    """Readiness: 200 when DB is ready to serve. No auth."""
+    try:
+        from sentiment_api.db.pool import get_pool
+        pool = get_pool()
+        if pool is None:
+            return Response(status_code=503, content="Pool not initialized")
+        async with pool.acquire() as conn:
+            await conn.fetchval("SELECT 1")
+        return Response(status_code=200, content="ok")
+    except Exception:
+        return Response(status_code=503, content="DB not ready")
+
+
+# -----------------------------------------------------------------------------
 # /v1/health — No auth (AC-M10.4)
 # -----------------------------------------------------------------------------
 @app.get("/v1/health")
@@ -154,7 +172,31 @@ async def health():
     except Exception as e:
         checks.append({"name": "registry", "status": "fail", "details": {"error": str(e)}})
 
-    status = "ok" if all(c["status"] == "ok" for c in checks) else "degraded"
+    # Artifact store check (write test)
+    try:
+        import tempfile
+        root = Path(settings.artifact_root)
+        root.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(dir=root, prefix=".health_", delete=True) as tf:
+            tf.write(b"ok")
+        checks.append({"name": "artifacts", "status": "ok", "details": {"path": str(root)}})
+    except Exception as e:
+        checks.append({"name": "artifacts", "status": "fail", "details": {"error": str(e)}})
+
+    # OpenAI check (optional; fail = LLM disabled)
+    try:
+        import os
+        key = settings.openai_api_key or os.environ.get("OPENAI_API_KEY", "")
+        if key:
+            checks.append({"name": "openai", "status": "ok", "details": {}})
+        else:
+            checks.append({"name": "openai", "status": "fail", "details": {"message": "No API key; LLM features disabled"}})
+    except Exception as e:
+        checks.append({"name": "openai", "status": "fail", "details": {"error": str(e)}})
+
+    core_names = {"postgres", "redis", "registry", "artifacts"}
+    core_checks = [c for c in checks if c["name"] in core_names]
+    status = "ok" if all(c["status"] == "ok" for c in core_checks) else "degraded"
     if any(c["name"] == "postgres" and c["status"] == "fail" for c in checks):
         status = "down"
 
@@ -513,15 +555,26 @@ async def get_cluster_by_id(
     evidence = []
     if include_articles:
         async with acquire() as conn:
-            art_rows = await conn.fetch(
-                """
-                SELECT a.article_id, a.source_id, a.url, a.published_at, a.title_en, a.lang_original
-                FROM articles a
-                JOIN cluster_members cm ON a.article_id = cm.article_id
-                WHERE cm.cluster_id = $1
-                """,
-                cluster_id,
-            )
+            try:
+                art_rows = await conn.fetch(
+                    """
+                    SELECT a.article_id, a.source_id, a.url, a.published_at, a.title_en, a.lang_original
+                    FROM articles a
+                    JOIN cluster_members cm ON a.article_id = cm.article_id
+                    WHERE cm.cluster_id = $1 AND (a.deleted_at IS NULL)
+                    """,
+                    cluster_id,
+                )
+            except Exception:
+                art_rows = await conn.fetch(
+                    """
+                    SELECT a.article_id, a.source_id, a.url, a.published_at, a.title_en, a.lang_original
+                    FROM articles a
+                    JOIN cluster_members cm ON a.article_id = cm.article_id
+                    WHERE cm.cluster_id = $1
+                    """,
+                    cluster_id,
+                )
             for ar in art_rows:
                 articles.append({
                     "article_id": ar["article_id"],
@@ -718,7 +771,7 @@ async def get_spy_event_study(
         from sentiment_api.engines.research import run_event_study
         from sentiment_api.db.pool import get_pool
         fd = date_type.fromisoformat(from_date)
-        td = date_type.fromisoformat(to_date)
+        td = date_type.fromisoformat(to)
         result = await run_event_study(
             fd, td, market=market, windows=windows,
             min_impact_level=min_impact_level, direction=direction,
@@ -845,6 +898,33 @@ async def admin_ingest_run(
                 await queue.rpush(QUEUE_INGEST, json.dumps(_serialize_item(item)))
                 total += 1
     return {"meta": meta(), "data": {"pushed": total, "sources_polled": len(sources)}, "errors": []}
+
+
+# -----------------------------------------------------------------------------
+# POST /v1/admin/backfill — Backfill by date range (AC-M1.4)
+# -----------------------------------------------------------------------------
+@app.post("/v1/admin/backfill")
+async def admin_backfill(
+    _: Annotated[str, Depends(validate_api_key)],
+    body: dict = Body(default={}),
+):
+    """Backfill sources by date range. Body: {from: YYYY-MM-DD, to: YYYY-MM-DD, source_id?: str}."""
+    from datetime import date as date_type
+    from sentiment_api.ingest.backfill import run_backfill
+    fd = body.get("from") or body.get("from_date")
+    td = body.get("to") or body.get("to_date")
+    source_id = body.get("source_id")
+    if not fd or not td:
+        raise HTTPException(status_code=400, detail="from and to dates required (YYYY-MM-DD)")
+    try:
+        from_d = date_type.fromisoformat(fd)
+        to_d = date_type.fromisoformat(td)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid date format: {e}")
+    if from_d > to_d:
+        raise HTTPException(status_code=400, detail="from must be <= to")
+    result = await run_backfill(from_d, to_d, source_id)
+    return {"meta": meta(), "data": result, "errors": []}
 
 
 def run():

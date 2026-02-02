@@ -82,3 +82,8 @@ All endpoints except `/v1/health` require an API key validated against `api_keys
 - `GET /v1/sources` — Source registry
 - `GET /v1/health` — Health check (no auth)
 - `GET /metrics` — Prometheus metrics (no auth)
+- `GET /ready` — Readiness probe (DB ready)
+- `POST /v1/admin/backfill` — Backfill by date range
+
+CLI: `sentiment-api backfill --from YYYY-MM-DD --to YYYY-MM-DD`  
+CLI: `sentiment-api retention --days N`

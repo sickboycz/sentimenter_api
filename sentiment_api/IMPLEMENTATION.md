@@ -45,6 +45,7 @@ Implementation follows `Docs/sentiment_api_tech_package_v1.1/SENTIMENT_API_MASTE
 - `GET /v1/sectors` — Sector taxonomy (GICS-like 11)
 - `POST /v1/ask` — RAG query (vector retrieval + LLM answer with citations)
 - `POST /v1/admin/ingest/run` — Trigger ingest (operator)
+- `POST /v1/admin/backfill` — Backfill by date range
 - `GET /v1/sources` — Source registry
 - `GET /v1/health` — Health (no auth)
 
@@ -62,9 +63,13 @@ CLI: `sentiment-api refresh-universes` — Refresh universe constituents (idempo
 - **Asset targeting (M5.5)**: Rule-based + optional LLM; event_impacts; cluster_asset_targeting_audit for full scoring
 - **Universe refresh**: `refresh-universes` CLI; GICS-like 11 sectors + unknown
 - **Error handling**: Retries+backoff (429/5xx) in collectors; circuit breaker per source; daemon run ledger for failures
-- **Metrics**: `GET /metrics` Prometheus (ingestion_errors, ingestion_lag, translation_failures, queue_depth, api_latency, api_errors)
+- **Metrics**: `GET /metrics` Prometheus (ingestion_errors, ingestion_lag, translation_failures, queue_depth, api_latency, api_errors, fetch_duration_p95)
 - **M0 hot reload**: Daemon periodic registry reload + SIGHUP
 - **Restart**: Docker `restart: on-failure`; systemd API/worker/daemon service files in ops/
+- **Health**: Postgres, Redis, Registry, Artifacts, OpenAI; `GET /ready` readiness
+- **Backfill**: `sentiment-api backfill --from YYYY-MM-DD --to YYYY-MM-DD`; `POST /v1/admin/backfill`
+- **Retention**: `sentiment-api retention --days N`; tombstone (deleted_at); M7.3
+- **Robots**: robots.txt check + User-Agent in http_client
 
 ## Run
 

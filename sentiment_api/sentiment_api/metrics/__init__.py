@@ -7,6 +7,7 @@ from sentiment_api.metrics.registry import (
     queue_depth,
     api_latency_ms,
     api_errors_total,
+    fetch_duration_seconds,
     collect_metrics,
 )
 
