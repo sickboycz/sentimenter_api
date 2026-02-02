@@ -1440,6 +1440,167 @@ async def admin_logs(
     return {"meta": meta(), "data": data, "errors": []}
 
 
+# -----------------------------------------------------------------------------
+# GET /v1/admin/ops — Ops summary (queues, counts, heartbeats)
+# -----------------------------------------------------------------------------
+@app.get("/v1/admin/ops")
+async def admin_ops(
+    _: Annotated[str, Depends(validate_api_key)],
+):
+    """Return ops summary: queue depth, counts, recent runs, worker/daemon heartbeat."""
+    from sentiment_api.queue.client import (
+        QUEUE_INGEST,
+        QUEUE_NORMALIZE,
+        QUEUE_SUMMARIZE,
+        QUEUE_SCORE,
+        QUEUE_INDEX,
+    )
+    from sentiment_api.db.pool import get_pool, acquire
+
+    now = datetime.now(UTC)
+    data: dict = {
+        "queues": {},
+        "counts": {},
+        "latest": {},
+        "runs": {},
+        "heartbeats": {},
+        "redis": {"status": "unknown"},
+        "db": {"status": "unknown"},
+    }
+
+    def _parse_ts(ts: str | None) -> datetime | None:
+        if not ts:
+            return None
+        try:
+            return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        except Exception:
+            return None
+
+    def _to_iso(ts: datetime | None) -> str | None:
+        if not ts:
+            return None
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=UTC)
+        return ts.isoformat().replace("+00:00", "Z")
+
+    def _age_sec(ts: datetime | None) -> float | None:
+        if not ts:
+            return None
+        return round((now - ts).total_seconds(), 1)
+
+    # Redis: queue depths + heartbeats
+    try:
+        import redis.asyncio as redis
+        settings = get_settings()
+        r = redis.from_url(settings.redis_url, decode_responses=True)
+        queue_map = {
+            "ingest": QUEUE_INGEST,
+            "normalize": QUEUE_NORMALIZE,
+            "summarize": QUEUE_SUMMARIZE,
+            "score": QUEUE_SCORE,
+            "index": QUEUE_INDEX,
+        }
+        for name, q in queue_map.items():
+            try:
+                data["queues"][name] = int(await r.llen(q))
+            except Exception:
+                data["queues"][name] = 0
+        data["queues_total"] = sum(int(v or 0) for v in data["queues"].values())
+
+        worker_hb = _parse_ts(await r.get("sentiment_api:ops:worker_heartbeat"))
+        daemon_hb = _parse_ts(await r.get("sentiment_api:ops:daemon_heartbeat"))
+        worker_last_job = await r.hgetall("sentiment_api:ops:worker_last_job")
+        worker_counts_raw = await r.hgetall("sentiment_api:ops:worker_counts")
+        daemon_last_cycle_raw = await r.get("sentiment_api:ops:daemon_last_cycle")
+
+        worker_counts = {k: int(v) for k, v in (worker_counts_raw or {}).items() if v is not None}
+        daemon_last_cycle = None
+        if daemon_last_cycle_raw:
+            try:
+                daemon_last_cycle = json.loads(daemon_last_cycle_raw)
+            except json.JSONDecodeError:
+                daemon_last_cycle = None
+
+        data["heartbeats"]["worker"] = {
+            "last_seen": _to_iso(worker_hb),
+            "age_sec": _age_sec(worker_hb),
+            "last_job": worker_last_job or {},
+            "counts": worker_counts,
+        }
+        data["heartbeats"]["daemon"] = {
+            "last_seen": _to_iso(daemon_hb),
+            "age_sec": _age_sec(daemon_hb),
+            "last_cycle": daemon_last_cycle or {},
+        }
+        data["redis"] = {"status": "ok"}
+        await r.aclose()
+    except Exception as e:
+        data["redis"] = {"status": "fail", "error": str(e)}
+
+    # DB: counts + recent runs
+    pool = get_pool()
+    if pool is None:
+        data["db"] = {"status": "fail", "error": "Pool not initialized"}
+    else:
+        try:
+            async with acquire() as conn:
+                counts = data["counts"]
+                latest = data["latest"]
+                try:
+                    counts["articles"] = int(await conn.fetchval("SELECT count(*) FROM articles"))
+                    latest["article_at"] = _to_iso(await conn.fetchval("SELECT max(published_at) FROM articles"))
+                except Exception:
+                    pass
+                try:
+                    counts["clusters"] = int(await conn.fetchval("SELECT count(*) FROM clusters"))
+                    latest["cluster_at"] = _to_iso(await conn.fetchval("SELECT max(last_seen) FROM clusters"))
+                except Exception:
+                    pass
+                try:
+                    counts["events"] = int(await conn.fetchval("SELECT count(*) FROM events"))
+                    latest["event_at"] = _to_iso(await conn.fetchval("SELECT max(created_at) FROM events"))
+                except Exception:
+                    pass
+                try:
+                    counts["summaries"] = int(await conn.fetchval("SELECT count(*) FROM summaries"))
+                except Exception:
+                    pass
+                try:
+                    counts["runs"] = int(await conn.fetchval("SELECT count(*) FROM runs"))
+                except Exception:
+                    pass
+
+                try:
+                    run_rows = await conn.fetch(
+                        """
+                        SELECT run_type, status, started_at, ended_at, stats, error
+                        FROM runs
+                        ORDER BY started_at DESC
+                        LIMIT 50
+                        """
+                    )
+                    runs: dict[str, dict] = {}
+                    for r in run_rows:
+                        if r["run_type"] in runs:
+                            continue
+                        runs[r["run_type"]] = {
+                            "run_type": r["run_type"],
+                            "status": r["status"],
+                            "started_at": _to_iso(r["started_at"]),
+                            "ended_at": _to_iso(r["ended_at"]) if r["ended_at"] else None,
+                            "stats": r["stats"] or {},
+                            "error": r["error"],
+                        }
+                    data["runs"] = runs
+                except Exception:
+                    pass
+            data["db"] = {"status": "ok"}
+        except Exception as e:
+            data["db"] = {"status": "fail", "error": str(e)}
+
+    return {"meta": meta(), "data": data, "errors": []}
+
+
 def run():
     """Run uvicorn server."""
     import uvicorn

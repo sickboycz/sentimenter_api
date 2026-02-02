@@ -5,6 +5,7 @@ import { Shell } from "@/components/Shell";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/Table";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { useSources } from "@/lib/api/hooks";
 
 export default function SourcesPage() {
@@ -12,11 +13,15 @@ export default function SourcesPage() {
 
   return (
     <Shell>
-      <Card title="Sources" subtitle="Enabled sources with credibility tier and license class." />
+      <PageHeader
+        title="Sources"
+        subtitle="Enabled sources with credibility tier and license class."
+        meta="Registry snapshot."
+      />
       {!sources.data ? (
         <Skeleton className="h-[260px]" />
       ) : (
-        <Card title="Registry" subtitle="Snapshot from /v1/sources">
+        <Card title="Registry" subtitle={`Snapshot from /v1/sources • ${sources.data?.sources?.length ?? 0} sources`}>
           <Table>
             <THead>
               <TR hover={false}>

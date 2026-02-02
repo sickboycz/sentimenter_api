@@ -5,6 +5,7 @@ import { Shell } from "@/components/Shell";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { SectorHeatmap } from "@/components/charts/SectorHeatmap";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { useImpactSectors } from "@/lib/api/hooks";
 
 export default function SectorsPage() {
@@ -12,11 +13,11 @@ export default function SectorsPage() {
 
   return (
     <Shell>
-      <Card title="Sectors" subtitle="Heatmap + rationale.">
-        <div className="text-sm opacity-70">
-          Click a sector later to drill down (todo). This scaffold focuses on design fidelity + structure.
-        </div>
-      </Card>
+      <PageHeader
+        title="Sectors"
+        subtitle="Heatmap + rationale by sector."
+        meta="Impact scores are normalized 0–100 with directional tags."
+      />
 
       {!sectors.data ? (
         <Skeleton className="h-[240px]" />

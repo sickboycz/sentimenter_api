@@ -9,7 +9,9 @@ LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s %(message)s"
 
 def add_file_handler(service: str) -> None:
     """Add a FileHandler to sentiment_api logger writing to /data/logs/<service>.log if dir exists."""
-    if not LOG_DIR.is_dir():
+    try:
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
+    except OSError:
         return
     log_file = LOG_DIR / f"{service}.log"
     try:

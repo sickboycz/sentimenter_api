@@ -1,0 +1,35 @@
+:root{
+  --bg-0: #0b0f17;
+  --bg-1: rgba(255,255,255,0.035);
+  --bg-2: rgba(255,255,255,0.055);
+  --bg-3: rgba(255,255,255,0.075);
+
+  --border-0: rgba(255,255,255,0.10);
+  --border-1: rgba(255,255,255,0.14);
+  --border-2: rgba(255,255,255,0.18);
+
+  --text-0: rgba(230,234,242,1);
+  --text-1: rgba(230,234,242,0.78);
+  --text-2: rgba(230,234,242,0.55);
+
+  --good: rgba(70, 220, 160, 1);
+  --warn: rgba(255, 195, 80, 1);
+  --bad:  rgba(255, 95, 110, 1);
+
+  --accent-cyan: rgba(90, 180, 255, 1);
+  --accent-violet: rgba(180, 120, 255, 1);
+  --accent-amber: rgba(255, 190, 90, 1);
+
+  --blur: 18px;
+
+  --r-xs: 10px;
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-lg: 18px;
+  --r-xl: 22px;
+
+  --shadow-1: 0 14px 38px rgba(0,0,0,0.45);
+  --shadow-2: 0 22px 70px rgba(0,0,0,0.55);
+
+  --grid-gap: 14px;
+}

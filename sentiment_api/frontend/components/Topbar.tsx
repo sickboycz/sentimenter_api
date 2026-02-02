@@ -3,7 +3,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { StatusPill } from "./ui/StatusPill";
 import { Button } from "./ui/Button";
-import { useHealth, useSources, useImpactTickers } from "@/lib/api/hooks";
+import { Badge } from "./ui/Badge";
+import { useHealth, useSources, useImpactTickers, useOpsStatus } from "@/lib/api/hooks";
 
 function getApiKey(): string {
   if (typeof window === "undefined") return "";
@@ -19,9 +20,10 @@ export function Topbar() {
   const ingestionStatus = (sources.data?.sources?.length ?? 0) > 0 ? "ok" : "unknown";
   const allocationStatus = (tickers.data?.winners?.length ?? 0) > 0 ? "ok" : "unknown";
 
+  const [key, setKey] = useState("");
+  const ops = useOpsStatus(!!key);
   const [tf, setTf] = useState<"1h" | "6h" | "24h">("24h");
   const [q, setQ] = useState("");
-  const [key, setKey] = useState("");
 
   useEffect(() => setKey(getApiKey()), []);
 
@@ -34,6 +36,30 @@ export function Topbar() {
     ];
   }, [apiStatus, ingestionStatus, allocationStatus]);
 
+  const queueTotal = useMemo(() => {
+    const q = ops.data?.queues || {};
+    if (typeof ops.data?.queues_total === "number") return ops.data?.queues_total;
+    return Object.values(q).reduce((acc, v) => acc + (v || 0), 0);
+  }, [ops.data?.queues, ops.data?.queues_total]);
+
+  const workerAge = ops.data?.heartbeats?.worker?.age_sec ?? null;
+  const workerAlive = workerAge !== null && workerAge < 30;
+  const activityTone = !ops.data
+    ? "neutral"
+    : queueTotal > 0 && !workerAlive
+      ? "bad"
+      : queueTotal > 0
+        ? "good"
+        : "neutral";
+  const activityLabel = !ops.data ? "unknown" : (queueTotal > 0 ? `${queueTotal} queued` : "idle");
+  const workerLabel = workerAge === null ? "—" : `${Math.round(workerAge)}s`;
+  const dotClass = activityTone === "good"
+    ? "bg-[var(--good)]"
+    : activityTone === "bad"
+      ? "bg-[var(--bad)]"
+      : "bg-white/40";
+  const dotPulse = activityTone === "good" ? "animate-pulse" : "";
+
   const saveKey = () => {
     localStorage.setItem("SENTIMETER_API_KEY", key.trim());
     window.location.reload();
@@ -42,7 +68,7 @@ export function Topbar() {
   return (
     <div className="glass-strong p-3 flex items-center gap-3">
       <div className="flex items-center gap-2">
-        <div className="font-semibold">Sentimeter Dashboard</div>
+        <div className="font-display font-semibold">Sentimeter Dashboard</div>
         <div className="text-xs opacity-60">API status at a glance</div>
       </div>
 
@@ -55,6 +81,17 @@ export function Topbar() {
       <div className="flex-1" />
 
       <div className="flex items-center gap-2">
+        <Badge tone={activityTone}>
+          <span className="inline-flex items-center gap-2">
+            <span className={`inline-block w-2 h-2 rounded-full ${dotClass} ${dotPulse}`} />
+            <span>Activity</span>
+            <span className="opacity-70">•</span>
+            <span>{activityLabel}</span>
+            <span className="opacity-70">•</span>
+            <span>worker {workerLabel}</span>
+          </span>
+        </Badge>
+
         <div className="glass p-1 flex gap-1">
           {(["1h","6h","24h"] as const).map((t) => (
             <button
@@ -72,7 +109,7 @@ export function Topbar() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search clusters, tickers…"
-          className="w-[360px] px-3 py-2 rounded-xl bg-black/20 border border-white/10 outline-none"
+          className="w-[320px] xl:w-[360px] px-3 py-2 rounded-xl bg-black/20 border border-white/10 outline-none focus:border-white/25"
         />
 
         <div className="flex items-center gap-2 ml-2">

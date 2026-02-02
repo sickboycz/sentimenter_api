@@ -8,6 +8,67 @@ export const demo = {
       { name: "redis", status: "ok" }
     ]
   },
+  ops: {
+    queues: { ingest: 28, summarize: 6, index: 2, normalize: 0, score: 0 },
+    queues_total: 36,
+    counts: { articles: 1240, clusters: 86, events: 86, summaries: 980, runs: 4200 },
+    latest: {
+      article_at: new Date(Date.now() - 2 * 60_000).toISOString(),
+      cluster_at: new Date(Date.now() - 6 * 60_000).toISOString(),
+      event_at: new Date(Date.now() - 8 * 60_000).toISOString()
+    },
+    runs: {
+      ingest: {
+        run_type: "ingest",
+        status: "ok",
+        started_at: new Date(Date.now() - 3 * 60_000).toISOString(),
+        ended_at: new Date(Date.now() - 2 * 60_000).toISOString(),
+        stats: { items_pushed: 34 }
+      },
+      summarize: {
+        run_type: "summarize",
+        status: "ok",
+        started_at: new Date(Date.now() - 2 * 60_000).toISOString(),
+        ended_at: new Date(Date.now() - 90_000).toISOString(),
+        stats: { article_id: "art_demo_1" }
+      }
+    },
+    heartbeats: {
+      worker: {
+        last_seen: new Date().toISOString(),
+        age_sec: 2.4,
+        last_job: { queue: "sentiment_api:ingest", at: new Date(Date.now() - 6_000).toISOString() },
+        counts: { "sentiment_api:ingest": 892, "sentiment_api:summarize": 441, "sentiment_api:index": 112 }
+      },
+      daemon: {
+        last_seen: new Date().toISOString(),
+        age_sec: 4.1,
+        last_cycle: { at: new Date(Date.now() - 55_000).toISOString(), sources: 42, queued: 18, interval_sec: 300 }
+      }
+    },
+    redis: { status: "ok" },
+    db: { status: "ok" }
+  },
+  backfill: {
+    pushed: 324,
+    sources: 42,
+    from: new Date(Date.now() - 7 * 24 * 60 * 60_000).toISOString().slice(0, 10),
+    to: new Date().toISOString().slice(0, 10)
+  },
+  logs: {
+    api: [
+      "2026-02-02 20:58:10 INFO sentiment_api.api Request complete 200 /v1/health",
+      "2026-02-02 20:58:12 INFO sentiment_api.api Request complete 200 /v1/admin/ops"
+    ],
+    worker: [
+      "2026-02-02 20:58:06 INFO sentiment_api.worker Worker started, synced 42 sources",
+      "2026-02-02 20:58:08 INFO sentiment_api.worker Processed ingest -> summarize"
+    ],
+    daemon: [
+      "2026-02-02 20:58:00 INFO sentiment_api.daemon Daemon started, polling 42 sources every 300s",
+      "2026-02-02 20:58:03 INFO sentiment_api.daemon Poll cycle: 18 items queued"
+    ]
+  },
   mood: {
     as_of: new Date().toISOString(),
     sentiment: "RiskOff",

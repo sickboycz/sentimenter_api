@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Shell } from "@/components/Shell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export default function SettingsPage() {
   const [apiKey, setApiKey] = useState("");
@@ -22,7 +23,13 @@ export default function SettingsPage() {
 
   return (
     <Shell>
-      <Card title="Settings" subtitle="Local settings. No analytics. No key logging.">
+      <PageHeader
+        title="Settings"
+        subtitle="Local settings. No analytics. No key logging."
+        meta="Preferences live in localStorage."
+      />
+
+      <Card title="API Access" subtitle="Used for all authenticated requests.">
         <div className="grid gap-3 max-w-xl">
           <label className="text-sm opacity-80">API Key</label>
           <input

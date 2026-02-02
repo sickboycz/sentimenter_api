@@ -10,6 +10,57 @@ export const HealthData = z.object({
   checks: z.array(z.any()).default([])
 });
 
+export const OpsRun = z.object({
+  run_type: z.string(),
+  status: z.string().optional(),
+  started_at: z.string().nullable().optional(),
+  ended_at: z.string().nullable().optional(),
+  stats: z.any().optional(),
+  error: z.any().optional()
+});
+
+export const OpsHeartbeat = z.object({
+  last_seen: z.string().nullable().optional(),
+  age_sec: z.number().nullable().optional(),
+  last_job: z.any().optional(),
+  last_cycle: z.any().optional(),
+  counts: z.record(z.number()).optional()
+});
+
+export const OpsStatus = z.object({
+  queues: z.record(z.number()).default({}),
+  queues_total: z.number().optional(),
+  counts: z.record(z.number()).default({}),
+  latest: z.record(z.string().nullable()).default({}),
+  runs: z.record(OpsRun).default({}),
+  heartbeats: z.object({
+    worker: OpsHeartbeat.optional(),
+    daemon: OpsHeartbeat.optional()
+  }).default({}),
+  redis: z.object({
+    status: z.string(),
+    error: z.string().optional().nullable()
+  }).optional(),
+  db: z.object({
+    status: z.string(),
+    error: z.string().optional().nullable()
+  }).optional()
+});
+
+export const LogsData = z.object({
+  api: z.array(z.string()).optional().default([]),
+  worker: z.array(z.string()).optional().default([]),
+  daemon: z.array(z.string()).optional().default([])
+});
+
+export const BackfillResult = z.object({
+  pushed: z.number().optional(),
+  sources: z.number().optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
+  error: z.string().optional()
+});
+
 export const SourceItem = z.object({
   source_id: z.string(),
   name: z.string(),

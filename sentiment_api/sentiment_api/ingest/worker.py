@@ -54,6 +54,33 @@ try:
 except Exception:
     pass
 
+_HEARTBEAT_KEY = "sentiment_api:ops:worker_heartbeat"
+_LAST_JOB_KEY = "sentiment_api:ops:worker_last_job"
+_COUNTS_KEY = "sentiment_api:ops:worker_counts"
+_HEARTBEAT_INTERVAL_SEC = 5
+_HEARTBEAT_TTL_SEC = 30
+
+
+async def _heartbeat_loop(queue_client) -> None:
+    """Keep a short-lived heartbeat in Redis so ops UI can detect liveness."""
+    while True:
+        try:
+            now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            await queue_client.set(_HEARTBEAT_KEY, now, ex=_HEARTBEAT_TTL_SEC)
+        except Exception as ex:
+            logger.debug("Worker heartbeat update failed: %s", ex)
+        await asyncio.sleep(_HEARTBEAT_INTERVAL_SEC)
+
+
+async def _record_job(queue_client, queue_name: str) -> None:
+    """Record last job metadata + per-queue counters for ops UI."""
+    try:
+        now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        await queue_client.hset(_LAST_JOB_KEY, mapping={"queue": queue_name, "at": now})
+        await queue_client.hincrby(_COUNTS_KEY, queue_name, 1)
+    except Exception as ex:
+        logger.debug("Worker job record failed: %s", ex)
+
 
 def _event_id(cluster_id: str, event_type: str) -> str:
     h = hashlib.sha256(f"{cluster_id}|{event_type}|{datetime.utcnow().isoformat()[:10]}".encode()).digest()[:12]
@@ -222,6 +249,7 @@ async def run_worker() -> None:
     settings = get_settings()
     await init_pool(settings.database_url)
     queue_client = await get_queue(settings.redis_url)
+    heartbeat_task = asyncio.create_task(_heartbeat_loop(queue_client))
     reg = load_registry(settings.source_registry_path)
     async with acquire() as conn:
         sources = [
@@ -242,21 +270,29 @@ async def run_worker() -> None:
         await upsert_sources(conn, sources)
     logger.info("Worker started, synced %d sources", len(sources))
     import json
-    while True:
+    try:
+        while True:
+            try:
+                result = await queue_client.blpop([QUEUE_INGEST, QUEUE_NORMALIZE, QUEUE_SUMMARIZE, QUEUE_SCORE, QUEUE_INDEX], timeout=5)
+                if not result:
+                    continue
+                queue_name, data = result
+                await _record_job(queue_client, queue_name)
+                payload = json.loads(data) if isinstance(data, str) else data
+                if queue_name == QUEUE_SUMMARIZE and "article_id" in payload and "norm" in payload:
+                    await process_summarize(payload)
+                elif queue_name == QUEUE_INDEX and "cluster_id" in payload:
+                    await process_index(payload)
+                elif queue_name == QUEUE_INGEST and "source_id" in payload and "url" in payload:
+                    await process_ingest(payload)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.exception("Worker error: %s", e)
+    finally:
+        heartbeat_task.cancel()
         try:
-            result = await queue_client.blpop([QUEUE_INGEST, QUEUE_NORMALIZE, QUEUE_SUMMARIZE, QUEUE_SCORE, QUEUE_INDEX], timeout=5)
-            if not result:
-                continue
-            queue_name, data = result
-            payload = json.loads(data) if isinstance(data, str) else data
-            if queue_name == QUEUE_SUMMARIZE and "article_id" in payload and "norm" in payload:
-                await process_summarize(payload)
-            elif queue_name == QUEUE_INDEX and "cluster_id" in payload:
-                await process_index(payload)
-            elif queue_name == QUEUE_INGEST and "source_id" in payload and "url" in payload:
-                await process_ingest(payload)
-        except asyncio.CancelledError:
-            break
-        except Exception as e:
-            logger.exception("Worker error: %s", e)
-    await close_pool()
+            await heartbeat_task
+        except Exception:
+            pass
+        await close_pool()

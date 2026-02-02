@@ -1,10 +1,13 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { z } from "zod";
-import { apiGetData } from "./client";
+import { apiGetData, apiPostData } from "./client";
 import {
   HealthData,
+  OpsStatus,
+  LogsData,
+  BackfillResult,
   MoodNowData,
   IntradayPoint,
   MarketImpact,
@@ -28,6 +31,38 @@ export function useHealth() {
       return res.data as z.infer<typeof HealthData>;
     },
     refetchInterval: 10_000
+  });
+}
+
+export function useOpsStatus(enabled: boolean = true) {
+  return useQuery<z.infer<typeof OpsStatus>>({
+    queryKey: ["opsStatus"],
+    queryFn: async () => {
+      const res = await apiGetData("/v1/admin/ops", OpsStatus);
+      return res.data as z.infer<typeof OpsStatus>;
+    },
+    refetchInterval: 5_000,
+    enabled
+  });
+}
+
+export function useAdminLogs() {
+  return useQuery<z.infer<typeof LogsData>>({
+    queryKey: ["adminLogs"],
+    queryFn: async () => {
+      const res = await apiGetData("/v1/admin/logs?tail=200&sources=api&sources=worker&sources=daemon", LogsData);
+      return res.data as z.infer<typeof LogsData>;
+    },
+    refetchInterval: 10_000
+  });
+}
+
+export function useAdminBackfill() {
+  return useMutation({
+    mutationFn: async (payload: { from: string; to: string }) => {
+      const res = await apiPostData("/v1/admin/backfill", payload, BackfillResult);
+      return res.data as z.infer<typeof BackfillResult>;
+    }
   });
 }
 

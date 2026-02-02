@@ -32,3 +32,8 @@ sentiment_api/frontend/.next/
 sentiment_api/frontend/tsconfig.tsbuildinfo
 sentiment_api/frontend/playwright-report/
 sentiment_api/frontend/test-results/
+
+# backups / build artifacts
+sentiment_api/frontend_v1.2_backup/
+**/.next/
+**/node_modules/

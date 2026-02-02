@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "../styles/tokens.css";
+
+:root { color-scheme: dark; }
+html, body { height: 100%; }
+body{
+  margin:0;
+  background:
+    radial-gradient(1200px 800px at 20% 10%, rgba(100, 180, 255, 0.12), transparent 60%),
+    radial-gradient(1200px 800px at 80% 30%, rgba(255, 120, 180, 0.10), transparent 60%),
+    var(--bg-0);
+  color: var(--text-0);
+}
+
+.glass{
+  background: var(--bg-2);
+  border: 1px solid var(--border-0);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-1);
+}
+.glass-hover:hover{
+  background: var(--bg-3);
+  border-color: var(--border-1);
+}
+.hairline{ border: 1px solid var(--border-0); }
+.subtle{ color: var(--text-2); }

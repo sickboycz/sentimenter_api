@@ -24,6 +24,36 @@ try:
 except Exception:
     pass
 
+_HEARTBEAT_KEY = "sentiment_api:ops:daemon_heartbeat"
+_LAST_CYCLE_KEY = "sentiment_api:ops:daemon_last_cycle"
+_HEARTBEAT_INTERVAL_SEC = 5
+_HEARTBEAT_TTL_SEC = 90
+
+
+async def _heartbeat_loop(queue_client) -> None:
+    """Keep a short-lived heartbeat in Redis so ops UI can detect liveness."""
+    while True:
+        try:
+            now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            await queue_client.set(_HEARTBEAT_KEY, now, ex=_HEARTBEAT_TTL_SEC)
+        except Exception as ex:
+            logger.debug("Daemon heartbeat update failed: %s", ex)
+        await asyncio.sleep(_HEARTBEAT_INTERVAL_SEC)
+
+
+async def _record_cycle(queue_client, *, sources: int, queued: int, interval_sec: int) -> None:
+    """Store last poll cycle summary for ops UI."""
+    try:
+        payload = {
+            "at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "sources": sources,
+            "queued": queued,
+            "interval_sec": interval_sec,
+        }
+        await queue_client.set(_LAST_CYCLE_KEY, json.dumps(payload), ex=24 * 3600)
+    except Exception as ex:
+        logger.debug("Daemon cycle record failed: %s", ex)
+
 
 def _serialize_item(item) -> dict:
     """Serialize RawItem for queue."""
@@ -106,6 +136,7 @@ async def run_daemon() -> None:
     settings = get_settings()
     await init_pool(settings.database_url)
     queue = await get_queue(settings.redis_url)
+    heartbeat_task = asyncio.create_task(_heartbeat_loop(queue))
     reg = load_registry(settings.source_registry_path)
     sources = reg.get_enabled_sources()
     interval = reg.defaults.update_interval_sec or 300
@@ -126,29 +157,37 @@ async def run_daemon() -> None:
     except (AttributeError, ValueError):
         pass  # Windows / no SIGHUP
 
-    while True:
+    try:
+        while True:
+            try:
+                cycle += 1
+                if reload_requested or cycle % _REGISTRY_RELOAD_INTERVAL == 0:
+                    reload_requested = False
+                    try:
+                        reg = load_registry(settings.source_registry_path)
+                        sources = reg.get_enabled_sources()
+                        interval = reg.defaults.update_interval_sec or interval
+                        logger.info("Registry reloaded: %d sources", len(sources))
+                    except Exception as ex:
+                        logger.warning("Registry reload failed, using cached: %s", ex)
+                total = 0
+                for src in sources:
+                    n = await poll_source(src, queue, rss, gdelt, scrape, reg.defaults)
+                    total += n
+                    if n > 0:
+                        logger.debug("Source %s: %d items", src.source_id, n)
+                if total > 0:
+                    logger.info("Poll cycle: %d items queued", total)
+                await _record_cycle(queue, sources=len(sources), queued=total, interval_sec=interval)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.exception("Daemon error: %s", e)
+            await asyncio.sleep(interval)
+    finally:
+        heartbeat_task.cancel()
         try:
-            cycle += 1
-            if reload_requested or cycle % _REGISTRY_RELOAD_INTERVAL == 0:
-                reload_requested = False
-                try:
-                    reg = load_registry(settings.source_registry_path)
-                    sources = reg.get_enabled_sources()
-                    interval = reg.defaults.update_interval_sec or interval
-                    logger.info("Registry reloaded: %d sources", len(sources))
-                except Exception as ex:
-                    logger.warning("Registry reload failed, using cached: %s", ex)
-            total = 0
-            for src in sources:
-                n = await poll_source(src, queue, rss, gdelt, scrape, reg.defaults)
-                total += n
-                if n > 0:
-                    logger.debug("Source %s: %d items", src.source_id, n)
-            if total > 0:
-                logger.info("Poll cycle: %d items queued", total)
-        except asyncio.CancelledError:
-            break
-        except Exception as e:
-            logger.exception("Daemon error: %s", e)
-        await asyncio.sleep(interval)
-    await close_pool()
+            await heartbeat_task
+        except Exception:
+            pass
+        await close_pool()

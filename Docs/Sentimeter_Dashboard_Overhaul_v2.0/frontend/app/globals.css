@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "../styles/tokens.css";
+
+:root { color-scheme: dark; }
+html, body { height: 100%; }
+body{
+  margin:0;
+  background:
+    radial-gradient(1200px 800px at 20% 10%, rgba(100, 180, 255, 0.12), transparent 60%),
+    radial-gradient(1200px 800px at 80% 30%, rgba(255, 120, 180, 0.10), transparent 60%),
+    radial-gradient(900px 650px at 65% 80%, rgba(120, 255, 220, 0.06), transparent 55%),
+    var(--bg-0);
+  color: var(--text-0);
+}
+
+.glass{
+  background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+  border: 1px solid var(--border-0);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-1);
+}
+
+.glass-strong{
+  background: linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.035));
+  border: 1px solid var(--border-1);
+  backdrop-filter: blur(calc(var(--blur) + 4px));
+  -webkit-backdrop-filter: blur(calc(var(--blur) + 4px));
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-2);
+}
+
+.glass-hover:hover{
+  border-color: var(--border-2);
+  background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
+}
+
+.hairline{ border: 1px solid var(--border-0); }
+
+.subtle{ color: var(--text-2); }
+.muted{ color: var(--text-1); }
+
+.kbd{
+  padding: 2px 6px;
+  border-radius: 8px;
+  border: 1px solid var(--border-0);
+  background: rgba(0,0,0,0.28);
+  font-size: 12px;
+}
+
+::-webkit-scrollbar{ width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb{
+  background: rgba(255,255,255,0.10);
+  border-radius: 999px;
+  border: 2px solid rgba(0,0,0,0.2);
+}

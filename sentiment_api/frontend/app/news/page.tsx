@@ -5,6 +5,7 @@ import { Shell } from "@/components/Shell";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { useClusters } from "@/lib/api/hooks";
 
 export default function NewsPage() {
@@ -12,7 +13,11 @@ export default function NewsPage() {
 
   return (
     <Shell>
-      <Card title="News Feed" subtitle="Clusters with impacts, evidence, and winners/losers preview." />
+      <PageHeader
+        title="News Feed"
+        subtitle="Clusters with impacts, evidence, and winners/losers preview."
+        meta="Sorted by most recent cluster activity."
+      />
 
       {!clusters.data ? (
         <Skeleton className="h-[260px]" />
@@ -63,7 +68,7 @@ export default function NewsPage() {
               </div>
 
               <div className="text-xs opacity-70 mt-2">
-                {(c.topics ?? []).slice(0, 6).join(" • ")} • {c.source_count} sources
+                {(c.topics ?? []).slice(0, 6).join(" • ")} • {c.source_count} sources • {c.last_seen ? new Date(c.last_seen).toLocaleString() : "—"}
               </div>
             </a>
           ))}

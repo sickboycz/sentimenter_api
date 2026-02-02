@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { LineChartCard } from "@/components/charts/LineChartCard";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/Table";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { useTopicsIndex } from "@/lib/api/hooks";
 
 export default function TopicsPage() {
@@ -19,7 +20,11 @@ export default function TopicsPage() {
 
   return (
     <Shell>
-      <Card title="Topics" subtitle="Topic indices (Moodix-style) — what drives the tape." />
+      <PageHeader
+        title="Topics"
+        subtitle="Topic indices (Moodix-style) — what drives the tape."
+        meta="Rolling index points over the last 24 hours."
+      />
 
       {!topics.data ? (
         <Skeleton className="h-[260px]" />

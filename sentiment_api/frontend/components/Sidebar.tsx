@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Newspaper,
@@ -26,6 +27,7 @@ const items = [
 ];
 
 export function Sidebar() {
+  const pathname = usePathname();
   return (
     <aside className="w-72 hidden lg:flex flex-col p-4 gap-3">
       <div className="glass-strong p-3 flex items-center gap-3">
@@ -33,25 +35,36 @@ export function Sidebar() {
           <span className="text-lg font-bold">S</span>
         </div>
         <div>
-          <div className="font-semibold leading-none">Sentimeter</div>
+          <div className="font-display font-semibold leading-none">Sentimeter</div>
           <div className="text-xs opacity-70">Market Cognition</div>
         </div>
       </div>
 
       <nav className="glass p-2">
-        {items.map(({ href, label, icon: Icon }) => (
-          <Link key={href} href={href} className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/5">
-            <Icon size={18} />
-            <span className="text-sm">{label}</span>
-          </Link>
-        ))}
+        {items.map(({ href, label, icon: Icon }) => {
+          const active = pathname === href || (href !== "/" && pathname.startsWith(href));
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition ${
+                active ? "bg-white/10 border-white/20" : "border-transparent hover:bg-white/5 hover:border-white/10"
+              }`}
+            >
+              <Icon size={18} />
+              <span className="text-sm">{label}</span>
+            </Link>
+          );
+        })}
       </nav>
 
       <div className="glass p-3 text-xs opacity-80">
         <div className="font-semibold mb-2">Quick Filters</div>
-        <div>• L3+ only</div>
-        <div>• RiskOff drivers</div>
-        <div>• Geopolitics</div>
+        <div className="flex flex-wrap gap-2">
+          <span className="px-2 py-1 rounded-lg border border-white/10 bg-white/5">L3+ only</span>
+          <span className="px-2 py-1 rounded-lg border border-white/10 bg-white/5">RiskOff</span>
+          <span className="px-2 py-1 rounded-lg border border-white/10 bg-white/5">Geopolitics</span>
+        </div>
       </div>
     </aside>
   );

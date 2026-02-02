@@ -6,21 +6,24 @@ export function Button({
   onClick,
   variant = "primary",
   type = "button",
-  className = ""
+  className = "",
+  disabled = false
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   variant?: "primary" | "ghost";
   type?: "button" | "submit";
   className?: string;
+  disabled?: boolean;
 }) {
-  const base = "px-3 py-2 rounded-xl border text-sm transition-colors";
+  const base = "px-3 py-2 rounded-xl border text-sm font-medium transition-all";
   const cls =
     variant === "primary"
-      ? `${base} bg-white/10 hover:bg-white/15 border-white/10`
+      ? `${base} bg-white/10 hover:bg-white/15 border-white/20 shadow-sm`
       : `${base} bg-transparent hover:bg-white/10 border-white/10`;
+  const disabledCls = disabled ? "opacity-60 cursor-not-allowed pointer-events-none" : "";
   return (
-    <button type={type} onClick={onClick} className={cn(cls, className)}>
+    <button type={type} onClick={onClick} className={cn(cls, disabledCls, className)} disabled={disabled}>
       {children}
     </button>
   );

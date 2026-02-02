@@ -5,6 +5,7 @@ import { Shell } from "@/components/Shell";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { Gauge } from "@/components/charts/Gauge";
 import { LineChartCard } from "@/components/charts/LineChartCard";
 import { BarChartCard } from "@/components/charts/BarChartCard";
@@ -50,6 +51,13 @@ export default function OverviewPage() {
 
   return (
     <Shell>
+      <PageHeader
+        title="Overview"
+        subtitle="Real-time macro + geopolitical sentiment with market impact context."
+        meta="Auto-refreshes every 10–30s depending on panel."
+        actions={<Badge tone="good">Live</Badge>}
+      />
+
       {/* Row 1 */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-[var(--grid-gap)]">
         <Card className="xl:col-span-4" title="Sentiment Indicator" subtitle="Health at first sight." right={

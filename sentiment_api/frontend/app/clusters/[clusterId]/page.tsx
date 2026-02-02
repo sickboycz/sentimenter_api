@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/Table";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { useClusterDetail } from "@/lib/api/hooks";
 
 export default function ClusterDetailPage({ params }: { params: { clusterId: string } }) {
@@ -18,15 +19,18 @@ export default function ClusterDetailPage({ params }: { params: { clusterId: str
         <Skeleton className="h-[260px]" />
       ) : (
         <>
-          <Card
+          <PageHeader
             title={c?.headline_en ?? "Cluster"}
             subtitle={`${c?.impact?.impact_level ?? ""} • ${c?.impact?.expected_direction ?? ""} • conf ${Math.round((c?.impact?.confidence ?? 0) * 100)}%`}
-            right={
+            meta={`cluster ${c?.cluster_id ?? ""} • ${c?.source_count ?? 0} sources`}
+            actions={
               <Badge tone={c?.impact?.expected_direction === "RiskOff" ? "bad" : c?.impact?.expected_direction === "RiskOn" ? "good" : "neutral"}>
                 {c?.impact?.impact_level} • {c?.impact?.expected_direction}
               </Badge>
             }
-          >
+          />
+
+          <Card title="Summary" subtitle="Key bullets distilled from evidence.">
             <div className="text-sm opacity-85">
               {(c?.summary_bullets_en ?? []).map((b: string, i: number) => (
                 <div key={i}>• {b}</div>
@@ -39,7 +43,9 @@ export default function ClusterDetailPage({ params }: { params: { clusterId: str
               <div className="space-y-2 text-sm opacity-85">
                 {(detail.data?.evidence ?? []).slice(0, 12).map((e: any, i: number) => (
                   <div key={i} className="glass p-3">
-                    <div className="text-xs opacity-70 break-all">{e.url}</div>
+                    <a className="text-xs opacity-70 break-all hover:underline" href={e.url} target="_blank" rel="noreferrer">
+                      {e.url}
+                    </a>
                     <div className="mt-1">{e.text_en}</div>
                   </div>
                 ))}

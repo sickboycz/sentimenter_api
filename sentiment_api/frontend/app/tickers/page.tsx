@@ -5,6 +5,7 @@ import { Shell } from "@/components/Shell";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/Table";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { useImpactTickers } from "@/lib/api/hooks";
 
 export default function TickersPage() {
@@ -12,13 +13,17 @@ export default function TickersPage() {
 
   return (
     <Shell>
-      <Card title="Tickers" subtitle="Winners/Losers with explainable rationale." />
+      <PageHeader
+        title="Tickers"
+        subtitle="Winners and losers with explainable rationale."
+        meta="Expected return expressed in bps."
+      />
 
       {!tickers.data ? (
         <Skeleton className="h-[260px]" />
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-[var(--grid-gap)]">
-          <Card title="Winners" subtitle={`method ${tickers.data?.methodology_version}`}>
+          <Card title="Winners" subtitle={`method ${tickers.data?.methodology_version} • ${tickers.data?.winners?.length ?? 0} tickers`}>
             <Table>
               <THead>
                 <TR hover={false}>
@@ -39,7 +44,7 @@ export default function TickersPage() {
             </Table>
           </Card>
 
-          <Card title="Losers" subtitle="Highest negative impact">
+          <Card title="Losers" subtitle={`Highest negative impact • ${tickers.data?.losers?.length ?? 0} tickers`}>
             <Table>
               <THead>
                 <TR hover={false}>
