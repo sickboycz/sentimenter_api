@@ -39,6 +39,31 @@ sudo ./update.sh
 sudo ./rollback.sh
 ```
 
+## Fresh deploy (prune + pull + rebuild)
+
+When the stack has changed (e.g. new Weaviate + embedding cache) and you want a clean rebuild **without** deleting the repo or volume data:
+
+1. **Stop and prune** (from server):
+   ```bash
+   cd /srv/sentimenter/repo/sentiment_api
+   docker compose -f docker-compose.yml -f docker-compose.production.yml --env-file /etc/sentimenter/env down
+   docker container prune -f
+   docker image prune -f
+   ```
+2. **Create new volume dirs** (if not present):
+   ```bash
+   sudo mkdir -p /srv/sentimenter/volumes/weaviate /srv/sentimenter/volumes/embedding_cache
+   sudo chown -R sentimenter:sentimenter /srv/sentimenter/volumes/weaviate /srv/sentimenter/volumes/embedding_cache
+   ```
+3. **Pull and run update**:
+   ```bash
+   sudo -u sentimenter git pull
+   cd /srv/sentimenter/repo/sentiment_api
+   sudo ./scripts/deploy/update.sh
+   ```
+
+**Do not run full `install.sh`** unless you are setting up a new server; it would recreate user/dirs and re-apply schema. For “fresh rebuild” on an existing server, the sequence above (prune → create new dirs → pull → update) is enough.
+
 ## Prerequisites
 
 1. Clone repo: `sudo -u sentimenter git clone https://github.com/sickboycz/sentimenter_api.git /srv/sentimenter/repo`

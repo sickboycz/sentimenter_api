@@ -50,9 +50,11 @@ if ! $SKIP_USER; then
 
   mkdir -p "${HOME_DIR}/volumes/postgres/data"
   mkdir -p "${HOME_DIR}/volumes/redis"
+  mkdir -p "${HOME_DIR}/volumes/weaviate"
   mkdir -p "${HOME_DIR}/volumes/artifacts"
   mkdir -p "${HOME_DIR}/volumes/logs"
   mkdir -p "${HOME_DIR}/volumes/reports"
+  mkdir -p "${HOME_DIR}/volumes/embedding_cache"
   mkdir -p "${HOME_DIR}/volumes/grafana_data"
   mkdir -p "${HOME_DIR}/volumes/loki_data"
 
