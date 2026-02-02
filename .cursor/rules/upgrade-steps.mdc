@@ -1,0 +1,39 @@
+---
+description: Always append upgrade steps after code or config changes
+alwaysApply: true
+---
+
+# Upgrade steps after changes
+
+When you make **code or config changes** to this repo (especially `sentiment_api/`), **always append upgrade steps** at the end of your response so the user knows how to deploy.
+
+## What to include
+
+- **Pull**: `cd /srv/sentimenter/repo && sudo -u sentimenter git pull`
+- **Rebuild/restart**: Depends on what changed (see table below).
+- **Special steps**: Migrations, env vars, frontend-only rebuild, CORS, etc., when relevant.
+
+## Quick reference (by change type)
+
+| Change type | Upgrade steps |
+|-------------|----------------|
+| Any code / compose / env | Pull → full rebuild → `docker compose ... up -d` → `sudo systemctl restart sentimenter-docker` |
+| Registry only (`registry/source_registry.yaml`) | Pull → `docker compose ... up -d` + restart systemd (no image rebuild) |
+| Frontend only | Pull → `docker compose ... build --no-cache frontend` → up -d → restart systemd |
+| New DB migrations | After deploy, run new migration files or `scripts/apply_schema_from_zero.sh` (fresh DB only) |
+
+## Where to document
+
+- For **sentiment_api** deployments: reference or copy from `sentiment_api/docs/UPDATE_SERVER_MANUAL.md` (section "What to do now — Upgrade steps").
+- For **one-off changes**: add a short "**Upgrade steps**" block at the end of your reply with the exact commands the user should run on the server.
+
+Example ending:
+
+```markdown
+**Upgrade steps (on server):**
+1. `cd /srv/sentimenter/repo && sudo -u sentimenter git pull`
+2. `cd sentiment_api && sudo -u sentimenter docker compose --env-file /etc/sentimenter/env -f docker-compose.yml -f docker-compose.production.yml build --no-cache`
+3. `sudo -u sentimenter docker compose ... up -d && sudo systemctl restart sentimenter-docker`
+```
+
+Or: "Registry only: pull then `docker compose ... up -d` and restart systemd (no rebuild)."

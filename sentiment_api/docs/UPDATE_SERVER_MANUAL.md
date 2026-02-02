@@ -5,6 +5,30 @@
 
 ---
 
+## What to do now — Upgrade steps (quick reference)
+
+After pulling code or config changes on the server:
+
+| Change type | Steps |
+|-------------|--------|
+| **Any code / compose / env** | Pull → [Rebuild and restart](#step-3-rebuild-and-restart) → [Restart systemd](#step-4-restart-systemd-if-used) |
+| **Registry only** (`registry/source_registry.yaml`) | Pull → Restart stack (registry is mounted; no image rebuild needed): `docker compose ... up -d` then `sudo systemctl restart sentimenter-docker` |
+| **Frontend only** (UI / CORS / API URL) | Pull → Rebuild frontend: `docker compose ... build --no-cache frontend` → `docker compose ... up -d` → restart systemd |
+| **New DB migrations** | After deploy, [run migrations](INSTALLATION_MANUAL.md#migrations) (e.g. `scripts/apply_schema_from_zero.sh` for fresh DB, or apply only new `migrations/v1.1_*.sql` files). |
+
+**One-liner (full upgrade):**
+
+```bash
+cd /srv/sentimenter/repo && sudo -u sentimenter git pull && cd sentiment_api && \
+sudo -u sentimenter docker compose --env-file /etc/sentimenter/env -f docker-compose.yml -f docker-compose.production.yml build --no-cache && \
+sudo -u sentimenter docker compose --env-file /etc/sentimenter/env -f docker-compose.yml -f docker-compose.production.yml up -d && \
+sudo systemctl restart sentimenter-docker
+```
+
+Or use the script: `cd /srv/sentimenter/repo/sentiment_api/scripts/deploy && sudo ./update.sh`
+
+---
+
 ## 1. Prerequisites
 
 - Server with Docker + Docker Compose

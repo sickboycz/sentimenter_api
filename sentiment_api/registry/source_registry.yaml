@@ -315,33 +315,35 @@ sources:
     pack: conflict_humanitarian
     type: api
     enabled: false
-    base_url: "https://acleddata.com/acled-api-documentation"
+    base_url: "https://api.acleddata.com"
     credibility_tier: dataset
     license_class: key_required
     regions: ["GLOBAL"]
-    topics: ["conflict", "political_violence"]
+    topics: ["conflict", "political violence"]
+    auth: { method: api_key, key_name: "key", location: query }
 
   - source_id: ucdp_api
     name: "UCDP API"
     pack: conflict_humanitarian
     type: api
     enabled: true
-    base_url: "https://ucdp.uu.se/apidocs/"
+    base_url: "https://ucdp.uu.se/api"
     credibility_tier: dataset
     license_class: open
     regions: ["GLOBAL"]
-    topics: ["conflict"]
+    topics: ["conflict", "armed conflict"]
 
   - source_id: reliefweb_api
     name: "ReliefWeb API"
     pack: conflict_humanitarian
     type: api
     enabled: false
-    base_url: "https://apidoc.reliefweb.int/"
+    base_url: "https://api.reliefweb.int/v1"
     credibility_tier: official
     license_class: key_required
     regions: ["GLOBAL"]
-    topics: ["disasters", "humanitarian"]
+    topics: ["humanitarian", "crises", "disasters"]
+    auth: { method: api_key, key_name: "appname", location: query }
 
   - source_id: crisisgroup_rss
     name: "International Crisis Group RSS"
