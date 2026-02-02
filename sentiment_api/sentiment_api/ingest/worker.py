@@ -3,10 +3,22 @@
 import asyncio
 import hashlib
 import base64
+import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 
 from sentiment_api.config import get_settings
+
+
+class _DateTimeEncoder(json.JSONEncoder):
+    """JSON encoder that handles datetime/date objects."""
+
+    def default(self, o):
+        if isinstance(o, datetime):
+            return o.isoformat()
+        if isinstance(o, date):
+            return o.isoformat()
+        return super().default(o)
 from sentiment_api.db.pool import init_pool, close_pool, acquire
 from sentiment_api.db.repo import (
     upsert_sources,
@@ -88,7 +100,7 @@ async def process_ingest(payload: dict) -> None:
         async with acquire() as conn:
             await finish_run(conn, run_id, "ok" if inserted else "ok", {"article_id": art_id, "inserted": inserted})
     if inserted:
-        await queue.rpush(QUEUE_SUMMARIZE, json.dumps({"article_id": art_id, "source_id": norm["source_id"], "norm": norm}))
+        await queue.rpush(QUEUE_SUMMARIZE, json.dumps({"article_id": art_id, "source_id": norm["source_id"], "norm": norm}, cls=_DateTimeEncoder))
 
 
 def _dedupe_key(obj_id: str, text_hash: str, schema_ver: str, model: str) -> str:
