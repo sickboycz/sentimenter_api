@@ -33,6 +33,27 @@ services:
       timeout: 3s
       retries: 5
 
+  weaviate:
+    image: cr.weaviate.io/semitechnologies/weaviate:1.27.4
+    restart: always
+    ports:
+      - "8081:8080"
+      - "50051:50051"
+    environment:
+      QUERY_DEFAULTS_LIMIT: "25"
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
+      PERSISTENCE_DATA_PATH: "/var/lib/weaviate"
+      DEFAULT_VECTORIZER_MODULE: "none"
+      CLUSTER_HOSTNAME: "node1"
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/v1/.well-known/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
   api:
     restart: on-failure
     build:
@@ -45,14 +66,19 @@ services:
       ARTIFACT_ROOT: /data/artifacts
       SOURCE_REGISTRY_PATH: /etc/sentiment_api/source_registry.yaml
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Optional: use Weaviate for vectors (3072-dim). Default: pgvector
+      VECTOR_STORE_BACKEND: ${VECTOR_STORE_BACKEND:-pgvector}
+      WEAVIATE_URL: http://weaviate:8080
     volumes:
       - ./registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
       - artifacts:/data/artifacts
+      - embedding_cache:/var/lib/sentiment_api
     ports:
       - "8080:8080"
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
+      weaviate: { condition: service_healthy }
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; r=urllib.request.urlopen('http://localhost:8080/v1/health', timeout=5); assert b'status' in r.read()\" || exit 1"]
       interval: 15s
@@ -70,13 +96,17 @@ services:
       REDIS_URL: redis://redis:6379/0
       SOURCE_REGISTRY_PATH: /etc/sentiment_api/source_registry.yaml
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      VECTOR_STORE_BACKEND: ${VECTOR_STORE_BACKEND:-pgvector}
+      WEAVIATE_URL: http://weaviate:8080
     volumes:
       - ./registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
       - artifacts:/data/artifacts
+      - embedding_cache:/var/lib/sentiment_api
     depends_on:
       api: { condition: service_started }
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
+      weaviate: { condition: service_healthy }
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import redis; r=redis.from_url('redis://redis:6379/0'); r.ping()\" 2>/dev/null || exit 1"]
       interval: 30s
@@ -209,6 +239,8 @@ services:
 volumes:
   pgdata:
   redis_data:
+  weaviate_data:
+  embedding_cache:
   artifacts:
   grafana_data:
   loki_data:

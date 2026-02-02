@@ -27,12 +27,20 @@ dependencies = [
     "numpy>=1.24.0",
     "argon2-cffi>=23.1.0",
     "sentence-transformers>=2.2.0",
+    "weaviate-client>=4.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.23.0",
+]
+# Vector stores (see docs/PINECONE_WEAVIATE_INTEGRATION.md)
+vector-pinecone = [
+    "pinecone-client>=5.0.0",
+]
+vector-weaviate = [
+    "weaviate-client>=4.0.0",
 ]
 
 [tool.pytest.ini_options]

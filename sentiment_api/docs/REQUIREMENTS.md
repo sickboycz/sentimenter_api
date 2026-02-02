@@ -24,8 +24,11 @@
 | numpy | ≥1.24.0 |
 | argon2-cffi | ≥23.1.0 |
 | sentence-transformers | ≥2.2.0 |
+| weaviate-client | ≥4.0.0 |
 
 **Dev:** pytest ≥7.4.0, pytest-asyncio ≥0.23.0
+
+**Optional vector backends** (see `docs/PINECONE_WEAVIATE_INTEGRATION.md`): `[vector-pinecone]` / `[vector-weaviate]` extras in `pyproject.toml`. Weaviate is included by default for 2-tier retrieval and external vector search.
 
 ## Frontend (Node.js)
 

@@ -139,8 +139,10 @@ Production uses bind mounts so data lives outside the repo. The file `sentiment_
 |-----------|-----------|----------------|
 | postgres | `/srv/sentimenter/volumes/postgres/data` | `/var/lib/postgresql/data` |
 | redis | `/srv/sentimenter/volumes/redis` | `/data` |
-| api, worker, daemon | `/srv/sentimenter/volumes/artifacts` | `/data/artifacts` |
+| weaviate | `/srv/sentimenter/volumes/weaviate` | `/var/lib/weaviate` |
+| api, worker | `/srv/sentimenter/volumes/artifacts` | `/data/artifacts` |
 | api, worker, daemon | `/srv/sentimenter/volumes/logs` | `/data/logs` |
+| api, worker | `/srv/sentimenter/volumes/embedding_cache` | `/var/lib/sentiment_api` (2-tier retrieval SQLite cache) |
 | grafana | `/srv/sentimenter/volumes/grafana_data` | `/var/lib/grafana` |
 | loki | `/srv/sentimenter/volumes/loki_data` | `/loki` |
 

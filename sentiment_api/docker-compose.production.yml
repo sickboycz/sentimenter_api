@@ -13,17 +13,23 @@ services:
     volumes:
       - /srv/sentimenter/volumes/redis:/data
 
+  weaviate:
+    volumes:
+      - /srv/sentimenter/volumes/weaviate:/var/lib/weaviate
+
   api:
     volumes:
       - ./registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
       - /srv/sentimenter/volumes/artifacts:/data/artifacts
       - /srv/sentimenter/volumes/logs:/data/logs
+      - /srv/sentimenter/volumes/embedding_cache:/var/lib/sentiment_api
 
   worker:
     volumes:
       - ./registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
       - /srv/sentimenter/volumes/artifacts:/data/artifacts
       - /srv/sentimenter/volumes/logs:/data/logs
+      - /srv/sentimenter/volumes/embedding_cache:/var/lib/sentiment_api
 
   daemon:
     volumes:

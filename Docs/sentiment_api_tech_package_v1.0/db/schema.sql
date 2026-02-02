@@ -294,13 +294,13 @@ CREATE INDEX IF NOT EXISTS idx_expectations_event ON expectations (event_id);
 
 CREATE TABLE IF NOT EXISTS outcomes (
   expectation_id   uuid NOT NULL REFERENCES expectations(expectation_id) ON DELETE CASCADE,
-  window           text NOT NULL, -- 30m|2h|1d|3d|1w
+  "window"         text NOT NULL, -- 30m|2h|1d|3d|1w (quoted: reserved keyword)
   realized_return  double precision,
   realized_abs_return double precision,
   realized_direction direction NOT NULL DEFAULT 'Unknown',
   measured_at      timestamptz NOT NULL DEFAULT now(),
   details          jsonb NOT NULL DEFAULT '{}'::jsonb,
-  PRIMARY KEY (expectation_id, window)
+  PRIMARY KEY (expectation_id, "window")
 );
 
 -- -----------------------------------------------------------------------------
@@ -319,9 +319,9 @@ CREATE TABLE IF NOT EXISTS embeddings (
   PRIMARY KEY (object_type, object_id, model)
 );
 
--- Vector index (IVFFLAT) — adjust lists for your scale
-CREATE INDEX IF NOT EXISTS idx_embeddings_ivfflat
-  ON embeddings USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+-- pgvector IVFFlat supports max 2000 dimensions; we use 3072. Skip IVFFlat for 3072d.
+-- CREATE INDEX IF NOT EXISTS idx_embeddings_ivfflat
+--   ON embeddings USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 
 CREATE INDEX IF NOT EXISTS idx_embeddings_object
   ON embeddings (object_type, object_id);

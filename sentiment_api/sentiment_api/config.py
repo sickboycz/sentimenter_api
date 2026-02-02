@@ -59,6 +59,49 @@ class Settings(BaseSettings):
     retention_days: int = 90  # tombstone articles older than N days (AC-M7.3)
     api_keys: str = Field(default="", description="SENTIMENT_API_API_KEYS, comma-separated")
 
+    # Vector store: pgvector (default) | pinecone | weaviate (see docs/PINECONE_WEAVIATE_INTEGRATION.md)
+    vector_store_backend: str = Field(
+        default="pgvector",
+        description="VECTOR_STORE_BACKEND: pgvector, pinecone, or weaviate",
+    )
+    # Pinecone (when vector_store_backend=pinecone)
+    pinecone_api_key: str | None = Field(default=None, description="PINECONE_API_KEY")
+    pinecone_index: str = Field(default="sentiment-api", description="PINECONE_INDEX")
+    pinecone_environment: str | None = Field(default=None, description="PINECONE_ENVIRONMENT / host")
+    # Weaviate (when vector_store_backend=weaviate)
+    weaviate_url: str = Field(
+        default="http://localhost:8080",
+        description="WEAVIATE_URL (or SENTIMENT_API_WEAVIATE_URL)",
+        validation_alias=AliasChoices("WEAVIATE_URL", "SENTIMENT_API_WEAVIATE_URL"),
+    )
+    weaviate_api_key: str | None = Field(default=None, description="WEAVIATE_API_KEY")
+    weaviate_class: str = Field(default="Embedding", description="WEAVIATE_CLASS")
+
+    # 2-tier retrieval (see docs/RETRIEVAL_TWOTIER.md)
+    retrieval_tiera_model_id: str = Field(
+        default="openai:text-embedding-3-small",
+        description="RETRIEVAL_TIERA_MODEL_ID: cheap tier-A embedding (384/768 dim)",
+    )
+    retrieval_tierb_model_id: str = Field(
+        default="openai:text-embedding-3-large",
+        description="RETRIEVAL_TIERB_MODEL_ID: expensive tier-B rerank (3072 dim)",
+    )
+    retrieval_topn: int = Field(default=200, description="RETRIEVAL_TOPN: candidate count from hybrid search")
+    retrieval_rerankn: int = Field(default=80, description="RETRIEVAL_RERANKN: top-N after tierB rerank")
+    retrieval_alpha: float = Field(default=0.5, ge=0.0, le=1.0, description="RETRIEVAL_ALPHA: hybrid weight (0=BM25 only, 1=vector only)")
+    retrieval_weights: str = Field(
+        default='{"tierA":0.2,"bm25":0.2,"tierB":0.6,"cross":0.0}',
+        description="RETRIEVAL_WEIGHTS: JSON string tierA/bm25/tierB/cross",
+    )
+    embedding_cache_path: Path = Field(
+        default=Path("/var/lib/sentiment_api/embedding_cache.sqlite"),
+        description="EMBEDDING_CACHE_PATH: SQLite path for tierB vector cache",
+    )
+    weaviate_chunk_class: str = Field(
+        default="RetrievalChunk",
+        description="WEAVIATE_CHUNK_CLASS: collection for 2-tier chunk retrieval",
+    )
+
     def resolve_paths(self) -> None:
         """Resolve registry paths relative to project root if needed."""
         root = Path(__file__).resolve().parent.parent.parent

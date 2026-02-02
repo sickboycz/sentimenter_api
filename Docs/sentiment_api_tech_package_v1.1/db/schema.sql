@@ -366,9 +366,11 @@ CREATE TABLE IF NOT EXISTS embeddings (
   PRIMARY KEY (object_type, object_id, model)
 );
 
--- Vector index (IVFFLAT) — adjust lists for your scale
-CREATE INDEX IF NOT EXISTS idx_embeddings_ivfflat
-  ON embeddings USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+-- Vector index: pgvector IVFFlat supports max 2000 dimensions; we use 3072 (text-embedding-3-large).
+-- Skip IVFFlat for 3072d; use idx_embeddings_object for lookups. Similarity search will sequential scan
+-- until pgvector supports higher dimensions or we use a smaller embedding model.
+-- CREATE INDEX IF NOT EXISTS idx_embeddings_ivfflat
+--   ON embeddings USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 
 CREATE INDEX IF NOT EXISTS idx_embeddings_object
   ON embeddings (object_type, object_id);

@@ -6,6 +6,7 @@ from typing import Any
 
 import asyncpg
 
+from sentiment_api.config import get_settings
 from sentiment_api.db.pool import acquire
 
 
@@ -155,19 +156,26 @@ async def insert_embedding(
     model: str,
     embedding: list[float],
 ) -> None:
-    """Insert embedding (pgvector)."""
-    await conn.execute(
-        """
-        INSERT INTO embeddings (object_type, object_id, model, dims, embedding, metadata)
-        VALUES ($1, $2, $3, $4, $5::vector, '{}')
-        ON CONFLICT (object_type, object_id, model) DO UPDATE SET embedding = EXCLUDED.embedding
-        """,
-        object_type,
-        object_id,
-        model,
-        len(embedding),
-        embedding,
-    )
+    """Insert embedding. Uses pgvector or external vector store (Weaviate) per VECTOR_STORE_BACKEND."""
+    settings = get_settings()
+    backend = (settings.vector_store_backend or "pgvector").strip().lower()
+    if backend == "pgvector":
+        await conn.execute(
+            """
+            INSERT INTO embeddings (object_type, object_id, model, dims, embedding, metadata)
+            VALUES ($1, $2, $3, $4, $5::vector, '{}')
+            ON CONFLICT (object_type, object_id, model) DO UPDATE SET embedding = EXCLUDED.embedding
+            """,
+            object_type,
+            object_id,
+            model,
+            len(embedding),
+            embedding,
+        )
+    else:
+        from sentiment_api.vector_store import get_vector_store
+        store = get_vector_store(backend)
+        await store.upsert(object_type, object_id, model, embedding)
 
 
 async def insert_sentiment_tick(
@@ -394,27 +402,61 @@ async def finish_run(conn: asyncpg.Connection, run_id: str, status: str = "ok", 
     )
 
 
-async def get_clusters_for_embedding(conn: asyncpg.Connection, limit: int = 500, model_id: str | None = None) -> list[tuple[str, list[float], datetime]]:
-    """Get cluster_ids and embeddings for similarity search."""
-    model_id = model_id or "openai:text-embedding-3-large"
+async def get_clusters_by_ids(
+    conn: asyncpg.Connection,
+    cluster_ids: list[str],
+) -> list[dict]:
+    """Fetch cluster headline_en, topics, impact by cluster_ids (for RAG when using external vector store)."""
+    if not cluster_ids:
+        return []
     rows = await conn.fetch(
         """
-        SELECT e.object_id, e.embedding, c.last_seen
-        FROM embeddings e
-        JOIN clusters c ON c.cluster_id = e.object_id
-        WHERE e.object_type = 'cluster' AND e.model = $1
-        ORDER BY c.last_seen DESC
-        LIMIT $2
+        SELECT cluster_id, headline_en, topics, impact
+        FROM clusters
+        WHERE cluster_id = ANY($1::text[])
         """,
-        model_id,
-        limit,
+        cluster_ids,
     )
-    result = []
-    for r in rows:
-        emb = r["embedding"]
-        if hasattr(emb, "tolist"):
-            emb = emb.tolist()
-        elif not isinstance(emb, list):
-            emb = list(emb) if emb else []
-        result.append((r["object_id"], emb, r["last_seen"]))
-    return result
+    return [
+        {
+            "cluster_id": r["cluster_id"],
+            "headline_en": r["headline_en"],
+            "topics": list(r["topics"] or []),
+            "impact": r["impact"] or {},
+        }
+        for r in rows
+    ]
+
+
+async def get_clusters_for_embedding(conn: asyncpg.Connection, limit: int = 500, model_id: str | None = None) -> list[tuple[str, list[float], datetime]]:
+    """Get cluster_ids and embeddings for similarity search. Uses pgvector or external store per VECTOR_STORE_BACKEND."""
+    model_id = model_id or "openai:text-embedding-3-large"
+    settings = get_settings()
+    backend = (settings.vector_store_backend or "pgvector").strip().lower()
+    if backend == "pgvector":
+        rows = await conn.fetch(
+            """
+            SELECT e.object_id, e.embedding, c.last_seen
+            FROM embeddings e
+            JOIN clusters c ON c.cluster_id = e.object_id
+            WHERE e.object_type = 'cluster' AND e.model = $1
+            ORDER BY c.last_seen DESC
+            LIMIT $2
+            """,
+            model_id,
+            limit,
+        )
+        result = []
+        for r in rows:
+            emb = r["embedding"]
+            if hasattr(emb, "tolist"):
+                emb = emb.tolist()
+            elif not isinstance(emb, list):
+                emb = list(emb) if emb else []
+            result.append((r["object_id"], emb, r["last_seen"]))
+        return result
+    from sentiment_api.vector_store import get_vector_store
+    store = get_vector_store(backend)
+    pairs = await store.get_cluster_vectors(model_id=model_id, limit=limit)
+    # External store has no last_seen; use min datetime so ordering is unchanged
+    return [(cid, emb, datetime.min) for cid, emb in pairs]

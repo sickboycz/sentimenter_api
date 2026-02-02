@@ -289,22 +289,25 @@ sudo -u sentimenter docker compose --env-file /etc/sentimenter/env \
 
 If the worker fails with **relation "sources" does not exist**, the **base schema** was never applied. If you see **relation "sectors" does not exist**, the **v1.1 migrations** were not applied. Apply in order: base schema first, then v1.1 migrations.
 
-**1. Apply base schema first** (creates `sources`, `api_keys`, and core tables — required if worker fails with "relation sources does not exist")
+**1. Apply schema from zero** (recommended: self-contained, no Docs/ required)
 
 ```bash
 cd /srv/sentimenter/repo/sentiment_api
+./scripts/apply_schema_from_zero.sh
+```
 
-# Base schema lives in repo Docs/ (full clone only)
+This runs `migrations/00_base_schema.sql` then the v1.1 migrations in order. Safe to re-run.
+
+**Alternative: base schema from Docs/** (only if you have the full repo with `Docs/`)
+
+```bash
 if [ -f /srv/sentimenter/repo/Docs/sentiment_api_tech_package_v1.1/db/schema.sql ]; then
   docker compose -f docker-compose.yml -f docker-compose.production.yml exec -T postgres \
     psql -U sentiment -d sentiment -f /dev/stdin < /srv/sentimenter/repo/Docs/sentiment_api_tech_package_v1.1/db/schema.sql
-  echo "Base schema applied"
-else
-  echo "Base schema not found: clone full repo or copy schema.sql"
 fi
 ```
 
-**2. Apply migrations** (creates sectors, universes, etc.)
+**2. Apply migrations** (only if you did not use apply_schema_from_zero.sh; creates sectors, universes, etc.)
 
 ```bash
 cd /srv/sentimenter/repo/sentiment_api

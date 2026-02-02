@@ -16,30 +16,57 @@ async def retrieve_similar(
     model_id: str,
     top_k: int = 10,
 ) -> list[dict]:
-    """Retrieve top K clusters by cosine similarity (pgvector <=> operator)."""
-    vec_str = "[" + ",".join(str(float(x)) for x in query_embedding) + "]"
-    rows = await conn.fetch(
-        """
-        SELECT e.object_id as cluster_id, c.headline_en, c.topics, c.impact
-        FROM embeddings e
-        JOIN clusters c ON c.cluster_id = e.object_id
-        WHERE e.object_type = 'cluster' AND e.model = $1
-        ORDER BY e.embedding <=> $2::vector
-        LIMIT $3
-        """,
-        model_id,
-        vec_str,
-        top_k,
+    """Retrieve top K clusters by cosine similarity. Uses pgvector or external store per VECTOR_STORE_BACKEND."""
+    settings = get_settings()
+    backend = (settings.vector_store_backend or "pgvector").strip().lower()
+    if backend == "pgvector":
+        vec_str = "[" + ",".join(str(float(x)) for x in query_embedding) + "]"
+        rows = await conn.fetch(
+            """
+            SELECT e.object_id as cluster_id, c.headline_en, c.topics, c.impact
+            FROM embeddings e
+            JOIN clusters c ON c.cluster_id = e.object_id
+            WHERE e.object_type = 'cluster' AND e.model = $1
+            ORDER BY e.embedding <=> $2::vector
+            LIMIT $3
+            """,
+            model_id,
+            vec_str,
+            top_k,
+        )
+        return [
+            {
+                "cluster_id": r["cluster_id"],
+                "headline_en": r["headline_en"],
+                "topics": list(r["topics"] or []),
+                "impact": r["impact"] or {},
+            }
+            for r in rows
+        ]
+    from sentiment_api.vector_store import get_vector_store
+    from sentiment_api.db.repo import get_clusters_by_ids
+    store = get_vector_store(backend)
+    pairs = await store.search(
+        vector=query_embedding,
+        model_id=model_id,
+        object_type="cluster",
+        top_k=top_k,
     )
-    return [
-        {
-            "cluster_id": r["cluster_id"],
-            "headline_en": r["headline_en"],
-            "topics": list(r["topics"] or []),
-            "impact": r["impact"] or {},
-        }
-        for r in rows
-    ]
+    if not pairs:
+        return []
+    cluster_ids = [cid for cid, _ in pairs]
+    id_to_score = {cid: score for cid, score in pairs}
+    clusters = await get_clusters_by_ids(conn, cluster_ids)
+    by_id = {c["cluster_id"]: c for c in clusters}
+    # Preserve search order and attach score
+    out = []
+    for cid in cluster_ids:
+        c = by_id.get(cid)
+        if c:
+            c = dict(c)
+            c["relevance_score"] = id_to_score.get(cid, 0.9)
+            out.append(c)
+    return out
 
 
 def generate_answer(query: str, contexts: list[dict]) -> tuple[str, list[dict]]:

@@ -1021,6 +1021,75 @@ async def ask_rag(
 
 
 # -----------------------------------------------------------------------------
+# POST /v1/search/advanced — 2-tier retrieval (Tier A hybrid + Tier B rerank)
+# -----------------------------------------------------------------------------
+@app.post("/v1/search/advanced")
+async def search_advanced(
+    request: Request,
+    _: Annotated[str, Depends(validate_api_key)],
+    body: dict = Body(default=None),
+):
+    """
+    2-tier retrieval: Tier A hybrid (vector + BM25) candidate retrieval,
+    Tier B rerank with high-dim embeddings (cached). Returns score breakdown + trace.
+    """
+    from sentiment_api.retrieval.pipeline import run_advanced_search
+
+    payload = body or {}
+    query_text = (payload.get("query") or "").strip()
+    if not query_text:
+        raise HTTPException(status_code=400, detail="query required in body")
+    filters = payload.get("filters") or {}
+    top_n = payload.get("topN")
+    rerank_n = payload.get("rerankN")
+    alpha = payload.get("alpha")
+    weights_raw = payload.get("weights")
+    weights = None
+    if isinstance(weights_raw, dict):
+        weights = weights_raw
+    elif isinstance(weights_raw, str):
+        try:
+            import json as _json
+            weights = _json.loads(weights_raw)
+        except _json.JSONDecodeError:
+            pass
+    trace_id = getattr(request.state, "request_id", None)
+
+    try:
+        results, trace = await run_advanced_search(
+            query_text=query_text,
+            filters=filters,
+            top_n=top_n,
+            rerank_n=rerank_n,
+            alpha=alpha,
+            weights=weights,
+            trace_id=trace_id,
+        )
+        data = {
+            "results": [
+                {
+                    "chunk_id": r.chunk_id,
+                    "doc_id": r.doc_id,
+                    "snippet": r.snippet,
+                    "score_breakdown": r.score_breakdown.to_dict(),
+                    "metadata": r.metadata,
+                }
+                for r in results
+            ],
+            "trace": trace.to_dict(),
+        }
+        return {
+            "meta": meta(),
+            "data": data,
+            "errors": [],
+        }
+    except Exception as e:
+        import logging
+        logging.getLogger("sentiment_api").exception("Advanced search failed: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# -----------------------------------------------------------------------------
 # /v1/sources
 # -----------------------------------------------------------------------------
 @app.get("/v1/sources")
