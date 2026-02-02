@@ -41,7 +41,7 @@ services:
       SOURCE_REGISTRY_PATH: /etc/sentiment_api/source_registry.yaml
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
-      - ../Docs/sentiment_api_tech_package_v1.0/registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
+      - ../Docs/sentiment_api_tech_package_v1.1/registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
       - artifacts:/data/artifacts
     ports:
       - "8080:8080"
@@ -59,7 +59,7 @@ services:
       SOURCE_REGISTRY_PATH: /etc/sentiment_api/source_registry.yaml
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
-      - ../Docs/sentiment_api_tech_package_v1.0/registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
+      - ../Docs/sentiment_api_tech_package_v1.1/registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
       - artifacts:/data/artifacts
     depends_on:
       api: { condition: service_started }
@@ -75,7 +75,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       SOURCE_REGISTRY_PATH: /etc/sentiment_api/source_registry.yaml
     volumes:
-      - ../Docs/sentiment_api_tech_package_v1.0/registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
+      - ../Docs/sentiment_api_tech_package_v1.1/registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }

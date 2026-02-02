@@ -25,6 +25,8 @@ dependencies = [
     "langdetect>=1.0.9",
     "openai>=1.12.0",
     "numpy>=1.24.0",
+    "argon2-cffi>=23.1.0",
+    "sentence-transformers>=2.2.0",
 ]
 
 [project.optional-dependencies]

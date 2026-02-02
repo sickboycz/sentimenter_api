@@ -1,5 +1,6 @@
 """FastAPI application — M9 API Service."""
 
+import json
 import uuid
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
@@ -10,6 +11,7 @@ from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 
 from sentiment_api.api.auth import get_api_key
+from sentiment_api.api.keys import validate_api_key
 from sentiment_api.api.responses import error_detail, meta, pagination
 from sentiment_api.config import get_settings
 from sentiment_api.db.pool import close_pool, init_pool
@@ -21,6 +23,24 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     try:
         await init_pool(settings.database_url)
+        from sentiment_api.db.pool import get_pool
+        pool = get_pool()
+        if pool:
+            try:
+                from sentiment_api.db.universe_repo import seed_sectors, upsert_universe
+                async with pool.acquire() as conn:
+                    await seed_sectors(conn)
+                    try:
+                        from sentiment_api.universe import load_universe_registry
+                        ureg = load_universe_registry(settings.universe_registry_path)
+                        for u in ureg.get_enabled():
+                            await upsert_universe(conn, u.universe_id, u.name_en, "registry", u.description_en)
+                    except Exception:
+                        await upsert_universe(conn, "sp500", "S&P 500", "seed", "S&P 500 constituents")
+                        await upsert_universe(conn, "nasdaq_composite", "Nasdaq Composite", "seed", "Nasdaq Composite constituents")
+            except Exception as ex:
+                import logging
+                logging.getLogger("sentiment_api").debug("Universe seed skipped (tables may not exist): %s", ex)
     except Exception as e:
         import logging
         logging.getLogger("sentiment_api").warning(
@@ -33,7 +53,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="sentiment_api",
-    version="1.0.0",
+    version="1.1.0",
     summary="Global macro + political news impact intelligence (Sentimeter)",
     lifespan=lifespan,
 )
@@ -106,7 +126,7 @@ async def health():
 # -----------------------------------------------------------------------------
 @app.get("/api/sp-sentiment")
 async def get_sp_sentiment(
-    _: Annotated[str, Depends(get_api_key)],
+    _: Annotated[str, Depends(validate_api_key)],
     from_date: str | None = Query(None, alias="from"),
     to: str | None = Query(None),
 ):
@@ -164,7 +184,7 @@ async def get_sp_sentiment(
 # /v1/mood/now
 # -----------------------------------------------------------------------------
 @app.get("/v1/mood/now")
-async def get_mood_now(_: Annotated[str, Depends(get_api_key)]):
+async def get_mood_now(_: Annotated[str, Depends(validate_api_key)]):
     """Latest mood snapshot (drivers + risk vector)."""
     import asyncpg
     from sentiment_api.db.pool import acquire
@@ -267,7 +287,7 @@ async def get_mood_now(_: Annotated[str, Depends(get_api_key)]):
 # -----------------------------------------------------------------------------
 @app.get("/v1/index/intraday")
 async def get_intraday_index(
-    _: Annotated[str, Depends(get_api_key)],
+    _: Annotated[str, Depends(validate_api_key)],
     interval: str = Query(..., pattern="^(1m|5m|15m|1h)$"),
     since: str | None = Query(None),
     until: str | None = Query(None),
@@ -322,7 +342,7 @@ async def get_intraday_index(
 # -----------------------------------------------------------------------------
 @app.get("/v1/news/clusters")
 async def list_clusters(
-    _: Annotated[str, Depends(get_api_key)],
+    _: Annotated[str, Depends(validate_api_key)],
     since: str | None = Query(None),
     until: str | None = Query(None),
     min_impact_level: str | None = Query(None, pattern="^(L0|L1|L2|L3|L4|L5)$"),
@@ -401,11 +421,12 @@ async def list_clusters(
 # -----------------------------------------------------------------------------
 @app.get("/v1/news/clusters/{cluster_id}")
 async def get_cluster_by_id(
-    _: Annotated[str, Depends(get_api_key)],
+    _: Annotated[str, Depends(validate_api_key)],
     cluster_id: str,
     include_articles: bool = Query(True),
     include_evidence: bool = Query(True),
     include_analogs: bool = Query(False),
+    include_asset_impacts: bool = Query(False),
 ):
     """Cluster drilldown (articles + evidence + analogs)."""
     import asyncpg
@@ -473,12 +494,20 @@ async def get_cluster_by_id(
                         "text_en": (ar.get("title_en") or "")[:500],
                         "relevance_score": 0.9,
                     })
+    asset_impacts = None
+    if include_asset_impacts:
+        try:
+            from sentiment_api.engines.asset_targeting import get_asset_impacts_for_cluster
+            asset_impacts = await get_asset_impacts_for_cluster(cluster_id)
+        except Exception:
+            pass
     return {
         "meta": meta(),
         "data": {
             "cluster": cluster_obj,
             "articles": articles,
             "evidence": evidence,
+            "asset_impacts": asset_impacts,
             "what_changed_en": None,
             "why_it_matters_en": None,
             "what_to_watch_en": None,
@@ -490,11 +519,144 @@ async def get_cluster_by_id(
 
 
 # -----------------------------------------------------------------------------
+# /v1/impacts/clusters/{cluster_id} — Asset targeting for single cluster
+# -----------------------------------------------------------------------------
+@app.get("/v1/impacts/clusters/{cluster_id}")
+async def get_asset_impacts_by_cluster(
+    _: Annotated[str, Depends(validate_api_key)],
+    cluster_id: str,
+    universes: list[str] = Query(default=[]),
+    limit_tickers: int = Query(50, ge=1, le=200),
+    limit_sectors: int = Query(11, ge=0, le=30),
+    include_evidence_urls: bool = Query(True),
+    include_historical_edge: bool = Query(False),
+):
+    """Markets/sectors/tickers impact targeting for a single cluster."""
+    if not cluster_id.startswith("clu_") or len(cluster_id) < 14:
+        raise HTTPException(status_code=400, detail="Invalid cluster_id format")
+    try:
+        from sentiment_api.engines.asset_targeting import get_asset_impacts_for_cluster
+        data = await get_asset_impacts_for_cluster(
+            cluster_id,
+            universes=universes or ["sp500", "nasdaq_composite"],
+            limit_tickers=limit_tickers,
+            limit_sectors=limit_sectors,
+        )
+        return {"meta": meta(), "data": data, "errors": []}
+    except Exception as e:
+        from sentiment_api.api.responses import error_detail
+        return {"meta": meta(), "data": {}, "errors": [error_detail("ASSET_IMPACTS_ERROR", str(e))]}
+
+
+# -----------------------------------------------------------------------------
+# /v1/impacts/latest — Latest news → predicted winners/losers
+# -----------------------------------------------------------------------------
+@app.get("/v1/impacts/latest")
+async def get_latest_asset_impacts(
+    _: Annotated[str, Depends(validate_api_key)],
+    window: str = Query("6h", pattern="^(1h|2h|6h|12h|24h|3d|7d)$"),
+    since: str | None = Query(None),
+    until: str | None = Query(None),
+    min_impact_level: str = Query("L2", pattern="^(L0|L1|L2|L3|L4|L5)$"),
+    universes: list[str] = Query(default=[]),
+    limit_tickers: int = Query(50, ge=1, le=200),
+    limit_sectors: int = Query(11, ge=0, le=30),
+    include_evidence_urls: bool = Query(True),
+    include_historical_edge: bool = Query(False),
+):
+    """Latest news → predicted winners/losers (markets/sectors/tickers)."""
+    try:
+        from datetime import datetime as dt, timezone
+        from sentiment_api.engines.asset_targeting import get_latest_asset_impacts as _get
+        since_dt = dt.fromisoformat(since.replace("Z", "+00:00")) if since else None
+        until_dt = dt.fromisoformat(until.replace("Z", "+00:00")) if until else None
+        data = await _get(
+            window=window,
+            since=since_dt,
+            until=until_dt,
+            min_impact_level=min_impact_level,
+            universes=universes or ["sp500", "nasdaq_composite"],
+            limit_tickers=limit_tickers,
+            limit_sectors=limit_sectors,
+        )
+        return {"meta": meta(), "data": data, "errors": []}
+    except Exception as e:
+        from sentiment_api.api.responses import error_detail
+        return {"meta": meta(), "data": {}, "errors": [error_detail("IMPACTS_LATEST_ERROR", str(e))]}
+
+
+# -----------------------------------------------------------------------------
+# /v1/universes — List configured universes
+# -----------------------------------------------------------------------------
+@app.get("/v1/universes")
+async def list_universes(_: Annotated[str, Depends(validate_api_key)]):
+    """List configured universes (S&P 500, Nasdaq Composite, ...)."""
+    try:
+        from sentiment_api.db.pool import acquire
+        from sentiment_api.db.universe_repo import list_universes as _list
+        async with acquire() as conn:
+            data = await _list(conn)
+        return {"meta": meta(), "data": data, "errors": []}
+    except Exception as e:
+        from sentiment_api.api.responses import error_detail
+        return {"meta": meta(), "data": [], "errors": [error_detail("UNIVERSES_ERROR", str(e))]}
+
+
+# -----------------------------------------------------------------------------
+# /v1/universes/{universe_id}/constituents — List tickers in universe
+# -----------------------------------------------------------------------------
+@app.get("/v1/universes/{universe_id}/constituents")
+async def list_universe_constituents(
+    _: Annotated[str, Depends(validate_api_key)],
+    universe_id: str,
+    as_of: str | None = Query(None),
+    sector_id: str | None = Query(None),
+    q: str | None = Query(None),
+    limit: int = Query(100, ge=1, le=500),
+    cursor: str | None = Query(None),
+):
+    """List tickers in a universe (paged)."""
+    try:
+        from datetime import date
+        from sentiment_api.db.pool import acquire
+        from sentiment_api.db.universe_repo import list_universe_constituents as _list
+        as_of_date = date.fromisoformat(as_of) if as_of else None
+        async with acquire() as conn:
+            rows, next_cursor = await _list(conn, universe_id, as_of_date, sector_id, q, limit, cursor)
+        return {
+            "meta": meta(),
+            "pagination": {"limit": limit, "next_cursor": next_cursor, "returned": len(rows)},
+            "data": rows,
+            "errors": [],
+        }
+    except Exception as e:
+        from sentiment_api.api.responses import error_detail
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# -----------------------------------------------------------------------------
+# /v1/sectors — List sector taxonomy
+# -----------------------------------------------------------------------------
+@app.get("/v1/sectors")
+async def list_sectors(_: Annotated[str, Depends(validate_api_key)]):
+    """List sector taxonomy (GICS-like 11 sectors)."""
+    try:
+        from sentiment_api.db.pool import acquire
+        from sentiment_api.db.universe_repo import list_sectors as _list
+        async with acquire() as conn:
+            data = await _list(conn)
+        return {"meta": meta(), "data": data, "errors": []}
+    except Exception as e:
+        from sentiment_api.api.responses import error_detail
+        return {"meta": meta(), "data": [], "errors": [error_detail("SECTORS_ERROR", str(e))]}
+
+
+# -----------------------------------------------------------------------------
 # /v1/research/spy/event-study
 # -----------------------------------------------------------------------------
 @app.get("/v1/research/spy/event-study")
 async def get_spy_event_study(
-    _: Annotated[str, Depends(get_api_key)],
+    _: Annotated[str, Depends(validate_api_key)],
     from_date: str = Query(..., alias="from"),
     to: str = Query(...),
     windows: list[str] = Query(..., pattern="^(30m|2h|1d|3d|1w)$"),
@@ -525,30 +687,34 @@ async def get_spy_event_study(
 
 
 # -----------------------------------------------------------------------------
-# /v1/ask — RAG query (optional)
+# /v1/ask — RAG query (retrieve + answer with citations)
 # -----------------------------------------------------------------------------
 @app.post("/v1/ask")
 async def ask_rag(
-    _: Annotated[str, Depends(get_api_key)],
+    _: Annotated[str, Depends(validate_api_key)],
     body: dict = Body(default={"query": ""}),
 ):
-    """RAG query over memory (retrieve + answer with citations)."""
+    """RAG query over memory: vector retrieval + LLM answer with citations."""
     query = (body or {}).get("query", "")
     if not query:
         raise HTTPException(status_code=400, detail="query required in body")
-    from sentiment_api.db.pool import get_pool
+    from sentiment_api.db.pool import get_pool, acquire
+    from sentiment_api.llm.rag import retrieve_similar, generate_answer
+    from sentiment_api.llm.embeddings import embed_text
     pool = get_pool()
     if pool is None:
-        return {"meta": meta(), "data": {"answer": "Service unavailable.", "citations": []}, "errors": [error_detail("UNAVAILABLE", "DB not initialized")]}
+        raise HTTPException(status_code=503, detail="Service unavailable")
+    settings = get_settings()
     try:
+        query_embedding = embed_text(query[:4000], settings.model_embedding_id)
         async with acquire() as conn:
-            rows = await conn.fetch(
-                "SELECT cluster_id, headline_en FROM clusters ORDER BY last_seen DESC LIMIT 5"
-            )
-        citations = [{"cluster_id": r["cluster_id"], "headline_en": r["headline_en"]} for r in rows]
-        return {"meta": meta(), "data": {"answer": "RAG not fully implemented; returning recent clusters.", "citations": citations}, "errors": []}
-    except Exception:
-        return {"meta": meta(), "data": {"answer": "", "citations": []}, "errors": [error_detail("RAG_ERROR", "Query failed")]}
+            contexts = await retrieve_similar(conn, query_embedding, settings.model_embedding_id, top_k=10)
+        answer, citations = generate_answer(query, contexts)
+        return {"meta": meta(), "data": {"answer": answer, "citations": citations}, "errors": []}
+    except Exception as e:
+        import logging
+        logging.getLogger("sentiment_api").exception("RAG failed: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # -----------------------------------------------------------------------------
@@ -556,7 +722,7 @@ async def ask_rag(
 # -----------------------------------------------------------------------------
 @app.get("/v1/sources")
 async def list_sources(
-    _: Annotated[str, Depends(get_api_key)],
+    _: Annotated[str, Depends(validate_api_key)],
     enabled_only: bool = Query(True),
     types: list[str] | None = Query(None),
 ):
@@ -591,6 +757,49 @@ async def list_sources(
         "data": data,
         "errors": [],
     }
+
+
+# -----------------------------------------------------------------------------
+# POST /v1/admin/ingest/run — Trigger ingest (operator)
+# -----------------------------------------------------------------------------
+@app.post("/v1/admin/ingest/run")
+async def admin_ingest_run(
+    _: Annotated[str, Depends(validate_api_key)],
+    source_id: str | None = Query(None),
+):
+    """Trigger ingest run: push one poll cycle to queue. If source_id given, poll only that source."""
+    from sentiment_api.queue.client import get_queue, QUEUE_INGEST
+    from sentiment_api.registry import load_registry
+    settings = get_settings()
+    reg = _get_registry()
+    if not reg:
+        raise HTTPException(status_code=503, detail="Registry unavailable")
+    queue = await get_queue(settings.redis_url)
+    sources = reg.get_enabled_sources()
+    if source_id:
+        sources = [s for s in sources if s.source_id == source_id]
+        if not sources:
+            raise HTTPException(status_code=404, detail="Source not found")
+    from sentiment_api.collectors.rss import RSSCollector
+    from sentiment_api.collectors.gdelt import GDELTCollector
+    from sentiment_api.collectors.scrape import ScrapeCollector
+    from sentiment_api.ingest.daemon import _serialize_item
+    rss, gdelt, scrape = RSSCollector(), GDELTCollector(), ScrapeCollector()
+    total = 0
+    for src in sources:
+        if src.type == "rss" and src.feed_url:
+            for item in rss.collect(src, src.feed_url):
+                await queue.rpush(QUEUE_INGEST, json.dumps(_serialize_item(item)))
+                total += 1
+        elif src.type == "gdelt" and src.base_url:
+            for item in gdelt.collect(src, src.base_url, getattr(src, "query_profiles", None)):
+                await queue.rpush(QUEUE_INGEST, json.dumps(_serialize_item(item)))
+                total += 1
+        elif src.type == "scrape" and src.page_url:
+            for item in scrape.collect(src, src.page_url):
+                await queue.rpush(QUEUE_INGEST, json.dumps(_serialize_item(item)))
+                total += 1
+    return {"meta": meta(), "data": {"pushed": total, "sources_polled": len(sources)}, "errors": []}
 
 
 def run():

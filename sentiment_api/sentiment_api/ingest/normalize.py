@@ -38,22 +38,17 @@ def detect_language(text: str) -> str:
 
 def translate_to_english(text: str, lang: str, provider: Any = None) -> tuple[str, str, float]:
     """Translate to English. Returns (text_en, provider, confidence).
-    If provider is None or lang is 'en', returns text as-is.
+    Uses OpenAI when translate_to_en=True; never optional for non-English.
     """
     if not text:
         return "", "skip", 1.0
     if lang == "en":
         return text, "skip", 1.0
-    if provider is None:
-        return text, "none", 0.5
-    try:
-        # Pluggable: call provider.translate(text, from_lang=lang, to_lang="en")
-        if hasattr(provider, "translate"):
-            out = provider.translate(text, from_lang=lang, to_lang="en")
-            return out or text, getattr(provider, "name", "custom"), 0.9
-    except Exception as e:
-        logger.warning("Translation failed: %s", e)
-    return text, "failed", 0.3
+    from sentiment_api.llm.translation import translate_openai
+    out = translate_openai(text, from_lang=lang, to_lang="en")
+    if out:
+        return out, "openai", 0.95
+    return text, "failed", 0.2
 
 
 def normalize_item(

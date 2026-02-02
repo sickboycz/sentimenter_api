@@ -1,0 +1,246 @@
+# source_registry_extra_global.yaml
+#
+# Optional expansion sources beyond the v1.0 default registry.
+# Enable selectively to avoid noise/cost. Prefer RSS where available; otherwise scrape press rooms.
+#
+version: "1.0"
+note: "This file is a library of optional sources. Merge into source_registry.yaml as needed."
+
+sources:
+
+  # -------------------------
+  # Central banks (G20+)
+  # -------------------------
+  - source_id: jp_boj_news
+    name: "Bank of Japan — What's New"
+    pack: official_macro
+    type: scrape
+    enabled: false
+    page_url: "https://www.boj.or.jp/en/whatsnew/index.htm/"
+    credibility_tier: official
+    license_class: open
+    regions: ["JP"]
+    topics: ["rates", "policy", "macro"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: ca_boc_news
+    name: "Bank of Canada — Press"
+    pack: official_macro
+    type: scrape
+    enabled: false
+    page_url: "https://www.bankofcanada.ca/press/"
+    credibility_tier: official
+    license_class: open
+    regions: ["CA"]
+    topics: ["rates", "policy", "macro"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: au_rba_media
+    name: "Reserve Bank of Australia — Media Releases"
+    pack: official_macro
+    type: scrape
+    enabled: false
+    page_url: "https://www.rba.gov.au/media-releases/"
+    credibility_tier: official
+    license_class: open
+    regions: ["AU"]
+    topics: ["rates", "policy", "macro"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: nz_rbnz_news
+    name: "Reserve Bank of New Zealand — News"
+    pack: official_macro
+    type: scrape
+    enabled: false
+    page_url: "https://www.rbnz.govt.nz/news-and-events"
+    credibility_tier: official
+    license_class: open
+    regions: ["NZ"]
+    topics: ["rates", "policy", "macro"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: ch_snb_news
+    name: "Swiss National Bank — News"
+    pack: official_macro
+    type: scrape
+    enabled: false
+    page_url: "https://www.snb.ch/en/mmr/reference"
+    credibility_tier: official
+    license_class: open
+    regions: ["CH"]
+    topics: ["rates", "policy", "macro"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: se_riksbank_press
+    name: "Sveriges Riksbank — Press releases"
+    pack: official_macro
+    type: scrape
+    enabled: false
+    page_url: "https://www.riksbank.se/en-gb/press-and-published/notices-and-press-releases/"
+    credibility_tier: official
+    license_class: open
+    regions: ["SE"]
+    topics: ["rates", "policy", "macro"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: no_norgesbank_press
+    name: "Norges Bank — Press releases"
+    pack: official_macro
+    type: scrape
+    enabled: false
+    page_url: "https://www.norges-bank.no/en/news-events/news/"
+    credibility_tier: official
+    license_class: open
+    regions: ["NO"]
+    topics: ["rates", "policy", "macro"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: kr_bok_press
+    name: "Bank of Korea — Press Releases"
+    pack: official_macro
+    type: scrape
+    enabled: false
+    page_url: "https://www.bok.or.kr/eng/bbs/E0000634/list.do?menuNo=400069"
+    credibility_tier: official
+    license_class: open
+    regions: ["KR"]
+    topics: ["rates", "policy", "macro"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: in_rbi_press
+    name: "Reserve Bank of India — Press Releases"
+    pack: official_macro
+    type: scrape
+    enabled: false
+    page_url: "https://rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx"
+    credibility_tier: official
+    license_class: open
+    regions: ["IN"]
+    topics: ["rates", "policy", "macro"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: br_bcb_news
+    name: "Banco Central do Brasil — News"
+    pack: official_macro
+    type: scrape
+    enabled: false
+    page_url: "https://www.bcb.gov.br/en/pressdetail?type=press"
+    credibility_tier: official
+    license_class: open
+    regions: ["BR"]
+    topics: ["rates", "policy", "macro"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: mx_banxico_press
+    name: "Banco de México — Press Releases"
+    pack: official_macro
+    type: scrape
+    enabled: false
+    page_url: "https://www.banxico.org.mx/publicaciones-y-prensa/comunicados-en.html"
+    credibility_tier: official
+    license_class: open
+    regions: ["MX"]
+    topics: ["rates", "policy", "macro"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: tr_cbrt_news
+    name: "CBRT — Announcements"
+    pack: official_macro
+    type: scrape
+    enabled: false
+    page_url: "https://www.tcmb.gov.tr/wps/wcm/connect/EN/TCMB+EN/Main+Menu/Announcements"
+    credibility_tier: official
+    license_class: open
+    regions: ["TR"]
+    topics: ["rates", "policy", "macro"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: za_sarb_news
+    name: "South African Reserve Bank — Media releases"
+    pack: official_macro
+    type: scrape
+    enabled: false
+    page_url: "https://www.resbank.co.za/en/home/publications/media-releases"
+    credibility_tier: official
+    license_class: open
+    regions: ["ZA"]
+    topics: ["rates", "policy", "macro"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: cn_pboc_news
+    name: "People's Bank of China — News"
+    pack: official_macro
+    type: scrape
+    enabled: false
+    page_url: "http://www.pbc.gov.cn/en/3688006/index.html"
+    credibility_tier: official
+    license_class: open
+    regions: ["CN"]
+    topics: ["rates", "policy", "macro"]
+    parser_profile: "generic_newsroom"
+
+  # -------------------------
+  # Government / diplomacy (examples)
+  # -------------------------
+  - source_id: uk_fcdoreleases
+    name: "UK FCDO — News and communications"
+    pack: geopolitics
+    type: scrape
+    enabled: false
+    page_url: "https://www.gov.uk/government/organisations/foreign-commonwealth-development-office"
+    credibility_tier: official
+    license_class: open
+    regions: ["GB", "GLOBAL"]
+    topics: ["geopolitics", "diplomacy", "sanctions"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: jp_mofa_news
+    name: "Japan MOFA — Press releases"
+    pack: geopolitics
+    type: scrape
+    enabled: false
+    page_url: "https://www.mofa.go.jp/press/release/index.html"
+    credibility_tier: official
+    license_class: open
+    regions: ["JP", "GLOBAL"]
+    topics: ["geopolitics", "diplomacy", "sanctions"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: in_mea_news
+    name: "India MEA — Press releases"
+    pack: geopolitics
+    type: scrape
+    enabled: false
+    page_url: "https://mea.gov.in/press-releases.htm"
+    credibility_tier: official
+    license_class: open
+    regions: ["IN", "GLOBAL"]
+    topics: ["geopolitics", "diplomacy"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: cn_mfa_news
+    name: "China MFA — Press and media"
+    pack: geopolitics
+    type: scrape
+    enabled: false
+    page_url: "https://www.fmprc.gov.cn/eng/"
+    credibility_tier: official
+    license_class: open
+    regions: ["CN", "GLOBAL"]
+    topics: ["geopolitics", "diplomacy"]
+    parser_profile: "generic_newsroom"
+
+  # -------------------------
+  # Major public media RSS (examples)
+  # -------------------------
+  - source_id: france24_rss
+    name: "France 24 RSS"
+    pack: optional_media_rss
+    type: rss
+    enabled: false
+    feed_url: "https://www.france24.com/en/rss"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["geopolitics", "politics", "economy"]
+

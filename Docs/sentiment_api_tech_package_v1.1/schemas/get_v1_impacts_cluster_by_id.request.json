@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentiment-api.local/schemas/v1/get_v1_impacts_cluster_by_id.request.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "api_key": {
+      "type": "string",
+      "minLength": 16
+    },
+    "universes": {
+      "type": "array",
+      "items": {
+        "$ref": "defs.json#/$defs/UniverseId"
+      },
+      "maxItems": 10
+    },
+    "limit_tickers": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 200
+    },
+    "limit_sectors": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 30
+    },
+    "include_evidence_urls": {
+      "type": "boolean"
+    },
+    "include_historical_edge": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "api_key"
+  ]
+}

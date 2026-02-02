@@ -8,25 +8,9 @@ from typing import Any
 logger = logging.getLogger("sentiment_api.llm.summaries")
 
 
-def _call_llm(system: str, user: str, model: str = "gpt-4o-mini") -> str:
-    key = os.environ.get("OPENAI_API_KEY")
-    if not key:
-        return ""
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=key)
-        resp = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            temperature=0.1,
-        )
-        return (resp.choices[0].message.content or "").strip()
-    except Exception as e:
-        logger.warning("LLM call failed: %s", e)
-        return ""
+def _call_llm(system: str, user: str, model: str | None = None) -> str:
+    from sentiment_api.llm.client import call_chat
+    return call_chat(system, user, models=[model] if model else None, temperature=0.1)
 
 
 def _extract_json(text: str) -> dict | None:

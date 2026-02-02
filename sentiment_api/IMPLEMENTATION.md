@@ -1,6 +1,6 @@
 # sentiment_api — Implementation Status
 
-Implementation follows `Docs/sentiment_api_tech_package_v1.0/SENTIMENT_API_MASTER_SPEC_v1.0.md`.
+Implementation follows `Docs/sentiment_api_tech_package_v1.1/SENTIMENT_API_MASTER_SPEC_v1.1.md`. **v1.1** adds universe registry, asset targeting (markets/sectors/tickers).
 
 ## Modules
 
@@ -38,9 +38,20 @@ Implementation follows `Docs/sentiment_api_tech_package_v1.0/SENTIMENT_API_MASTE
 - `GET /v1/news/clusters` — Story clusters (filterable)
 - `GET /v1/news/clusters/{id}` — Cluster drilldown
 - `GET /v1/research/spy/event-study` — Event studies
-- `POST /v1/ask` — RAG query (stub)
+- `POST /v1/ask` — RAG query (vector retrieval + LLM answer with citations)
+- `POST /v1/admin/ingest/run` — Trigger ingest (operator)
 - `GET /v1/sources` — Source registry
 - `GET /v1/health` — Health (no auth)
+
+## Implemented Elements
+
+- **Translation**: OpenAI for non-English content (required)
+- **API keys**: Validated against `api_keys` table (argon2 or SHA256)
+- **L0 artifacts**: article_bodies, object store paths
+- **Summaries**: L1–L4 persisted in summaries table with dedupe_key
+- **Expectations/outcomes**: Forward eval ledger, outcome measurement
+- **Runs**: Audit for ingest, summarize, score, index
+- **Embeddings**: OpenAI or sentence-transformers fallback (3072-dim padded)
 
 ## Run
 

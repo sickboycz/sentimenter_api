@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentiment-api.local/schemas/v1/get_api_sp_sentiment.request.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "api_key": {
+      "type": "string",
+      "minLength": 16
+    },
+    "from": {
+      "type": "string",
+      "format": "date"
+    },
+    "to": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "api_key"
+  ]
+}

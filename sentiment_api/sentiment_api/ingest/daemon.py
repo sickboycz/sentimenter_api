@@ -31,6 +31,14 @@ def _serialize_item(item) -> dict:
     }
 
 
+async def _record_run(pool, run_type: str, source_id: str, count: int) -> None:
+    from sentiment_api.db.pool import acquire
+    from sentiment_api.db.repo import insert_run, finish_run
+    async with acquire() as conn:
+        run_id = await insert_run(conn, run_type, source_id, {"items_pushed": count})
+        await finish_run(conn, run_id, "ok")
+
+
 async def poll_source(source, queue, rss: RSSCollector, gdelt: GDELTCollector, scrape: ScrapeCollector) -> int:
     """Poll one source, push items to ingest queue. Returns count pushed."""
     count = 0
@@ -49,6 +57,14 @@ async def poll_source(source, queue, rss: RSSCollector, gdelt: GDELTCollector, s
                 count += 1
     except Exception as e:
         logger.warning("Poll %s failed: %s", source.source_id, e)
+    if count > 0:
+        try:
+            from sentiment_api.db.pool import get_pool
+            p = get_pool()
+            if p:
+                await _record_run(p, "ingest", source.source_id, count)
+        except Exception:
+            pass
     return count
 
 

@@ -5,7 +5,7 @@
 
 DB_URL="${1:-postgresql://sentiment:sentiment@localhost:5432/sentiment}"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-SCHEMA="$ROOT/Docs/sentiment_api_tech_package_v1.0/db/schema.sql"
+SCHEMA="$ROOT/Docs/sentiment_api_tech_package_v1.1/db/schema.sql"
 if [[ ! -f "$SCHEMA" ]]; then
   echo "Schema not found. Run from sentiment_api or project root."
   exit 1

@@ -34,6 +34,36 @@ async def upsert_sources(conn: asyncpg.Connection, sources: list[dict]) -> None:
         )
 
 
+async def insert_article_body(
+    conn: asyncpg.Connection,
+    article_id: str,
+    raw_html_path: str | None = None,
+    extracted_text_path: str | None = None,
+    extracted_len: int | None = None,
+    extraction_quality: float | None = None,
+    http_status: int | None = None,
+) -> None:
+    """Insert article_bodies (L0 artifact pointers)."""
+    await conn.execute(
+        """
+        INSERT INTO article_bodies (article_id, raw_html_path, extracted_text_path, extracted_len, extraction_quality, http_status)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (article_id) DO UPDATE SET
+            raw_html_path = COALESCE(EXCLUDED.raw_html_path, article_bodies.raw_html_path),
+            extracted_text_path = COALESCE(EXCLUDED.extracted_text_path, article_bodies.extracted_text_path),
+            extracted_len = COALESCE(EXCLUDED.extracted_len, article_bodies.extracted_len),
+            extraction_quality = COALESCE(EXCLUDED.extraction_quality, article_bodies.extraction_quality),
+            http_status = COALESCE(EXCLUDED.http_status, article_bodies.http_status)
+        """,
+        article_id,
+        raw_html_path,
+        extracted_text_path,
+        extracted_len,
+        extraction_quality,
+        http_status,
+    )
+
+
 async def insert_article(conn: asyncpg.Connection, art: dict) -> str | None:
     """Insert article; return article_id or None if duplicate."""
     try:
@@ -252,17 +282,96 @@ async def insert_event(
     )
 
 
-async def get_clusters_for_embedding(conn: asyncpg.Connection, limit: int = 500) -> list[tuple[str, list[float], datetime]]:
+async def insert_summary(
+    conn: asyncpg.Connection,
+    object_type: str,
+    object_id: str,
+    level: str,
+    schema_id: str,
+    schema_version: str,
+    model_id: str,
+    prompt_version: str,
+    dedupe_key: str,
+    content: dict,
+) -> None:
+    """Insert summary (L1-L4) with dedupe_key for caching."""
+    await conn.execute(
+        """
+        INSERT INTO summaries (object_type, object_id, level, schema_id, schema_version, model_id, prompt_version, dedupe_key, content)
+        VALUES ($1::object_type, $2, $3::summary_level, $4, $5, $6, $7, $8, $9)
+        ON CONFLICT (object_type, object_id, level, dedupe_key) DO NOTHING
+        """,
+        object_type,
+        object_id,
+        level,
+        schema_id,
+        schema_version,
+        model_id,
+        prompt_version,
+        dedupe_key,
+        json.dumps(content),
+    )
+
+
+async def insert_expectation(
+    conn: asyncpg.Connection,
+    event_id: str,
+    expected_direction: str,
+    expected_magnitude: float | None = None,
+    market: str = "SPY",
+) -> str:
+    """Insert expectation for forward eval. Returns expectation_id."""
+    row = await conn.fetchrow(
+        """
+        INSERT INTO expectations (event_id, expected_direction, expected_magnitude, market)
+        VALUES ($1, $2::direction, $3, $4)
+        RETURNING expectation_id
+        """,
+        event_id,
+        expected_direction,
+        expected_magnitude,
+        market,
+    )
+    return str(row["expectation_id"])
+
+
+async def insert_run(conn: asyncpg.Connection, run_type: str, source_id: str | None = None, stats: dict | None = None) -> str:
+    """Insert run record. Returns run_id."""
+    row = await conn.fetchrow(
+        """
+        INSERT INTO runs (run_type, source_id, stats) VALUES ($1, $2, $3)
+        RETURNING run_id
+        """,
+        run_type,
+        source_id,
+        json.dumps(stats or {}),
+    )
+    return str(row["run_id"])
+
+
+async def finish_run(conn: asyncpg.Connection, run_id: str, status: str = "ok", error: dict | None = None) -> None:
+    """Mark run as finished."""
+    await conn.execute(
+        "UPDATE runs SET ended_at = now(), status = $1, error = $2 WHERE run_id = $3",
+        status,
+        json.dumps(error) if error else None,
+        run_id,
+    )
+
+
+async def get_clusters_for_embedding(conn: asyncpg.Connection, limit: int = 500, model_id: str | None = None) -> list[tuple[str, list[float], datetime]]:
     """Get cluster_ids and embeddings for similarity search."""
+    model_id = model_id or "openai:text-embedding-3-large"
     rows = await conn.fetch(
         """
         SELECT e.object_id, e.embedding, c.last_seen
         FROM embeddings e
         JOIN clusters c ON c.cluster_id = e.object_id
-        WHERE e.object_type = 'cluster' AND e.model = 'openai:text-embedding-3-large'
+        WHERE e.object_type = 'cluster' AND e.model = $1
         ORDER BY c.last_seen DESC
-        LIMIT $1
+        LIMIT $2
         """,
+        model_id,
         limit,
     )
     result = []

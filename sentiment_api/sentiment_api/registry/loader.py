@@ -33,7 +33,7 @@ def _load_json_schema() -> dict:
     schema_path = (
         Path(__file__).resolve().parent.parent.parent
         / "Docs"
-        / "sentiment_api_tech_package_v1.0"
+        / "sentiment_api_tech_package_v1.1"
         / "registry"
         / "source_registry.schema.json"
     )

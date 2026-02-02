@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentiment-api.local/schemas/v1/get_v1_index_intraday.response.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "$ref": "defs.json#/$defs/ResponseMeta"
+    },
+    "pagination": {
+      "$ref": "defs.json#/$defs/Pagination"
+    },
+    "data": {
+      "type": "array",
+      "items": {
+        "$ref": "defs.json#/$defs/IntradayIndexPoint"
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "$ref": "defs.json#/$defs/Error"
+      }
+    }
+  },
+  "required": [
+    "meta",
+    "pagination",
+    "data",
+    "errors"
+  ]
+}
