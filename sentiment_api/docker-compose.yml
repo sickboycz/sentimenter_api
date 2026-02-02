@@ -30,6 +30,7 @@ services:
       retries: 5
 
   api:
+    restart: on-failure
     build:
       context: .
       dockerfile: Dockerfile
@@ -50,6 +51,7 @@ services:
       redis: { condition: service_healthy }
 
   worker:
+    restart: on-failure
     build: .
     command: ["python", "-c", "import asyncio; from sentiment_api.ingest.worker import run_worker; asyncio.run(run_worker())"]
     environment:
@@ -67,6 +69,7 @@ services:
       redis: { condition: service_healthy }
 
   daemon:
+    restart: on-failure
     build: .
     command: ["python", "-c", "import asyncio; from sentiment_api.ingest.daemon import run_daemon; asyncio.run(run_daemon())"]
     environment:

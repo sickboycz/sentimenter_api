@@ -8,6 +8,7 @@ import feedparser
 import httpx
 
 from sentiment_api.collectors.base import RawItem
+from sentiment_api.collectors.http_client import fetch_with_retry
 from sentiment_api.registry.models import Source
 
 logger = logging.getLogger("sentiment_api.collectors.rss")
@@ -20,10 +21,8 @@ class RSSCollector:
         self.timeout = timeout_sec
 
     def fetch_feed(self, feed_url: str) -> feedparser.FeedParserDict:
-        with httpx.Client(timeout=self.timeout, follow_redirects=True) as client:
-            resp = client.get(feed_url)
-            resp.raise_for_status()
-            return feedparser.parse(resp.content, response_headers=dict(resp.headers))
+        resp = fetch_with_retry(feed_url, timeout=float(self.timeout))
+        return feedparser.parse(resp.content, response_headers=dict(resp.headers))
 
     def collect(self, source: Source, feed_url: str) -> Iterator[RawItem]:
         """Yield raw items from RSS feed."""

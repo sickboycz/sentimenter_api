@@ -81,3 +81,4 @@ All endpoints except `/v1/health` require an API key validated against `api_keys
 - `POST /v1/admin/ingest/run` — Trigger ingest (operator)
 - `GET /v1/sources` — Source registry
 - `GET /v1/health` — Health check (no auth)
+- `GET /metrics` — Prometheus metrics (no auth)

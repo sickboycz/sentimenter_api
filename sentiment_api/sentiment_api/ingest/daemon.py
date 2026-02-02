@@ -1,6 +1,7 @@
 """Daemon: orchestration loop (poll sources, push to ingest queue)."""
 
 import asyncio
+import signal
 import json
 import logging
 from datetime import datetime, timezone
@@ -12,6 +13,8 @@ from sentiment_api.collectors.gdelt import GDELTCollector
 from sentiment_api.collectors.scrape import ScrapeCollector
 from sentiment_api.queue.client import get_queue, QUEUE_INGEST
 from sentiment_api.registry import load_registry
+from sentiment_api.collectors.circuit_breaker import is_open, record_success, record_failure
+from sentiment_api.metrics import ingestion_errors_total, ingestion_lag_seconds
 
 logger = logging.getLogger("sentiment_api.daemon")
 
@@ -31,16 +34,21 @@ def _serialize_item(item) -> dict:
     }
 
 
-async def _record_run(pool, run_type: str, source_id: str, count: int) -> None:
-    from sentiment_api.db.pool import acquire
+async def _record_run(pool, run_type: str, source_id: str | None, status: str, stats: dict | None = None, error: dict | None = None) -> None:
     from sentiment_api.db.repo import insert_run, finish_run
-    async with acquire() as conn:
-        run_id = await insert_run(conn, run_type, source_id, {"items_pushed": count})
-        await finish_run(conn, run_id, "ok")
+    try:
+        async with acquire() as conn:
+            run_id = await insert_run(conn, run_type, source_id, stats or {})
+            await finish_run(conn, run_id, status, error)
+    except Exception as ex:
+        logger.debug("Record run failed: %s", ex)
 
 
 async def poll_source(source, queue, rss: RSSCollector, gdelt: GDELTCollector, scrape: ScrapeCollector) -> int:
     """Poll one source, push items to ingest queue. Returns count pushed."""
+    if is_open(source.source_id):
+        logger.debug("Circuit open for %s, skipping", source.source_id)
+        return 0
     count = 0
     try:
         if source.type == "rss" and source.feed_url:
@@ -56,16 +64,30 @@ async def poll_source(source, queue, rss: RSSCollector, gdelt: GDELTCollector, s
                 await queue.rpush(QUEUE_INGEST, json.dumps(_serialize_item(item)))
                 count += 1
     except Exception as e:
+        record_failure(source.source_id)
+        ingestion_errors_total(source.source_id)
         logger.warning("Poll %s failed: %s", source.source_id, e)
-    if count > 0:
         try:
             from sentiment_api.db.pool import get_pool
             p = get_pool()
             if p:
-                await _record_run(p, "ingest", source.source_id, count)
+                await _record_run(p, "ingest", source.source_id, "fail", {"items_pushed": 0}, {"message": str(e), "source_id": source.source_id})
+        except Exception:
+            pass
+    if count > 0:
+        record_success(source.source_id)
+        ingestion_lag_seconds(source.source_id, None)  # record success
+        try:
+            from sentiment_api.db.pool import get_pool
+            p = get_pool()
+            if p:
+                await _record_run(p, "ingest", source.source_id, "ok", {"items_pushed": count})
         except Exception:
             pass
     return count
+
+
+_REGISTRY_RELOAD_INTERVAL = 10  # Reload registry every N poll cycles (AC-M0 hot reload)
 
 
 async def run_daemon() -> None:
@@ -80,8 +102,31 @@ async def run_daemon() -> None:
     gdelt = GDELTCollector(timeout_sec=20)
     scrape = ScrapeCollector(timeout_sec=20)
     logger.info("Daemon started, polling %d sources every %ds", len(sources), interval)
+    cycle = 0
+    reload_requested = False
+
+    def _sighup(_sig, _frame):
+        nonlocal reload_requested
+        reload_requested = True
+        logger.info("SIGHUP received, registry reload scheduled")
+
+    try:
+        signal.signal(signal.SIGHUP, _sighup)
+    except (AttributeError, ValueError):
+        pass  # Windows / no SIGHUP
+
     while True:
         try:
+            cycle += 1
+            if reload_requested or cycle % _REGISTRY_RELOAD_INTERVAL == 0:
+                reload_requested = False
+                try:
+                    reg = load_registry(settings.source_registry_path)
+                    sources = reg.get_enabled_sources()
+                    interval = reg.defaults.update_interval_sec or interval
+                    logger.info("Registry reloaded: %d sources", len(sources))
+                except Exception as ex:
+                    logger.warning("Registry reload failed, using cached: %s", ex)
             total = 0
             for src in sources:
                 n = await poll_source(src, queue, rss, gdelt, scrape)

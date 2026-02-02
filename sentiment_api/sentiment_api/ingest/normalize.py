@@ -96,6 +96,11 @@ def normalize_item(
         confidence = min(confidence, c2)
         if provider == "failed":
             status = "failed"
+            try:
+                from sentiment_api.metrics import translation_failures_total
+                translation_failures_total(item.source_id)
+            except Exception:
+                pass
     if not title_en and content_en:
         title_en = content_en[:200]
     if not title_en:

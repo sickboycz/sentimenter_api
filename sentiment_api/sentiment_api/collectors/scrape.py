@@ -10,6 +10,7 @@ import httpx
 import trafilatura
 
 from sentiment_api.collectors.base import RawItem
+from sentiment_api.collectors.http_client import fetch_with_retry
 from sentiment_api.registry.models import Source
 
 logger = logging.getLogger("sentiment_api.collectors.scrape")
@@ -22,10 +23,8 @@ class ScrapeCollector:
         self.timeout = timeout_sec
 
     def _fetch(self, url: str) -> tuple[str, str]:
-        with httpx.Client(timeout=self.timeout, follow_redirects=True) as client:
-            resp = client.get(url)
-            resp.raise_for_status()
-            html = resp.text
+        resp = fetch_with_retry(url, timeout=float(self.timeout))
+        html = resp.text
         text = trafilatura.extract(html) or ""
         return html, text
 

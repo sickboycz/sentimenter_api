@@ -1,0 +1,18 @@
+# /etc/systemd/system/sentiment_api_worker.service
+[Unit]
+Description=sentiment_api (Sentimeter) Worker — queue consumer
+After=network.target postgresql.service redis.service
+Wants=postgresql.service redis.service
+
+[Service]
+Type=simple
+User=sentiment
+WorkingDirectory=/opt/sentiment_api
+EnvironmentFile=/etc/sentiment_api/env
+ExecStart=/opt/sentiment_api/.venv/bin/sentiment-api worker
+Restart=always
+RestartSec=5
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

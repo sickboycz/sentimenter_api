@@ -61,6 +61,10 @@ CLI: `sentiment-api refresh-universes` — Refresh universe constituents (idempo
 - **Embeddings**: OpenAI or sentence-transformers fallback (3072-dim padded)
 - **Asset targeting (M5.5)**: Rule-based + optional LLM; event_impacts; cluster_asset_targeting_audit for full scoring
 - **Universe refresh**: `refresh-universes` CLI; GICS-like 11 sectors + unknown
+- **Error handling**: Retries+backoff (429/5xx) in collectors; circuit breaker per source; daemon run ledger for failures
+- **Metrics**: `GET /metrics` Prometheus (ingestion_errors, ingestion_lag, translation_failures, queue_depth, api_latency, api_errors)
+- **M0 hot reload**: Daemon periodic registry reload + SIGHUP
+- **Restart**: Docker `restart: on-failure`; systemd API/worker/daemon service files in ops/
 
 ## Run
 

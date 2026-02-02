@@ -1,0 +1,18 @@
+# /etc/systemd/system/sentiment_api_daemon.service
+[Unit]
+Description=sentiment_api (Sentimeter) Daemon — source poller
+After=network.target postgresql.service redis.service
+Wants=postgresql.service redis.service
+
+[Service]
+Type=simple
+User=sentiment
+WorkingDirectory=/opt/sentiment_api
+EnvironmentFile=/etc/sentiment_api/env
+ExecStart=/opt/sentiment_api/.venv/bin/sentiment-api daemon
+Restart=always
+RestartSec=10
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

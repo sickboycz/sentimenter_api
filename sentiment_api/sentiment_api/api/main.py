@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 from sentiment_api.api.auth import get_api_key
 from sentiment_api.api.keys import validate_api_key
@@ -59,6 +59,28 @@ app = FastAPI(
 )
 
 
+@app.middleware("http")
+async def metrics_middleware(request, call_next):
+    """Record API latency and errors for Prometheus (AC-M10.3)."""
+    import time
+    from sentiment_api.metrics import api_latency_ms, api_errors_total
+    start = time.perf_counter()
+    try:
+        response = await call_next(request)
+        ms = (time.perf_counter() - start) * 1000
+        route = request.url.path or "unknown"
+        api_latency_ms(route, ms)
+        if response.status_code >= 400:
+            api_errors_total(route, str(response.status_code))
+        return response
+    except Exception as e:
+        ms = (time.perf_counter() - start) * 1000
+        route = request.url.path or "unknown"
+        api_latency_ms(route, ms)
+        api_errors_total(route, "500")
+        raise
+
+
 def _get_registry():
     """Load registry; fail gracefully if path invalid."""
     settings = get_settings()
@@ -66,6 +88,28 @@ def _get_registry():
         return load_registry(settings.source_registry_path)
     except RegistryError as e:
         return None
+
+
+# -----------------------------------------------------------------------------
+# /metrics — Prometheus (no auth, AC-M10.1, M10.2, M10.3)
+# -----------------------------------------------------------------------------
+@app.get("/metrics")
+async def metrics():
+    """Prometheus metrics: ingestion, translation, queue, API."""
+    from sentiment_api.metrics import collect_metrics
+    from sentiment_api.config import get_settings
+    try:
+        import redis.asyncio as redis
+        r = redis.from_url(get_settings().redis_url)
+        from sentiment_api.queue.client import QUEUE_INGEST, QUEUE_SUMMARIZE, QUEUE_INDEX
+        for q in [QUEUE_INGEST, QUEUE_SUMMARIZE, QUEUE_INDEX]:
+            d = await r.llen(q)
+            from sentiment_api.metrics import queue_depth
+            queue_depth(q, d)
+        await r.aclose()
+    except Exception:
+        pass
+    return PlainTextResponse(collect_metrics(), media_type="text/plain; charset=utf-8")
 
 
 # -----------------------------------------------------------------------------

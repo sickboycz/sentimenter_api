@@ -7,6 +7,7 @@ from typing import Iterator
 import httpx
 
 from sentiment_api.collectors.base import RawItem
+from sentiment_api.collectors.http_client import fetch_with_retry
 from sentiment_api.registry.models import Source, QueryProfile
 
 logger = logging.getLogger("sentiment_api.collectors.gdelt")
@@ -20,10 +21,8 @@ class GDELTCollector:
 
     def _query(self, base_url: str, query: str, mode: str = "artlist", max_records: int = 250) -> list[dict]:
         params = {"query": query, "mode": mode, "maxrecords": max_records, "format": "json"}
-        with httpx.Client(timeout=self.timeout) as client:
-            resp = client.get(base_url, params=params)
-            resp.raise_for_status()
-            data = resp.json()
+        resp = fetch_with_retry(base_url, params=params, timeout=float(self.timeout))
+        data = resp.json()
         articles = data.get("articles", []) if isinstance(data, dict) else []
         return articles if isinstance(articles, list) else []
 
