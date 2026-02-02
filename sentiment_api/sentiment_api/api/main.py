@@ -60,11 +60,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS: allow frontend origin(s) from config (e.g. http://80.211.210.49:3000 when accessing UI by IP)
+# CORS: allow frontend origin(s) from config; also allow any origin on port 3000 (same-host UI by IP)
 _cors_origins = [o.strip() for o in get_settings().cors_origins.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
+    allow_origin_regex=r"https?://[^/]+:3000",  # e.g. http://80.211.210.49:3000 when UI opened by IP
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -700,7 +701,7 @@ async def get_asset_impacts_by_cluster(
     _: Annotated[str, Depends(validate_api_key)],
     cluster_id: str,
     universes: list[str] = Query(default=[]),
-    limit_tickers: int = Query(50, ge=1, le=200),
+    limit_tickers: int = Query(50, ge=0, le=200),
     limit_sectors: int = Query(11, ge=0, le=30),
     include_evidence_urls: bool = Query(True),
     include_historical_edge: bool = Query(False),
@@ -734,7 +735,7 @@ async def get_latest_asset_impacts(
     until: str | None = Query(None),
     min_impact_level: str = Query("L2", pattern="^(L0|L1|L2|L3|L4|L5)$"),
     universes: list[str] = Query(default=[]),
-    limit_tickers: int = Query(50, ge=1, le=200),
+    limit_tickers: int = Query(50, ge=0, le=200),
     limit_sectors: int = Query(11, ge=0, le=30),
     include_evidence_urls: bool = Query(True),
     include_historical_edge: bool = Query(False),
