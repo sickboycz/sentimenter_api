@@ -71,7 +71,7 @@ services:
       VECTOR_STORE_BACKEND: ${VECTOR_STORE_BACKEND:-pgvector}
       WEAVIATE_URL: http://weaviate:8080
     volumes:
-      - ./registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
+      - ./registry:/etc/sentiment_api:ro
       - artifacts:/data/artifacts
       - embedding_cache:/var/lib/sentiment_api
     ports:
@@ -100,7 +100,7 @@ services:
       VECTOR_STORE_BACKEND: ${VECTOR_STORE_BACKEND:-pgvector}
       WEAVIATE_URL: http://weaviate:8080
     volumes:
-      - ./registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
+      - ./registry:/etc/sentiment_api:ro
       - artifacts:/data/artifacts
       - embedding_cache:/var/lib/sentiment_api
     depends_on:
@@ -125,7 +125,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       SOURCE_REGISTRY_PATH: /etc/sentiment_api/source_registry.yaml
     volumes:
-      - ./registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
+      - ./registry:/etc/sentiment_api:ro
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
