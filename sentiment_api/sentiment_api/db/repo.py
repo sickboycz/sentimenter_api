@@ -160,6 +160,9 @@ async def insert_embedding(
     settings = get_settings()
     backend = (settings.vector_store_backend or "pgvector").strip().lower()
     if backend == "pgvector":
+        # pgvector expects string format: "[1.0, 2.0, ...]"
+        import json
+        embedding_str = json.dumps(embedding)
         await conn.execute(
             """
             INSERT INTO embeddings (object_type, object_id, model, dims, embedding, metadata)
@@ -170,7 +173,7 @@ async def insert_embedding(
             object_id,
             model,
             len(embedding),
-            embedding,
+            embedding_str,
         )
     else:
         from sentiment_api.vector_store import get_vector_store
