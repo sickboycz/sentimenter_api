@@ -1,0 +1,8 @@
+import "@testing-library/jest-dom";
+import React from "react";
+import { vi } from "vitest";
+
+vi.mock("next/link", () => ({
+  default: ({ children, href }: { children: React.ReactNode; href: string }) =>
+    React.createElement("a", { href }, children),
+}));

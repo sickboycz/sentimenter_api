@@ -2,6 +2,25 @@
 
 Global macro + political + geopolitical news impact intelligence. API-only integration for IBKR dashboard/bot.
 
+## Requirements
+
+**Python:** 3.11+  
+**Package manager:** `uv` (recommended) or `pip`
+
+```bash
+# With uv (recommended)
+uv sync
+
+# With pip
+pip install -e .
+# Or: pip install -r requirements.txt
+```
+
+**Frontend:** Node.js 18+  
+```bash
+cd frontend && npm install
+```
+
 ## Quick Start
 
 ### Option A: Minimal (health only, no DB)

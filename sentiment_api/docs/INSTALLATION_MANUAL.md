@@ -16,6 +16,20 @@ Production-grade procedure for installing, operating, and updating the sentiment
 - **Docker Engine** + **Docker Compose v2**
 - **systemd**
 - **Outbound HTTPS** (for API sources, OpenAI, etc.)
+- **Python 3.11+** (for local dev; Docker uses images)
+
+### Python dependencies
+
+```bash
+# With uv (recommended)
+uv sync
+
+# With pip
+pip install -r requirements.txt
+```
+
+- `requirements.txt` — production deps (generated from `uv export --no-dev`)
+- `requirements-dev.txt` — includes pytest (generated from `uv export --extra dev`)
 
 Install Docker:
 
