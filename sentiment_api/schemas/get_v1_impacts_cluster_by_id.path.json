@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentiment-api.local/schemas/v1/get_v1_impacts_cluster_by_id.path.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "cluster_id": {
+      "type": "string",
+      "pattern": "^clu_[a-zA-Z0-9]{10,64}$"
+    }
+  },
+  "required": [
+    "cluster_id"
+  ]
+}

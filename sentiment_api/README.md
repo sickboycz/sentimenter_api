@@ -35,12 +35,36 @@ uv run sentiment-api worker   # Process ingest queue
 uv run sentiment-api daemon   # Poll sources, push to queue
 ```
 
+### Production deployment
+
+See **docs/INSTALLATION_MANUAL.md** and **scripts/deploy/** for production install, update, and rollback. User: `sentimenter`. Data: `/srv/sentimenter/volumes/` (out-of-Docker).
+
 ### Option C: API in Docker
 
 ```bash
 cd sentiment_api
 docker compose up -d
 # API at http://localhost:8080
+# Prometheus at http://localhost:9090
+# Grafana at http://localhost:3001 (admin/admin)
+```
+
+### Option D: With frontend dashboard
+
+```bash
+cd sentiment_api
+docker compose up -d
+# API at http://localhost:8080, Dashboard at http://localhost:3000
+# Or run frontend locally: cd frontend && npm run dev
+```
+
+### Option E: Frontend-only stack (minimal: postgres, redis, api, frontend)
+
+```bash
+cd sentiment_api
+docker compose -f docker-compose.frontend_only.yml up -d
+# API at http://localhost:8080, Dashboard at http://localhost:3000
+# No worker, daemon, or observability stack
 ```
 
 ## API Key

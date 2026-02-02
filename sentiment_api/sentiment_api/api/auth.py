@@ -16,5 +16,8 @@ async def get_api_key(
     """Extract API key from header or query param (Moodix-compatible)."""
     key = header_key or query_key
     if not key or len(key) < 16:
-        raise HTTPException(status_code=401, detail="Missing or invalid API key")
+        raise HTTPException(
+            status_code=401,
+            detail={"code": "auth_missing_api_key", "message": "Missing API key. Provide X-API-Key header or api_key query param."},
+        )
     return key

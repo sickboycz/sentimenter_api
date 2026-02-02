@@ -35,6 +35,10 @@ dev = [
     "pytest-asyncio>=0.23.0",
 ]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["sentiment_api*"]

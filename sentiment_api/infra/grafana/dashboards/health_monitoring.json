@@ -1,0 +1,62 @@
+{
+  "uid": "health-monitoring",
+  "title": "Health Monitoring",
+  "tags": ["sentiment_api", "health"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "API up",
+      "description": "Prometheus scrape: 1=healthy, 0=down",
+      "targets": [{"expr": "up{job=\"sentiment_api\"}", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "none", "thresholds": {"mode": "absolute", "steps": [{"value": 0, "color": "red"}, {"value": 1, "color": "green"}]}}},
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0}
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "API request rate (req/s)",
+      "targets": [{"expr": "sum(rate(api_requests_total[5m])) by (route)", "refId": "A"}],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "API latency (ms avg)",
+      "targets": [{"expr": "api_latency_ms_avg", "refId": "A"}],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "API errors by route",
+      "targets": [{"expr": "sum(increase(api_errors_total[5m])) by (route, code)", "refId": "A"}],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12}
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Queue depth",
+      "targets": [{"expr": "queue_depth", "refId": "A"}],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12}
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Ingestion lag (seconds)",
+      "targets": [{"expr": "ingestion_lag_seconds", "refId": "A"}],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20}
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Ingestion errors",
+      "targets": [{"expr": "ingestion_errors_total", "refId": "A"}],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20}
+    }
+  ]
+}

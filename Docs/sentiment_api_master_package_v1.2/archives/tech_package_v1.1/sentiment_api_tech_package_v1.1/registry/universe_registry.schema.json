@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentiment-api.local/registry/universe_registry.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "universes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "universe_id": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9_]{3,64}$"
+          },
+          "name_en": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description_en": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "refresh": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "cadence": {
+                "type": "string",
+                "enum": [
+                  "hourly",
+                  "daily",
+                  "weekly",
+                  "manual"
+                ]
+              },
+              "at_utc": {
+                "type": "string"
+              },
+              "backfill_days": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 20000
+              }
+            },
+            "required": [
+              "cadence"
+            ]
+          },
+          "providers": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "provider_id": {
+                  "type": "string",
+                  "minLength": 3
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "scrape",
+                    "api",
+                    "dataset"
+                  ]
+                },
+                "license_class": {
+                  "type": "string",
+                  "enum": [
+                    "open",
+                    "key_required",
+                    "paid",
+                    "restricted"
+                  ]
+                },
+                "url": {
+                  "type": "string"
+                },
+                "reference_url": {
+                  "type": "string"
+                },
+                "files": {
+                  "type": "array"
+                },
+                "parser": {
+                  "type": "object"
+                },
+                "filters": {
+                  "type": "array"
+                },
+                "include_rules": {
+                  "type": "object"
+                },
+                "notes_en": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "provider_id",
+                "type",
+                "license_class"
+              ]
+            }
+          },
+          "sector_taxonomy": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "taxonomy_id": {
+                "type": "string",
+                "minLength": 3
+              },
+              "mapping_mode": {
+                "type": "string",
+                "enum": [
+                  "direct_from_provider",
+                  "infer_if_missing",
+                  "external_provider_only"
+                ]
+              },
+              "infer": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "taxonomy_id",
+              "mapping_mode"
+            ]
+          }
+        },
+        "required": [
+          "universe_id",
+          "name_en",
+          "enabled",
+          "providers",
+          "sector_taxonomy"
+        ]
+      }
+    }
+  },
+  "required": [
+    "version",
+    "universes"
+  ]
+}

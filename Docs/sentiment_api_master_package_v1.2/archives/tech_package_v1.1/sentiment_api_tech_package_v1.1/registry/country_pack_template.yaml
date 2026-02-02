@@ -1,0 +1,64 @@
+# country_pack_template.yaml
+#
+# Use this template to create a curated source pack per country.
+# You can include official sources and optionally local major media RSS.
+#
+# Naming:
+# - pack: country_<ISO2> (e.g., country_us, country_jp)
+# - source_id: <iso2>_<org>_<type>_<suffix>
+#
+# Keep everything English-first: translate_to_en: true.
+
+pack:
+  pack_id: "country_xx"
+  enabled: false
+  default_regions: ["XX"]
+
+sources:
+  - source_id: "xx_central_bank_press"
+    name: "Central Bank of XX — Press releases"
+    pack: "country_xx"
+    type: scrape
+    enabled: false
+    page_url: "https://<central-bank>/press"
+    credibility_tier: official
+    license_class: open
+    regions: ["XX"]
+    topics: ["rates", "policy", "macro"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: "xx_stats_releases"
+    name: "Statistics Office of XX — Releases"
+    pack: "country_xx"
+    type: scrape
+    enabled: false
+    page_url: "https://<stats-office>/releases"
+    credibility_tier: official
+    license_class: open
+    regions: ["XX"]
+    topics: ["inflation", "employment", "macro"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: "xx_foreign_affairs"
+    name: "Foreign Affairs Ministry of XX — News"
+    pack: "country_xx"
+    type: scrape
+    enabled: false
+    page_url: "https://<mfa>/news"
+    credibility_tier: official
+    license_class: open
+    regions: ["XX"]
+    topics: ["geopolitics", "diplomacy", "sanctions"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: "xx_major_media_rss"
+    name: "Major media outlet of XX — RSS"
+    pack: "country_xx"
+    type: rss
+    enabled: false
+    feed_url: "https://<media>/rss"
+    credibility_tier: local_media
+    license_class: open
+    regions: ["XX"]
+    topics: ["politics", "economy", "geopolitics"]
+

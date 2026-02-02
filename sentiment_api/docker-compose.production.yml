@@ -1,0 +1,42 @@
+# sentiment_api — production override (out-of-Docker DB files)
+# Use: docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
+# Data lives in /srv/sentimenter/volumes/ (never inside repo)
+# User: sentimenter
+# See docs/INSTALLATION_MANUAL.md
+
+services:
+  postgres:
+    volumes:
+      - /srv/sentimenter/volumes/postgres/data:/var/lib/postgresql/data
+
+  redis:
+    volumes:
+      - /srv/sentimenter/volumes/redis:/data
+
+  api:
+    volumes:
+      - ../Docs/sentiment_api_tech_package_v1.1/registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
+      - /srv/sentimenter/volumes/artifacts:/data/artifacts
+      - /srv/sentimenter/volumes/logs:/data/logs
+
+  worker:
+    volumes:
+      - ../Docs/sentiment_api_tech_package_v1.1/registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
+      - /srv/sentimenter/volumes/artifacts:/data/artifacts
+      - /srv/sentimenter/volumes/logs:/data/logs
+
+  daemon:
+    volumes:
+      - ../Docs/sentiment_api_tech_package_v1.1/registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
+      - /srv/sentimenter/volumes/logs:/data/logs
+
+  grafana:
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - /srv/sentimenter/volumes/grafana_data:/var/lib/grafana
+
+  loki:
+    volumes:
+      - ./infra/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - /srv/sentimenter/volumes/loki_data:/loki

@@ -1,0 +1,17 @@
+# /etc/systemd/system/sentiment_api.service
+[Unit]
+Description=sentiment_api (Sentimeter) API + workers
+After=network.target
+
+[Service]
+Type=simple
+User=sentiment
+WorkingDirectory=/opt/sentiment_api
+EnvironmentFile=/etc/sentiment_api/env
+ExecStart=/opt/sentiment_api/.venv/bin/python -m sentiment_api.api --host 0.0.0.0 --port 8080
+Restart=always
+RestartSec=2
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentiment-api.local/schemas/v1/get_v1_sources.request.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "api_key": {
+      "type": "string",
+      "minLength": 16
+    },
+    "enabled_only": {
+      "type": "boolean"
+    },
+    "types": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "gdelt",
+          "rss",
+          "api",
+          "scrape",
+          "dataset"
+        ]
+      }
+    }
+  },
+  "required": [
+    "api_key"
+  ]
+}

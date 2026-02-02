@@ -1,0 +1,166 @@
+{
+  "meta": {
+    "request_id": "req_01HXEXAMPLE",
+    "as_of": "2026-02-01T18:00:00Z",
+    "schema_version": "v1.1"
+  },
+  "data": {
+    "as_of": "2026-02-01T18:00:00Z",
+    "scope": {
+      "since": "2026-02-01T12:00:00Z",
+      "until": "2026-02-01T18:00:00Z",
+      "min_impact_level": "L2",
+      "universes": [
+        "sp500",
+        "nasdaq_composite"
+      ]
+    },
+    "most_affected_market": {
+      "market_id": "SP500",
+      "direction": "Down",
+      "impact_score": 72,
+      "confidence": 0.66,
+      "horizon": "1d",
+      "channels": [
+        "rates",
+        "liquidity_stress"
+      ],
+      "rationale_bullets_en": [
+        "Cluster set indicates tighter financial conditions risk and near-term risk-off positioning.",
+        "Historically, similar events show elevated 1d volatility and downside skew in broad equities."
+      ],
+      "evidence_urls": [
+        "https://example.com/story1",
+        "https://example.com/story2"
+      ]
+    },
+    "markets": [
+      {
+        "market_id": "SP500",
+        "direction": "Down",
+        "impact_score": 72,
+        "confidence": 0.66,
+        "horizon": "1d",
+        "channels": [
+          "rates",
+          "liquidity_stress"
+        ],
+        "rationale_bullets_en": [
+          "Cluster set indicates tighter financial conditions risk and near-term risk-off positioning.",
+          "Historically, similar events show elevated 1d volatility and downside skew in broad equities."
+        ],
+        "evidence_urls": [
+          "https://example.com/story1",
+          "https://example.com/story2"
+        ]
+      },
+      {
+        "market_id": "NASDAQ_COMPOSITE",
+        "direction": "Down",
+        "impact_score": 64,
+        "confidence": 0.6,
+        "horizon": "1d",
+        "channels": [
+          "rates",
+          "liquidity_stress"
+        ],
+        "rationale_bullets_en": [
+          "Higher duration exposure increases sensitivity to rates/real yields."
+        ],
+        "evidence_urls": [
+          "https://example.com/story1"
+        ]
+      }
+    ],
+    "sectors": [
+      {
+        "sector_id": "financials",
+        "sector_name_en": "Financials",
+        "direction": "Down",
+        "impact_score": 70,
+        "confidence": 0.65,
+        "horizon": "1d",
+        "channels": [
+          "credit",
+          "liquidity_stress"
+        ],
+        "rationale_bullets_en": [
+          "Credit spread widening risk pressures banks and brokers."
+        ]
+      },
+      {
+        "sector_id": "information_technology",
+        "sector_name_en": "Information Technology",
+        "direction": "Down",
+        "impact_score": 62,
+        "confidence": 0.58,
+        "horizon": "1d",
+        "channels": [
+          "rates"
+        ],
+        "rationale_bullets_en": [
+          "Higher real yields can compress valuation multiples for duration assets."
+        ]
+      }
+    ],
+    "winners": [
+      {
+        "symbol": "XOM",
+        "name": "Exxon Mobil Corporation",
+        "universe_memberships": [
+          "sp500"
+        ],
+        "sector_id": "energy",
+        "sector_name_en": "Energy",
+        "direction": "Up",
+        "impact_score": 55,
+        "confidence": 0.4,
+        "horizon": "1d",
+        "channels": [
+          "other"
+        ],
+        "rationale_bullets_en": [
+          "Placeholder example."
+        ],
+        "driver_clusters": [
+          "clu_example1234567890"
+        ],
+        "evidence_urls": [
+          "https://example.com/story1"
+        ],
+        "historical_edge": []
+      }
+    ],
+    "losers": [
+      {
+        "symbol": "AAPL",
+        "name": "Apple Inc.",
+        "universe_memberships": [
+          "sp500",
+          "nasdaq_composite"
+        ],
+        "sector_id": "information_technology",
+        "sector_name_en": "Information Technology",
+        "direction": "Down",
+        "impact_score": 60,
+        "confidence": 0.45,
+        "horizon": "1d",
+        "channels": [
+          "rates"
+        ],
+        "rationale_bullets_en": [
+          "Placeholder example."
+        ],
+        "driver_clusters": [
+          "clu_example1234567890"
+        ],
+        "evidence_urls": [
+          "https://example.com/story1"
+        ],
+        "historical_edge": []
+      }
+    ],
+    "notes_en": "Example payload only. Real output is generated from current clusters and evidence."
+  },
+  "errors": []
+}

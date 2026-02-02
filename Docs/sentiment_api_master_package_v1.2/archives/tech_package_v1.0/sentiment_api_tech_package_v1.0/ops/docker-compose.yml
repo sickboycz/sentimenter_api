@@ -1,0 +1,55 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: sentiment
+      POSTGRES_PASSWORD: sentiment
+      POSTGRES_DB: sentiment
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  api:
+    image: sentiment_api:latest
+    environment:
+      SENTIMENT_API_ENV: dev
+      DATABASE_URL: postgresql://sentiment:sentiment@postgres:5432/sentiment
+      REDIS_URL: redis://redis:6379/0
+      ARTIFACT_ROOT: /data/artifacts
+      SOURCE_REGISTRY_PATH: /etc/sentiment_api/source_registry.yaml
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      MODEL_SUMMARIZER_ID: openai:gpt-4.1-mini
+      MODEL_EMBEDDING_ID: openai:text-embedding-3-large
+    volumes:
+      - ./registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
+      - artifacts:/data/artifacts
+    ports:
+      - "8080:8080"
+    depends_on: [postgres, redis]
+
+  worker:
+    image: sentiment_api:latest
+    environment:
+      SENTIMENT_API_ENV: dev
+      DATABASE_URL: postgresql://sentiment:sentiment@postgres:5432/sentiment
+      REDIS_URL: redis://redis:6379/0
+      ARTIFACT_ROOT: /data/artifacts
+      SOURCE_REGISTRY_PATH: /etc/sentiment_api/source_registry.yaml
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      MODEL_SUMMARIZER_ID: openai:gpt-4.1-mini
+      MODEL_EMBEDDING_ID: openai:text-embedding-3-large
+    volumes:
+      - ./registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
+      - artifacts:/data/artifacts
+    depends_on: [postgres, redis]
+
+volumes:
+  pgdata:
+  artifacts:

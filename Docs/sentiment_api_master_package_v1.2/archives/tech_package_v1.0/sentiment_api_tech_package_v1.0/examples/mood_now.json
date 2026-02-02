@@ -1,0 +1,42 @@
+{
+  "meta": {
+    "request_id": "req_12345678abcd",
+    "as_of": "2026-02-01T18:00:00Z"
+  },
+  "data": {
+    "as_of": "2026-02-01T18:00:00Z",
+    "sentiment": "RiskOff",
+    "trend": "Growing",
+    "index_intraday": -0.42,
+    "news_volume_intraday": 128,
+    "news_volatility_intraday": 0.78,
+    "confidence": 0.66,
+    "drivers": [
+      {
+        "cluster_id": "clu_abcd1234efgh5678",
+        "headline_en": "Oil supply disruption risk rises after shipping incident",
+        "impact_score": 74.2,
+        "direction": "RiskOff",
+        "contribution": -0.18
+      },
+      {
+        "cluster_id": "clu_zz9911aa22bb33cc",
+        "headline_en": "Central bank signals tighter policy stance",
+        "impact_score": 61.0,
+        "direction": "RiskOff",
+        "contribution": -0.12
+      }
+    ],
+    "risk_vector": {
+      "risk_appetite": -0.55,
+      "volatility_pressure": 0.72,
+      "growth_outlook": -0.15,
+      "inflation_pressure": 0.38,
+      "rates_pressure": 0.44,
+      "liquidity_stress": 0.21,
+      "geopolitical_risk": 0.63,
+      "energy_supply_risk": 0.58
+    }
+  },
+  "errors": []
+}

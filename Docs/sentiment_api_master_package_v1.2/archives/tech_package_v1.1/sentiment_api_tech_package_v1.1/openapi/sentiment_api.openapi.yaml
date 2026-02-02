@@ -1,0 +1,510 @@
+openapi: 3.1.0
+info:
+  title: sentiment_api
+  version: "1.1.0"
+  summary: Global macro + political + geopolitical news impact intelligence (English-first)
+  description: |
+    API-only integration layer for sentiment_api (Sentimeter).
+
+    Key features:
+    - Evidence-first story clusters and impact scoring
+    - Intraday + daily indices (Moodix-compatible export)
+    - Research endpoints for SPY/ES event studies
+    - v1.1: markets/sectors/tickers targeting (S&P 500 + Nasdaq Composite universes)
+
+servers:
+  - url: http://localhost:8080
+    description: Local dev
+
+components:
+  securitySchemes:
+    ApiKeyHeader:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    ApiKeyQuery:
+      type: apiKey
+      in: query
+      name: api_key
+
+paths:
+  /api/sp-sentiment:
+    get:
+      operationId: getSpSentimentCompat
+      summary: Moodix-compatible daily series export
+      security:
+        - ApiKeyQuery: []
+        - ApiKeyHeader: []
+      parameters:
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 16
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Array of Moodix-compatible daily records
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/get_api_sp_sentiment.response.json
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/defs.json#/$defs/Error
+
+  /v1/mood/now:
+    get:
+      operationId: getMoodNow
+      summary: Latest mood snapshot (drivers + risk vector)
+      security:
+        - ApiKeyHeader: []
+        - ApiKeyQuery: []
+      responses:
+        "200":
+          description: Current mood snapshot
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/get_v1_mood_now.response.json
+
+  /v1/index/intraday:
+    get:
+      operationId: getIntradayIndex
+      summary: Intraday index series (paged)
+      security:
+        - ApiKeyHeader: []
+        - ApiKeyQuery: []
+      parameters:
+        - name: interval
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [1m, 5m, 15m, 1h]
+        - name: since
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: until
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Intraday index points
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/get_v1_index_intraday.response.json
+
+  /v1/news/clusters:
+    get:
+      operationId: listClusters
+      summary: List story clusters (filterable)
+      security:
+        - ApiKeyHeader: []
+        - ApiKeyQuery: []
+      parameters:
+        - name: since
+          in: query
+          required: false
+          schema: { type: string, format: date-time }
+        - name: until
+          in: query
+          required: false
+          schema: { type: string, format: date-time }
+        - name: min_impact_level
+          in: query
+          required: false
+          schema:
+            $ref: ../schemas/defs.json#/$defs/ImpactLevel
+        - name: direction
+          in: query
+          required: false
+          schema:
+            $ref: ../schemas/defs.json#/$defs/Direction
+        - name: topics
+          in: query
+          required: false
+          schema:
+            type: array
+            items: { type: string }
+          style: form
+          explode: true
+        - name: regions
+          in: query
+          required: false
+          schema:
+            type: array
+            items: { type: string }
+          style: form
+          explode: true
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 200 }
+        - name: cursor
+          in: query
+          required: false
+          schema: { type: string }
+        - name: include_source_urls
+          in: query
+          required: false
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: Cluster summaries
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/get_v1_news_clusters.response.json
+
+  /v1/news/clusters/{cluster_id}:
+    get:
+      operationId: getClusterById
+      summary: Cluster drilldown (articles + evidence + analogs + optional asset impacts)
+      security:
+        - ApiKeyHeader: []
+        - ApiKeyQuery: []
+      parameters:
+        - name: cluster_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^clu_[a-zA-Z0-9]{10,64}$'
+        - name: include_articles
+          in: query
+          required: false
+          schema: { type: boolean }
+        - name: include_evidence
+          in: query
+          required: false
+          schema: { type: boolean }
+        - name: include_analogs
+          in: query
+          required: false
+          schema: { type: boolean }
+        - name: include_asset_impacts
+          in: query
+          required: false
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: Cluster detail
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/get_v1_news_cluster_by_id.response.json
+
+  /v1/impacts/clusters/{cluster_id}:
+    get:
+      operationId: getAssetImpactsByCluster
+      summary: Markets/sectors/tickers impact targeting for a single cluster
+      security:
+        - ApiKeyHeader: []
+        - ApiKeyQuery: []
+      parameters:
+        - name: cluster_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^clu_[a-zA-Z0-9]{10,64}$'
+        - name: universes
+          in: query
+          required: false
+          description: Universe ids to consider (default both).
+          schema:
+            type: array
+            items: { type: string }
+          style: form
+          explode: true
+        - name: limit_tickers
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 200 }
+        - name: limit_sectors
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, maximum: 30 }
+        - name: include_evidence_urls
+          in: query
+          required: false
+          schema: { type: boolean }
+        - name: include_historical_edge
+          in: query
+          required: false
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: Asset targeting output
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/get_v1_impacts_cluster_by_id.response.json
+
+  /v1/impacts/latest:
+    get:
+      operationId: getLatestAssetImpacts
+      summary: Latest news → predicted winners/losers (markets/sectors/tickers)
+      security:
+        - ApiKeyHeader: []
+        - ApiKeyQuery: []
+      parameters:
+        - name: window
+          in: query
+          required: false
+          schema: { type: string, enum: [1h, 2h, 6h, 12h, 24h, 3d, 7d] }
+        - name: since
+          in: query
+          required: false
+          schema: { type: string, format: date-time }
+        - name: until
+          in: query
+          required: false
+          schema: { type: string, format: date-time }
+        - name: min_impact_level
+          in: query
+          required: false
+          schema:
+            $ref: ../schemas/defs.json#/$defs/ImpactLevel
+        - name: universes
+          in: query
+          required: false
+          schema:
+            type: array
+            items: { type: string }
+          style: form
+          explode: true
+        - name: limit_tickers
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 200 }
+        - name: limit_sectors
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, maximum: 30 }
+        - name: include_evidence_urls
+          in: query
+          required: false
+          schema: { type: boolean }
+        - name: include_historical_edge
+          in: query
+          required: false
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: Latest asset targeting output
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/get_v1_impacts_latest.response.json
+
+  /v1/universes:
+    get:
+      operationId: listUniverses
+      summary: List configured universes (S&P 500, Nasdaq Composite, ...)
+      security:
+        - ApiKeyHeader: []
+        - ApiKeyQuery: []
+      responses:
+        "200":
+          description: Universe list
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/get_v1_universes.response.json
+
+  /v1/universes/{universe_id}/constituents:
+    get:
+      operationId: listUniverseConstituents
+      summary: List tickers in a universe (paged)
+      security:
+        - ApiKeyHeader: []
+        - ApiKeyQuery: []
+      parameters:
+        - name: universe_id
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 64
+        - name: as_of
+          in: query
+          required: false
+          schema: { type: string, format: date }
+        - name: sector_id
+          in: query
+          required: false
+          schema: { type: string }
+        - name: q
+          in: query
+          required: false
+          schema: { type: string }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 500 }
+        - name: cursor
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: Constituents page
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/get_v1_universe_constituents.response.json
+
+  /v1/sectors:
+    get:
+      operationId: listSectors
+      summary: List sector taxonomy (GICS-like 11 sectors)
+      security:
+        - ApiKeyHeader: []
+        - ApiKeyQuery: []
+      responses:
+        "200":
+          description: Sector list
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/get_v1_sectors.response.json
+
+  /v1/research/spy/event-study:
+    get:
+      operationId: getSpyEventStudy
+      summary: Event-study and correlation summaries for SPY/ES
+      security:
+        - ApiKeyHeader: []
+        - ApiKeyQuery: []
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: windows
+          in: query
+          required: true
+          schema:
+            type: array
+            items: { type: string, enum: [30m, 2h, 1d, 3d, 1w] }
+          style: form
+          explode: true
+        - name: market
+          in: query
+          required: true
+          schema: { type: string, enum: [SPY, ES] }
+        - name: min_impact_level
+          in: query
+          required: false
+          schema:
+            $ref: ../schemas/defs.json#/$defs/ImpactLevel
+        - name: direction
+          in: query
+          required: false
+          schema:
+            $ref: ../schemas/defs.json#/$defs/Direction
+        - name: topics
+          in: query
+          required: false
+          schema:
+            type: array
+            items: { type: string }
+          style: form
+          explode: true
+        - name: regions
+          in: query
+          required: false
+          schema:
+            type: array
+            items: { type: string }
+          style: form
+          explode: true
+      responses:
+        "200":
+          description: Event study results
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/get_v1_research_spy_event_study.response.json
+
+  /v1/sources:
+    get:
+      operationId: listSources
+      summary: List configured news sources (registry view)
+      security:
+        - ApiKeyHeader: []
+        - ApiKeyQuery: []
+      parameters:
+        - name: enabled_only
+          in: query
+          required: false
+          schema: { type: boolean }
+        - name: types
+          in: query
+          required: false
+          schema:
+            type: array
+            items: { type: string, enum: [gdelt, rss, api, scrape, dataset] }
+          style: form
+          explode: true
+      responses:
+        "200":
+          description: Source list
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/get_v1_sources.response.json
+
+  /v1/health:
+    get:
+      operationId: health
+      summary: Health and dependency checks
+      security: []
+      responses:
+        "200":
+          description: Health status
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/get_v1_health.response.json

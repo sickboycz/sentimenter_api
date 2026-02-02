@@ -1,0 +1,333 @@
+version: "1.2"
+defaults:
+  enabled: true
+  translate_to_en: true
+  update_interval_sec: 300
+  credibility_tier: reputable_media
+  license_class: open
+  max_fetch_retries: 3
+  request_timeout_sec: 20
+  user_agent: "sentiment_api/1.2 (+contact: you@example.com)"
+
+packs:
+  global_firehose:
+    enabled: true
+  official_macro:
+    enabled: true
+  geopolitics:
+    enabled: true
+  sanctions:
+    enabled: true
+  conflict_humanitarian:
+    enabled: true
+  energy_nuclear:
+    enabled: true
+  trade_export_controls:
+    enabled: true
+  market_moving_media:
+    enabled: false     # enable only if licensed/allowed
+
+sources:
+  # --- Global firehose (broad world media + multilingual -> English) ---
+  - source_id: gdelt_doc_v2
+    name: "GDELT DOC 2.0"
+    pack: global_firehose
+    type: gdelt
+    enabled: true
+    base_url: "https://api.gdeltproject.org/api/v2/doc/doc"
+    language_hint: auto
+    translate_to_en: true
+    update_interval_sec: 300
+    credibility_tier: dataset
+    license_class: open
+    topics: ["macro", "geopolitics", "politics", "economy", "energy", "conflict", "sanctions"]
+    regions: ["GLOBAL"]
+    notes: "Global multilingual coverage; English translingual search."
+
+  # --- Official macro / central banks / stats (high signal) ---
+  - source_id: us_fed_rss
+    name: "Federal Reserve Board RSS"
+    pack: official_macro
+    type: rss
+    feed_url: "https://www.federalreserve.gov/feeds/feeds.htm"
+    credibility_tier: official
+    license_class: open
+    regions: ["US"]
+    topics: ["rates", "liquidity", "policy", "macro"]
+
+  - source_id: us_bls_rss
+    name: "BLS RSS"
+    pack: official_macro
+    type: rss
+    feed_url: "https://www.bls.gov/feed/"
+    credibility_tier: official
+    license_class: open
+    regions: ["US"]
+    topics: ["inflation", "employment", "macro"]
+
+  - source_id: us_bea_releases
+    name: "BEA Current Releases"
+    pack: official_macro
+    type: scrape
+    page_url: "https://www.bea.gov/news/current-releases"
+    credibility_tier: official
+    license_class: open
+    regions: ["US"]
+    topics: ["gdp", "macro"]
+
+  - source_id: ecb_rss
+    name: "ECB RSS"
+    pack: official_macro
+    type: rss
+    feed_url: "https://www.ecb.europa.eu/home/html/rss.en.html"
+    credibility_tier: official
+    license_class: open
+    regions: ["EU"]
+    topics: ["rates", "policy", "macro"]
+
+  - source_id: boe_rss
+    name: "Bank of England RSS"
+    pack: official_macro
+    type: rss
+    feed_url: "https://www.bankofengland.co.uk/rss"
+    credibility_tier: official
+    license_class: open
+    regions: ["GB"]
+    topics: ["rates", "policy", "macro"]
+
+  - source_id: boj_news
+    name: "Bank of Japan News"
+    pack: official_macro
+    type: scrape
+    page_url: "https://www.boj.or.jp/en/announcements/release_2026/"
+    enabled: false
+    credibility_tier: official
+    license_class: open
+    regions: ["JP"]
+    topics: ["rates", "policy", "macro"]
+    notes: "BoJ page structure varies by year; implement parser_profile."
+
+  - source_id: pboc_notices
+    name: "PBoC Notices"
+    pack: official_macro
+    type: scrape
+    page_url: "http://www.pbc.gov.cn/en/3688247/index.html"
+    enabled: false
+    credibility_tier: official
+    license_class: open
+    regions: ["CN"]
+    topics: ["rates", "policy", "macro"]
+    notes: "May require translation from Chinese; ensure compliant crawling."
+
+  - source_id: bis_rss
+    name: "BIS RSS"
+    pack: official_macro
+    type: rss
+    feed_url: "https://www.bis.org/rss/index.htm"
+    credibility_tier: official
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["banking", "liquidity", "macro"]
+
+  - source_id: imf_press
+    name: "IMF Press Releases"
+    pack: official_macro
+    type: scrape
+    page_url: "https://www.imf.org/en/News"
+    enabled: false
+    credibility_tier: official
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["macro", "policy", "crisis"]
+
+  - source_id: world_bank_news
+    name: "World Bank News"
+    pack: official_macro
+    type: scrape
+    page_url: "https://www.worldbank.org/en/news"
+    enabled: false
+    credibility_tier: official
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["macro", "development", "finance"]
+
+  # --- Geopolitics / diplomacy ---
+  - source_id: un_ga_rss
+    name: "UN General Assembly RSS"
+    pack: geopolitics
+    type: rss
+    feed_url: "https://www.un.org/en/ga/rss/index.shtml"
+    credibility_tier: official
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["geopolitics", "diplomacy"]
+
+  - source_id: unsc_consolidated_list_rss
+    name: "UNSC Consolidated List Updates"
+    pack: sanctions
+    type: rss
+    feed_url: "https://main.un.org/securitycouncil/en/rss-updates-unsc-consolidated-list"
+    credibility_tier: official
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["sanctions", "geopolitics"]
+
+  - source_id: us_state_rss
+    name: "US State Dept RSS"
+    pack: geopolitics
+    type: rss
+    feed_url: "https://www.state.gov/rss-feeds"
+    credibility_tier: official
+    license_class: open
+    regions: ["US", "GLOBAL"]
+    topics: ["geopolitics", "diplomacy"]
+
+  - source_id: eu_council_rss
+    name: "Council of the EU RSS"
+    pack: geopolitics
+    type: rss
+    feed_url: "https://www.consilium.europa.eu/en/about-site/rss/"
+    credibility_tier: official
+    license_class: open
+    regions: ["EU"]
+    topics: ["geopolitics", "sanctions", "policy"]
+
+  # --- Sanctions (policy shocks) ---
+  - source_id: uk_sanctions_list
+    name: "UK Sanctions List"
+    pack: sanctions
+    type: scrape
+    page_url: "https://www.gov.uk/government/publications/the-uk-sanctions-list"
+    credibility_tier: official
+    license_class: open
+    regions: ["GB"]
+    topics: ["sanctions"]
+
+  - source_id: eu_sanctions_map
+    name: "EU Sanctions Map"
+    pack: sanctions
+    type: scrape
+    page_url: "https://www.sanctionsmap.eu/"
+    credibility_tier: official
+    license_class: open
+    regions: ["EU"]
+    topics: ["sanctions"]
+
+  - source_id: us_ofac_recent_actions
+    name: "OFAC Recent Actions"
+    pack: sanctions
+    type: scrape
+    page_url: "https://ofac.treasury.gov/recent-actions"
+    credibility_tier: official
+    license_class: open
+    regions: ["US"]
+    topics: ["sanctions"]
+    notes: "RSS retired; monitor page."
+
+  # --- Conflict / humanitarian (structured datasets + high-signal feeds) ---
+  - source_id: acled_api
+    name: "ACLED API"
+    pack: conflict_humanitarian
+    type: api
+    base_url: "https://acleddata.com/acled-api-documentation"
+    enabled: false
+    auth:
+      method: api_key
+      key_name: "key"
+      location: query
+    credibility_tier: dataset
+    license_class: key_required
+    regions: ["GLOBAL"]
+    topics: ["conflict", "political_violence"]
+
+  - source_id: ucdp_api
+    name: "UCDP API"
+    pack: conflict_humanitarian
+    type: api
+    base_url: "https://ucdp.uu.se/apidocs/"
+    credibility_tier: dataset
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["conflict"]
+
+  - source_id: reliefweb_api
+    name: "ReliefWeb API"
+    pack: conflict_humanitarian
+    type: api
+    base_url: "https://apidoc.reliefweb.int/"
+    enabled: false
+    auth:
+      method: appname
+      key_name: "appname"
+      location: query
+    credibility_tier: official
+    license_class: key_required
+    regions: ["GLOBAL"]
+    topics: ["disasters", "humanitarian"]
+
+  - source_id: crisisgroup_rss
+    name: "International Crisis Group RSS"
+    pack: conflict_humanitarian
+    type: rss
+    feed_url: "https://www.crisisgroup.org/rss-0"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["conflict", "geopolitics"]
+
+  # --- Energy / nuclear ---
+  - source_id: eia_rss
+    name: "EIA RSS"
+    pack: energy_nuclear
+    type: rss
+    feed_url: "https://www.eia.gov/tools/rssfeeds/"
+    credibility_tier: official
+    license_class: open
+    regions: ["US", "GLOBAL"]
+    topics: ["energy", "oil", "gas", "inventory"]
+
+  - source_id: iaea_rss
+    name: "IAEA RSS"
+    pack: energy_nuclear
+    type: rss
+    feed_url: "https://www.iaea.org/feeds"
+    credibility_tier: official
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["nuclear", "energy", "security"]
+
+  - source_id: opec_press
+    name: "OPEC Press Releases"
+    pack: energy_nuclear
+    type: scrape
+    enabled: false
+    page_url: "https://www.opec.org/opec_web/en/press_room/28.htm"
+    credibility_tier: official
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["oil", "energy", "supply"]
+
+  # --- Trade / export controls ---
+  - source_id: us_bis_press
+    name: "US BIS (Commerce) Press"
+    pack: trade_export_controls
+    type: scrape
+    enabled: false
+    page_url: "https://www.bis.doc.gov/index.php/all-articles"
+    credibility_tier: official
+    license_class: open
+    regions: ["US"]
+    topics: ["export_controls", "trade", "sanctions"]
+
+  # --- Market-moving media (licensed only; disabled by default) ---
+  - source_id: reuters_world
+    name: "Reuters World (licensed)"
+    pack: market_moving_media
+    type: api
+    enabled: false
+    base_url: "REQUIRES_LICENSE"
+    credibility_tier: reputable_media
+    license_class: paid
+    regions: ["GLOBAL"]
+    topics: ["macro", "geopolitics", "politics", "economy", "energy"]
+    notes: "Do not scrape; use a licensed feed."

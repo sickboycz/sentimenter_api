@@ -1,4 +1,4 @@
-"""M5.5 — Asset targeting engine (markets/sectors/tickers)."""
+"""M5.5 — Asset targeting engine (markets/sectors/tickers). Ticker whitelist enforced."""
 
 import json
 import logging
@@ -8,6 +8,30 @@ from typing import Any
 from sentiment_api.db.pool import acquire
 
 logger = logging.getLogger("sentiment_api.engines.asset_targeting")
+
+
+def _filter_to_whitelist(bundle: dict, valid_symbols: set[str]) -> dict:
+    """Filter winners/losers to only tickers in ticker_universe (non-negotiable rule 5)."""
+    winners = [w for w in bundle.get("winners", []) if w.get("symbol") in valid_symbols]
+    losers = [l for l in bundle.get("losers", []) if l.get("symbol") in valid_symbols]
+    bundle = dict(bundle)
+    bundle["winners"] = winners
+    bundle["losers"] = losers
+    return bundle
+
+
+async def _get_valid_symbols(conn, universes: list[str]) -> set[str]:
+    """Return symbols in universe_memberships for given universes."""
+    rows = await conn.fetch(
+        """
+        SELECT DISTINCT um.symbol
+        FROM universe_memberships um
+        WHERE um.universe_id = ANY($1)
+          AND (um.effective_to IS NULL OR um.effective_to >= current_date)
+        """,
+        universes,
+    )
+    return {r["symbol"] for r in rows}
 
 # Map RiskOn/RiskOff to Up/Down for asset direction
 DIRECTION_MAP = {"RiskOn": "Up", "RiskOff": "Down", "Neutral": "Neutral", "Mixed": "Mixed", "Unknown": "Unknown"}
@@ -49,6 +73,7 @@ async def get_asset_impacts_for_cluster(
     universes = universes or ["sp500", "nasdaq_composite"]
     scope = {"cluster_id": cluster_id, "universes": universes}
     async with acquire() as conn:
+        valid_symbols = await _get_valid_symbols(conn, universes)
         row = await conn.fetchrow(
             """
             SELECT cluster_id, headline_en, impact, source_urls, last_seen
@@ -86,6 +111,7 @@ async def get_asset_impacts_for_cluster(
             if llm_bundle and llm_bundle.get("markets") and llm_bundle.get("sectors"):
                 llm_bundle["scope"] = scope
                 llm_bundle["as_of"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+                llm_bundle = _filter_to_whitelist(llm_bundle, valid_symbols)
                 return llm_bundle
         except Exception as ex:
             logger.debug("LLM asset targeting skipped: %s", ex)
@@ -161,7 +187,7 @@ async def get_asset_impacts_for_cluster(
             elif direction == "Down":
                 losers.append(tick)
     as_of = datetime.now(timezone.utc)
-    return {
+    bundle = {
         "as_of": as_of.isoformat().replace("+00:00", "Z"),
         "scope": scope,
         "most_affected_market": most_affected,
@@ -171,6 +197,7 @@ async def get_asset_impacts_for_cluster(
         "losers": losers[:limit_tickers],
         "notes_en": f"Cluster {cluster_id} asset targeting.",
     }
+    return _filter_to_whitelist(bundle, valid_symbols)
 
 
 async def get_latest_asset_impacts(

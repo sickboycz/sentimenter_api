@@ -1,0 +1,38 @@
+{
+  "title": "sentiment_api overview",
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "HTTP requests",
+      "targets": [
+        {
+          "expr": "sum(rate(sentiment_api_http_requests_total[5m]))"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP p95 latency",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(sentiment_api_http_request_latency_seconds_bucket[5m])) by (le))"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      }
+    }
+  ]
+}

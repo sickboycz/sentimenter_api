@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: "sentiment_api"
+    orgId: 1
+    folder: "sentiment_api"
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

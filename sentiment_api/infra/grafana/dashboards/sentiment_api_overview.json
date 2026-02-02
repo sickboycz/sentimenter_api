@@ -1,0 +1,35 @@
+{
+  "uid": "sentiment-api-overview",
+  "title": "sentiment_api overview",
+  "tags": ["sentiment_api"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "API request rate",
+      "targets": [{"expr": "sum(rate(api_requests_total[5m]))", "refId": "A"}],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+    },
+    {
+      "type": "timeseries",
+      "title": "API latency (ms)",
+      "targets": [{"expr": "api_latency_ms_avg", "refId": "A"}],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+    },
+    {
+      "type": "timeseries",
+      "title": "API errors",
+      "targets": [{"expr": "sum(increase(api_errors_total[5m])) by (route, code)", "refId": "A"}],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+    },
+    {
+      "type": "timeseries",
+      "title": "Queue depth",
+      "targets": [{"expr": "queue_depth", "refId": "A"}],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+    }
+  ]
+}

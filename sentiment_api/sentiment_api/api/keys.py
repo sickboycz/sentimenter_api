@@ -1,4 +1,4 @@
-"""API key validation against api_keys table (AC-M9.1)."""
+"""API key validation against api_keys table or SENTIMENT_API_API_KEYS (AC-M9.1)."""
 
 import logging
 from typing import Annotated
@@ -6,9 +6,15 @@ from typing import Annotated
 from fastapi import Depends, HTTPException
 
 from sentiment_api.api.auth import get_api_key
+from sentiment_api.config import get_settings
 from sentiment_api.db.pool import get_pool, acquire
 
 logger = logging.getLogger("sentiment_api.api.keys")
+
+
+def _env_keys() -> set[str]:
+    raw = (get_settings().api_keys or "").strip()
+    return {k.strip() for k in raw.split(",") if k.strip()} if raw else set()
 
 
 def _verify_key(stored_hash: str, key: str) -> bool:
@@ -25,10 +31,21 @@ def _verify_key(stored_hash: str, key: str) -> bool:
 
 
 async def validate_api_key(key: Annotated[str, Depends(get_api_key)]) -> str:
-    """Validate API key against api_keys table. Returns key on success."""
+    """Validate API key against api_keys table or SENTIMENT_API_API_KEYS. Returns key on success."""
+    env_whitelist = _env_keys()
+    if env_whitelist and key in env_whitelist:
+        return key
     pool = get_pool()
     if pool is None:
-        raise HTTPException(status_code=503, detail="Service unavailable")
+        if env_whitelist:
+            raise HTTPException(
+                status_code=401,
+                detail={"code": "auth_invalid_api_key", "message": "Invalid API key."},
+            )
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "service_unavailable", "message": "Service unavailable"},
+        )
     try:
         async with acquire() as conn:
             rows = await conn.fetch(
@@ -50,4 +67,7 @@ async def validate_api_key(key: Annotated[str, Depends(get_api_key)]) -> str:
             except Exception:
                 pass
             return key
-    raise HTTPException(status_code=401, detail="Invalid API key")
+    raise HTTPException(
+        status_code=401,
+        detail={"code": "auth_invalid_api_key", "message": "Invalid API key."},
+    )

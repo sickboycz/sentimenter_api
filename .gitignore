@@ -22,3 +22,7 @@ Thumbs.db
 # Env
 .env
 .env.local
+
+# Frontend
+sentiment_api/frontend/node_modules/
+sentiment_api/frontend/.next/

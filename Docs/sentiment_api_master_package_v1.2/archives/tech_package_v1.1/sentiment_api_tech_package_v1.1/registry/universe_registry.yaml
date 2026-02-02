@@ -1,0 +1,85 @@
+# Universe Registry v1.1
+# Purpose: define ticker universes + how to refresh them (constituents + sector mapping).
+version: "1.1"
+
+universes:
+  - universe_id: sp500
+    name_en: "S&P 500"
+    description_en: "Constituents of the S&P 500 index."
+    enabled: true
+    refresh:
+      cadence: daily
+      at_utc: "06:00"
+      backfill_days: 3650
+    providers:
+      - provider_id: wikipedia_sp500_constituents
+        type: scrape
+        license_class: open
+        url: "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+        parser:
+          kind: html_table
+          table_selector: "table#constituents"
+          field_map:
+            symbol: "Symbol"
+            name: "Security"
+            sector_name_en: "GICS Sector"
+            sub_industry: "GICS Sub-Industry"
+          symbol_normalization:
+            replace:
+              ".": "."
+              " ": ""
+        notes_en: "Default free provider; swap to licensed S&P feed if available."
+    sector_taxonomy:
+      taxonomy_id: gics_like_11
+      mapping_mode: direct_from_provider
+
+  - universe_id: nasdaq_composite
+    name_en: "Nasdaq Composite"
+    description_en: "Approximation of Nasdaq Composite constituents using Nasdaq-listed common-type stocks."
+    enabled: true
+    refresh:
+      cadence: daily
+      at_utc: "06:15"
+      backfill_days: 3650
+    providers:
+      - provider_id: nasdaqtrader_symbol_directory
+        type: dataset
+        license_class: open
+        reference_url: "https://www.nasdaqtrader.com/trader.aspx?id=symboldirdefs"
+        files:
+          - url: "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+            format: pipe_delimited_with_header_footer
+          - url: "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+            format: pipe_delimited_with_header_footer
+        parser:
+          kind: nasdaq_symbol_directory
+          fields:
+            symbol: "Symbol"
+            security_name: "Security Name"
+            exchange: "Exchange"
+            etf_flag: "ETF"
+            test_issue_flag: "Test Issue"
+        filters:
+          - field: etf_flag
+            op: eq
+            value: "N"
+          - field: test_issue_flag
+            op: eq
+            value: "N"
+        include_rules:
+          security_name_regex_allow:
+            - "(Common Stock|Ordinary Shares|Class [A-Z].*Common|ADS|ADR)"
+          security_name_regex_deny:
+            - "(Warrant|Units|Right|Preferred|Notes|ETF|ETN|Trust|Fund)"
+        notes_en: "Exact Nasdaq Composite membership may require licensed index constituent data; this is a pragmatic near-equivalent."
+    sector_taxonomy:
+      taxonomy_id: gics_like_11
+      mapping_mode: infer_if_missing
+      infer:
+        mode: ml_text_classifier
+        seed_labeled_universe: sp500
+        feature_priority:
+          - company_profile_en
+          - security_name
+          - company_name
+        fallback_sector_id: unknown

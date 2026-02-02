@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentiment-api.local/schemas/registry/sources.schema.json",
+  "title": "sentiment_api source registry schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "defaults": {
+      "type": "object"
+    },
+    "packs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ]
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_\\-]{3,64}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "pack": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "gdelt",
+              "rss",
+              "api",
+              "scrape",
+              "dataset"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "feed_url": {
+            "type": "string"
+          },
+          "base_url": {
+            "type": "string"
+          },
+          "page_url": {
+            "type": "string"
+          },
+          "credibility_tier": {
+            "type": "string",
+            "enum": [
+              "official",
+              "reputable_media",
+              "local_media",
+              "dataset",
+              "user_added"
+            ]
+          },
+          "license_class": {
+            "type": "string",
+            "enum": [
+              "open",
+              "key_required",
+              "paid",
+              "restricted"
+            ]
+          },
+          "regions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "translate_to_en": {
+            "type": "boolean"
+          },
+          "update_interval_sec": {
+            "type": "integer",
+            "minimum": 30,
+            "maximum": 86400
+          },
+          "auth": {
+            "type": "object"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "name",
+          "pack",
+          "type",
+          "enabled",
+          "credibility_tier",
+          "license_class"
+        ]
+      }
+    }
+  },
+  "required": [
+    "version",
+    "defaults",
+    "packs",
+    "sources"
+  ]
+}

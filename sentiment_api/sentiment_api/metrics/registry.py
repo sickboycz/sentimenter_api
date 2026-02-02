@@ -13,6 +13,7 @@ _translation_failures: dict[str, int] = defaultdict(int)
 _queue_depth: dict[str, int] = {}
 _api_latency: list[tuple[str, float]] = []
 _api_errors: dict[tuple[str, str], int] = defaultdict(int)
+_api_requests_total: dict[tuple[str, str], int] = defaultdict(int)  # (route, status) -> count
 _fetch_duration_seconds: list[tuple[str, float]] = []  # (source_id, duration)
 _MAX_LATENCY_SAMPLES = 1000
 _MAX_FETCH_SAMPLES = 500
@@ -67,6 +68,15 @@ def api_errors_total(route: str, code: str, inc: int = 1) -> None:
             _api_errors.clear()
 
 
+def api_requests_total(route: str, status: str, inc: int = 1) -> None:
+    """Increment request counter for Prometheus rate() queries."""
+    with _lock:
+        key = (route, status)
+        _api_requests_total[key] += inc
+        if sum(_api_requests_total.values()) > _MAX_ERROR_SAMPLES:
+            _api_requests_total.clear()
+
+
 def collect_metrics() -> str:
     """Produce Prometheus text exposition format."""
     parts = []
@@ -102,6 +112,10 @@ def collect_metrics() -> str:
             parts.append("# TYPE api_errors_total counter")
             for (route, code), v in _api_errors.items():
                 parts.append(f'api_errors_total{{route="{_esc(route)}",code="{_esc(code)}"}} {v}')
+        if _api_requests_total:
+            parts.append("# TYPE api_requests_total counter")
+            for (route, status), v in _api_requests_total.items():
+                parts.append(f'api_requests_total{{route="{_esc(route)}",status="{_esc(status)}"}} {v}')
         if _fetch_duration_seconds:
             parts.append("# TYPE fetch_duration_seconds gauge")
             by_src: dict[str, list[float]] = defaultdict(list)

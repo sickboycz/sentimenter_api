@@ -1,0 +1,484 @@
+version: "1.0"
+
+# -----------------------------------------------------------------------------
+# Source Registry — sentiment_api (Sentimeter)
+# -----------------------------------------------------------------------------
+# Principles:
+# - You can disable any source without code changes.
+# - Prefer RSS/API where stable; scrape only when allowed and necessary.
+# - Do NOT store or redistribute paywalled full text unless you have a license.
+# - GDELT acts as a global firehose that covers major+minor sources worldwide.
+#
+# Regions: use ISO-ish tags or your own (US, EU, GB, CN, JP, GLOBAL).
+# Topics: macro, rates, inflation, growth, fiscal, geopolitics, sanctions, conflict, energy, nuclear, trade, disasters.
+# -----------------------------------------------------------------------------
+
+defaults:
+  enabled: true
+  translate_to_en: true
+  update_interval_sec: 300
+  credibility_tier: reputable_media
+  license_class: open
+  max_fetch_retries: 3
+  request_timeout_sec: 20
+  respect_robots_txt: true
+  max_article_age_days: 30
+
+packs:
+  global_firehose: { enabled: true }
+  official_macro:  { enabled: true }
+  geopolitics:     { enabled: true }
+  sanctions:       { enabled: true }
+  conflict_humanitarian: { enabled: true }
+  energy_nuclear:  { enabled: true }
+  optional_media_rss: { enabled: false }  # enable only if you want direct RSS ingestion beyond GDELT
+
+sources:
+
+  # ---------------------------------------------------------------------------
+  # Global firehose (worldwide media, multilingual). Covers "major + minor".
+  # ---------------------------------------------------------------------------
+  - source_id: gdelt_doc_v2
+    name: "GDELT DOC 2.0"
+    pack: global_firehose
+    type: gdelt
+    enabled: true
+    base_url: "https://api.gdeltproject.org/api/v2/doc/doc"
+    language_hint: auto
+    translate_to_en: true
+    update_interval_sec: 300
+    credibility_tier: dataset
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["macro", "geopolitics", "politics", "economy", "energy", "trade", "conflict", "sanctions"]
+    query_profiles:
+      - profile_id: "macro_global"
+        query: "inflation OR CPI OR central bank OR interest rates OR recession OR GDP OR PMI"
+      - profile_id: "geopolitics_global"
+        query: "sanctions OR ceasefire OR missile OR invasion OR election OR coup OR border OR NATO OR UN Security Council"
+      - profile_id: "energy_global"
+        query: "oil OR gas OR OPEC OR refinery OR pipeline OR tanker OR LNG OR nuclear"
+    notes: "Use GDELT as the breadth layer; it is your 'minor sources worldwide' solution."
+
+  # ---------------------------------------------------------------------------
+  # Official macro / policy — US
+  # ---------------------------------------------------------------------------
+  - source_id: us_fed_rss
+    name: "Federal Reserve Board RSS"
+    pack: official_macro
+    type: rss
+    enabled: true
+    feed_url: "https://www.federalreserve.gov/feeds/feeds.htm"
+    credibility_tier: official
+    license_class: open
+    regions: ["US"]
+    topics: ["rates", "liquidity", "policy", "macro"]
+
+  - source_id: us_bls_rss
+    name: "Bureau of Labor Statistics RSS"
+    pack: official_macro
+    type: rss
+    enabled: true
+    feed_url: "https://www.bls.gov/feed/"
+    credibility_tier: official
+    license_class: open
+    regions: ["US"]
+    topics: ["inflation", "employment", "macro"]
+
+  - source_id: us_bea_releases
+    name: "Bureau of Economic Analysis Releases"
+    pack: official_macro
+    type: scrape
+    enabled: true
+    page_url: "https://www.bea.gov/news/current-releases"
+    credibility_tier: official
+    license_class: open
+    regions: ["US"]
+    topics: ["gdp", "macro"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: us_census_feeds
+    name: "US Census Feeds"
+    pack: official_macro
+    type: scrape
+    enabled: true
+    page_url: "https://www.census.gov/about/contact-us/feeds.html"
+    credibility_tier: official
+    license_class: open
+    regions: ["US"]
+    topics: ["macro", "trade", "housing"]
+    parser_profile: "generic_feed_list"
+
+  - source_id: us_treasurydirect_rss
+    name: "TreasuryDirect RSS"
+    pack: official_macro
+    type: rss
+    enabled: true
+    feed_url: "https://treasurydirect.gov/rss/"
+    credibility_tier: official
+    license_class: open
+    regions: ["US"]
+    topics: ["auctions", "debt", "policy"]
+
+  - source_id: us_treasury_press
+    name: "US Treasury Press Releases"
+    pack: official_macro
+    type: scrape
+    enabled: true
+    page_url: "https://home.treasury.gov/news/press-releases"
+    credibility_tier: official
+    license_class: open
+    regions: ["US"]
+    topics: ["fiscal", "policy", "sanctions"]
+    parser_profile: "generic_newsroom"
+
+  # ---------------------------------------------------------------------------
+  # Official macro / policy — EU / UK / cross-border
+  # ---------------------------------------------------------------------------
+  - source_id: ecb_rss
+    name: "European Central Bank RSS"
+    pack: official_macro
+    type: rss
+    enabled: true
+    feed_url: "https://www.ecb.europa.eu/home/html/rss.en.html"
+    credibility_tier: official
+    license_class: open
+    regions: ["EU"]
+    topics: ["rates", "policy", "macro"]
+
+  - source_id: eurostat_rss
+    name: "Eurostat RSS"
+    pack: official_macro
+    type: scrape
+    enabled: true
+    page_url: "https://ec.europa.eu/eurostat/web/rss"
+    credibility_tier: official
+    license_class: open
+    regions: ["EU"]
+    topics: ["macro", "inflation", "trade", "energy"]
+    parser_profile: "generic_feed_list"
+
+  - source_id: eu_commission_press
+    name: "European Commission Press Corner"
+    pack: official_macro
+    type: scrape
+    enabled: true
+    page_url: "https://ec.europa.eu/commission/presscorner/home/en"
+    credibility_tier: official
+    license_class: open
+    regions: ["EU"]
+    topics: ["policy", "trade", "sanctions", "macro"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: eu_council_rss
+    name: "Council of the EU RSS"
+    pack: geopolitics
+    type: rss
+    enabled: true
+    feed_url: "https://www.consilium.europa.eu/en/about-site/rss/"
+    credibility_tier: official
+    license_class: open
+    regions: ["EU"]
+    topics: ["geopolitics", "sanctions", "policy"]
+
+  - source_id: boe_rss
+    name: "Bank of England RSS"
+    pack: official_macro
+    type: rss
+    enabled: true
+    feed_url: "https://www.bankofengland.co.uk/rss"
+    credibility_tier: official
+    license_class: open
+    regions: ["GB"]
+    topics: ["rates", "policy", "macro"]
+
+  - source_id: bis_rss
+    name: "BIS RSS"
+    pack: official_macro
+    type: rss
+    enabled: true
+    feed_url: "https://www.bis.org/rss/index.htm"
+    credibility_tier: official
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["banking", "liquidity", "macro"]
+
+  # ---------------------------------------------------------------------------
+  # International institutions
+  # ---------------------------------------------------------------------------
+  - source_id: world_bank_news_api
+    name: "World Bank News API"
+    pack: official_macro
+    type: api
+    enabled: false
+    base_url: "https://www.worldbank.org/en/news"
+    credibility_tier: official
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["macro", "development"]
+    notes: "Enable after you implement the World Bank API integration or scrape fallback."
+
+  - source_id: imf_press
+    name: "IMF Press Releases"
+    pack: official_macro
+    type: scrape
+    enabled: true
+    page_url: "https://www.imf.org/en/News"
+    credibility_tier: official
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["macro", "rates", "financial_stability"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: oecd_news
+    name: "OECD Newsroom"
+    pack: official_macro
+    type: scrape
+    enabled: true
+    page_url: "https://www.oecd.org/newsroom/"
+    credibility_tier: official
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["macro", "trade", "policy"]
+    parser_profile: "generic_newsroom"
+
+  # ---------------------------------------------------------------------------
+  # Geopolitics / diplomacy
+  # ---------------------------------------------------------------------------
+  - source_id: un_ga_rss
+    name: "UN General Assembly RSS"
+    pack: geopolitics
+    type: rss
+    enabled: true
+    feed_url: "https://www.un.org/en/ga/rss/index.shtml"
+    credibility_tier: official
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["geopolitics", "diplomacy"]
+
+  - source_id: unsc_consolidated_list_rss
+    name: "UNSC Consolidated List Updates"
+    pack: sanctions
+    type: scrape
+    enabled: true
+    page_url: "https://main.un.org/securitycouncil/en/content/list-updates-unsc-consolidated-list"
+    credibility_tier: official
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["sanctions", "geopolitics"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: us_state_rss
+    name: "US State Department RSS"
+    pack: geopolitics
+    type: rss
+    enabled: true
+    feed_url: "https://www.state.gov/rss-feeds"
+    credibility_tier: official
+    license_class: open
+    regions: ["US", "GLOBAL"]
+    topics: ["geopolitics", "diplomacy"]
+
+  - source_id: europarl_rss
+    name: "European Parliament RSS"
+    pack: geopolitics
+    type: rss
+    enabled: true
+    feed_url: "https://www.europarl.europa.eu/at-your-service/en/stay-informed/rss-feeds"
+    credibility_tier: official
+    license_class: open
+    regions: ["EU"]
+    topics: ["geopolitics", "policy"]
+
+  - source_id: nato_news
+    name: "NATO News"
+    pack: geopolitics
+    type: scrape
+    enabled: true
+    page_url: "https://www.nato.int/cps/en/natohq/news.htm"
+    credibility_tier: official
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["geopolitics", "security"]
+    parser_profile: "generic_newsroom"
+
+  # ---------------------------------------------------------------------------
+  # Sanctions / enforcement
+  # ---------------------------------------------------------------------------
+  - source_id: uk_sanctions_list
+    name: "UK Sanctions List"
+    pack: sanctions
+    type: scrape
+    enabled: true
+    page_url: "https://www.gov.uk/government/publications/the-uk-sanctions-list"
+    credibility_tier: official
+    license_class: open
+    regions: ["GB"]
+    topics: ["sanctions"]
+    parser_profile: "generic_download_list"
+
+  - source_id: eu_sanctions_map
+    name: "EU Sanctions Map"
+    pack: sanctions
+    type: scrape
+    enabled: true
+    page_url: "https://www.sanctionsmap.eu/"
+    credibility_tier: official
+    license_class: open
+    regions: ["EU"]
+    topics: ["sanctions"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: us_ofac_recent_actions
+    name: "OFAC Recent Actions"
+    pack: sanctions
+    type: scrape
+    enabled: true
+    page_url: "https://ofac.treasury.gov/recent-actions"
+    credibility_tier: official
+    license_class: open
+    regions: ["US"]
+    topics: ["sanctions"]
+    parser_profile: "generic_newsroom"
+    notes: "RSS retired historically; monitor page and changes."
+
+  # ---------------------------------------------------------------------------
+  # Conflict / humanitarian datasets
+  # ---------------------------------------------------------------------------
+  - source_id: acled_api
+    name: "ACLED API"
+    pack: conflict_humanitarian
+    type: api
+    enabled: false
+    base_url: "https://acleddata.com/acled-api-documentation"
+    auth:
+      method: api_key
+      key_name: "key"
+      location: query
+    credibility_tier: dataset
+    license_class: key_required
+    regions: ["GLOBAL"]
+    topics: ["conflict", "political_violence"]
+
+  - source_id: ucdp_api
+    name: "UCDP API"
+    pack: conflict_humanitarian
+    type: api
+    enabled: true
+    base_url: "https://ucdp.uu.se/apidocs/"
+    credibility_tier: dataset
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["conflict"]
+
+  - source_id: reliefweb_api
+    name: "ReliefWeb API"
+    pack: conflict_humanitarian
+    type: api
+    enabled: false
+    base_url: "https://apidoc.reliefweb.int/"
+    auth:
+      method: appname
+      key_name: "appname"
+      location: query
+    credibility_tier: official
+    license_class: key_required
+    regions: ["GLOBAL"]
+    topics: ["disasters", "humanitarian"]
+
+  - source_id: crisisgroup_rss
+    name: "International Crisis Group RSS"
+    pack: conflict_humanitarian
+    type: rss
+    enabled: true
+    feed_url: "https://www.crisisgroup.org/rss-0"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["conflict", "geopolitics"]
+
+  # ---------------------------------------------------------------------------
+  # Energy / nuclear
+  # ---------------------------------------------------------------------------
+  - source_id: eia_rss
+    name: "EIA RSS Feeds"
+    pack: energy_nuclear
+    type: rss
+    enabled: true
+    feed_url: "https://www.eia.gov/tools/rssfeeds/"
+    credibility_tier: official
+    license_class: open
+    regions: ["US", "GLOBAL"]
+    topics: ["energy", "oil", "gas", "inventory"]
+
+  - source_id: iaea_rss
+    name: "IAEA RSS Feeds"
+    pack: energy_nuclear
+    type: rss
+    enabled: true
+    feed_url: "https://www.iaea.org/feeds"
+    credibility_tier: official
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["nuclear", "energy", "security"]
+
+  - source_id: opec_press
+    name: "OPEC Press Releases"
+    pack: energy_nuclear
+    type: scrape
+    enabled: true
+    page_url: "https://www.opec.org/opec_web/en/press_room/28.htm"
+    credibility_tier: official
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["energy", "oil"]
+    parser_profile: "generic_newsroom"
+
+  - source_id: irena_news
+    name: "IRENA News"
+    pack: energy_nuclear
+    type: scrape
+    enabled: true
+    page_url: "https://www.irena.org/Newsroom"
+    credibility_tier: official
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["energy"]
+    parser_profile: "generic_newsroom"
+
+  # ---------------------------------------------------------------------------
+  # Optional public media RSS (direct). GDELT already covers these; keep off by default.
+  # ---------------------------------------------------------------------------
+  - source_id: bbc_world_rss
+    name: "BBC World RSS"
+    pack: optional_media_rss
+    type: rss
+    enabled: false
+    feed_url: "https://feeds.bbci.co.uk/news/world/rss.xml"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["geopolitics", "politics", "economy"]
+
+  - source_id: aljazeera_rss
+    name: "Al Jazeera RSS"
+    pack: optional_media_rss
+    type: rss
+    enabled: false
+    feed_url: "https://www.aljazeera.com/xml/rss/all.xml"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["geopolitics", "politics", "economy"]
+
+  - source_id: dw_rss
+    name: "DW RSS"
+    pack: optional_media_rss
+    type: rss
+    enabled: false
+    feed_url: "https://rss.dw.com/rdf/rss-en-all"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["geopolitics", "politics", "economy"]
+

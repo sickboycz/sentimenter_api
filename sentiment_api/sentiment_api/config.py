@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8080
     retention_days: int = 90  # tombstone articles older than N days (AC-M7.3)
+    api_keys: str = Field(default="", description="SENTIMENT_API_API_KEYS, comma-separated")
 
     def resolve_paths(self) -> None:
         """Resolve registry paths relative to project root if needed."""

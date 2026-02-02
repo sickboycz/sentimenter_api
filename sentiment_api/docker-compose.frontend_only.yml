@@ -1,0 +1,78 @@
+# sentiment_api — frontend-only stack (dashboard + minimal backend)
+# Run from sentiment_api/: docker compose -f docker-compose.frontend_only.yml up -d
+# Provides: postgres, redis, api, frontend — no worker, daemon, observability
+
+version: "3.9"
+name: sentiment_api_frontend
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    environment:
+      POSTGRES_USER: sentiment
+      POSTGRES_PASSWORD: sentiment
+      POSTGRES_DB: sentiment
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_fe:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentiment"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SENTIMENT_API_ENV: dev
+      DATABASE_URL: postgresql://sentiment:sentiment@postgres:5432/sentiment
+      REDIS_URL: redis://redis:6379/0
+      ARTIFACT_ROOT: /data/artifacts
+      SOURCE_REGISTRY_PATH: /etc/sentiment_api/source_registry.yaml
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      - ../Docs/sentiment_api_tech_package_v1.1/registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
+      - artifacts_fe:/data/artifacts
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/v1/health 2>/dev/null | grep -q status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+    ports:
+      - "3000:3000"
+    depends_on:
+      api: { condition: service_started }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health 2>/dev/null | grep -q ok || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+volumes:
+  pgdata_fe:
+  artifacts_fe:

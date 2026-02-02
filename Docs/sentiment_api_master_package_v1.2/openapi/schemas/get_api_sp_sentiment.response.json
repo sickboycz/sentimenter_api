@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentiment-api.local/schemas/v1/get_api_sp_sentiment.response.json",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "date": {
+        "type": "string",
+        "format": "date"
+      },
+      "update_time": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "open": {
+        "type": "number"
+      },
+      "high": {
+        "type": "number"
+      },
+      "low": {
+        "type": "number"
+      },
+      "close": {
+        "type": "number"
+      },
+      "moodix_index": {
+        "type": "number"
+      },
+      "ma10_moodix": {
+        "type": "number"
+      },
+      "ma5_moodix": {
+        "type": "number"
+      },
+      "sentiment_wave": {
+        "type": "number"
+      },
+      "sentiment": {
+        "type": "string"
+      },
+      "trend": {
+        "type": "string"
+      },
+      "moodix_index_intraday": {
+        "type": "number"
+      },
+      "news_volume_intraday": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "news_volatility_intraday": {
+        "type": "number",
+        "minimum": 0
+      },
+      "moodix_index_week": {
+        "type": "number"
+      },
+      "news_volume_week": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "moodix_index_month": {
+        "type": "number"
+      },
+      "news_volume_month": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "moodix_index_year": {
+        "type": "number"
+      },
+      "news_volume_year": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "required": [
+      "date",
+      "update_time",
+      "open",
+      "high",
+      "low",
+      "close",
+      "moodix_index"
+    ]
+  }
+}

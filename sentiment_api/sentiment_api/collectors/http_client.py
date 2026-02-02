@@ -1,6 +1,8 @@
-"""Shared HTTP client with retries, backoff, robots.txt (AC-M1.3, 14.4)."""
+"""Shared HTTP client with retries, backoff, robots.txt, SSRF block (AC-M1.3, 14.4, test matrix)."""
 
+import ipaddress
 import logging
+import socket
 import time
 from urllib.parse import urlparse
 from urllib.robotparser import RobotFileParser
@@ -8,6 +10,51 @@ from urllib.robotparser import RobotFileParser
 import httpx
 
 logger = logging.getLogger("sentiment_api.collectors.http")
+
+
+def _is_private_or_reserved(ip: str) -> bool:
+    """True if IP is private/reserved (SSRF block)."""
+    try:
+        a = ipaddress.ip_address(ip)
+        return (
+            a.is_private
+            or a.is_loopback
+            or a.is_link_local
+            or a.is_reserved
+            or a.is_multicast
+        )
+    except ValueError:
+        return True
+
+
+def _block_ssrf_host(host: str) -> None:
+    """Raise ValueError if host is private/reserved or resolves to such (SSRF block)."""
+    if not host or host.startswith("."):
+        raise ValueError("SSRF: invalid host")
+    host_lower = host.lower().strip()
+    if host_lower in ("localhost", "localhost.localdomain", "ip6-localhost", "ip6-loopback"):
+        raise ValueError("SSRF: localhost not allowed")
+    if host_lower == "::1":
+        raise ValueError("SSRF: loopback not allowed")
+    # Host as IP literal
+    try:
+        addr = ipaddress.ip_address(host)
+        if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved:
+            raise ValueError(f"SSRF: private/reserved IP not allowed: {host}")
+        return
+    except ValueError as e:
+        if "SSRF:" in str(e):
+            raise
+    # Not an IP; resolve hostname
+    # Resolve hostname
+    try:
+        addrinfos = socket.getaddrinfo(host, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
+    except socket.gaierror as exc:
+        raise ValueError(f"SSRF: host resolution failed: {exc}") from exc
+    for _, _, _, _, sockaddr in addrinfos:
+        ip = sockaddr[0] if isinstance(sockaddr, (list, tuple)) else sockaddr
+        if _is_private_or_reserved(ip):
+            raise ValueError(f"SSRF: private/reserved IP not allowed: {ip}")
 
 # Retry config
 MAX_RETRIES = 3
@@ -53,8 +100,13 @@ def fetch_with_retry(
     timeout: float = 20.0,
     follow_redirects: bool = True,
     respect_robots: bool = True,
+    block_ssrf: bool = True,
 ) -> httpx.Response:
-    """Fetch URL with retries and exponential backoff on 429/5xx (AC-M1.3)."""
+    """Fetch URL with retries and exponential backoff on 429/5xx (AC-M1.3). SSRF block by default."""
+    parsed = urlparse(url)
+    host = parsed.hostname
+    if host and block_ssrf:
+        _block_ssrf_host(host)
     if respect_robots and not _check_robots(url):
         raise PermissionError("robots.txt disallows this URL")
     last_exc: Exception | None = None

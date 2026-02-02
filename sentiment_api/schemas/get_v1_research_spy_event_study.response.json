@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentiment-api.local/schemas/v1/get_v1_research_spy_event_study.response.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "$ref": "defs.json#/$defs/ResponseMeta"
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "market": {
+          "type": "string",
+          "enum": [
+            "SPY",
+            "ES"
+          ]
+        },
+        "from": {
+          "type": "string",
+          "format": "date"
+        },
+        "to": {
+          "type": "string",
+          "format": "date"
+        },
+        "filters": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "sample_size": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "windows": {
+          "type": "array",
+          "items": {
+            "$ref": "defs.json#/$defs/EventStudyWindow"
+          }
+        }
+      },
+      "required": [
+        "market",
+        "from",
+        "to",
+        "filters",
+        "sample_size",
+        "windows"
+      ]
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "$ref": "defs.json#/$defs/Error"
+      }
+    }
+  },
+  "required": [
+    "meta",
+    "data",
+    "errors"
+  ]
+}

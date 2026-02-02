@@ -1,0 +1,1145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentiment-api.local/schemas/v1/defs.json",
+  "title": "sentiment_api v1 shared definitions",
+  "type": "object",
+  "$defs": {
+    "Error": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "hint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ]
+    },
+    "ResponseMeta": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 8
+        },
+        "as_of": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "request_id",
+        "as_of"
+      ]
+    },
+    "Pagination": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500
+        },
+        "next_cursor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "returned": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "limit",
+        "next_cursor",
+        "returned"
+      ]
+    },
+    "ImpactLevel": {
+      "type": "string",
+      "enum": [
+        "L0",
+        "L1",
+        "L2",
+        "L3",
+        "L4",
+        "L5"
+      ]
+    },
+    "Direction": {
+      "type": "string",
+      "enum": [
+        "RiskOn",
+        "RiskOff",
+        "Neutral",
+        "Mixed",
+        "Unknown"
+      ]
+    },
+    "Tone": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "polarity": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "subjectivity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "polarity",
+        "subjectivity"
+      ]
+    },
+    "Impact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "impact_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "impact_level": {
+          "$ref": "#/$defs/ImpactLevel"
+        },
+        "expected_direction": {
+          "$ref": "#/$defs/Direction"
+        },
+        "realized_direction": {
+          "$ref": "#/$defs/Direction"
+        },
+        "horizon": {
+          "type": "string",
+          "enum": [
+            "intraday",
+            "1d",
+            "3d",
+            "1w",
+            "1m",
+            "unknown"
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "reason_codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "maxItems": 50
+        }
+      },
+      "required": [
+        "impact_score",
+        "impact_level",
+        "expected_direction",
+        "horizon",
+        "confidence",
+        "reason_codes"
+      ]
+    },
+    "SourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_\\-]{3,64}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "gdelt",
+            "rss",
+            "api",
+            "scrape",
+            "dataset"
+          ]
+        },
+        "credibility_tier": {
+          "type": "string",
+          "enum": [
+            "official",
+            "reputable_media",
+            "local_media",
+            "dataset",
+            "user_added"
+          ]
+        },
+        "license_class": {
+          "type": "string",
+          "enum": [
+            "open",
+            "key_required",
+            "paid",
+            "restricted"
+          ]
+        }
+      },
+      "required": [
+        "source_id",
+        "name",
+        "type",
+        "credibility_tier",
+        "license_class"
+      ]
+    },
+    "ArticleRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "article_id": {
+          "type": "string",
+          "pattern": "^art_[a-zA-Z0-9]{10,64}$"
+        },
+        "source_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_\\-]{3,64}$"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "published_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "title_en": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lang_original": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 16
+        }
+      },
+      "required": [
+        "article_id",
+        "source_id",
+        "url",
+        "published_at",
+        "title_en",
+        "lang_original"
+      ]
+    },
+    "EvidencePassage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "text_en": {
+          "type": "string",
+          "minLength": 1
+        },
+        "relevance_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "url",
+        "text_en",
+        "relevance_score"
+      ]
+    },
+    "ClusterSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cluster_id": {
+          "type": "string",
+          "pattern": "^clu_[a-zA-Z0-9]{10,64}$"
+        },
+        "first_seen": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "last_seen": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "headline_en": {
+          "type": "string",
+          "minLength": 1
+        },
+        "summary_bullets_en": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "maxItems": 12
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "maxItems": 30
+        },
+        "regions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 8
+          },
+          "maxItems": 50
+        },
+        "tone": {
+          "$ref": "#/$defs/Tone"
+        },
+        "impact": {
+          "$ref": "#/$defs/Impact"
+        },
+        "source_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          },
+          "maxItems": 200
+        }
+      },
+      "required": [
+        "cluster_id",
+        "first_seen",
+        "last_seen",
+        "headline_en",
+        "summary_bullets_en",
+        "topics",
+        "regions",
+        "tone",
+        "impact",
+        "source_count",
+        "source_urls"
+      ]
+    },
+    "ClusterDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cluster": {
+          "$ref": "#/$defs/ClusterSummary"
+        },
+        "articles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArticleRef"
+          },
+          "minItems": 1,
+          "maxItems": 500
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidencePassage"
+          },
+          "minItems": 1,
+          "maxItems": 50
+        },
+        "what_changed_en": {
+          "type": "string"
+        },
+        "why_it_matters_en": {
+          "type": "string"
+        },
+        "what_to_watch_en": {
+          "type": "string"
+        },
+        "impact_explanation_en": {
+          "type": "string"
+        },
+        "historical_analogs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "cluster_id": {
+                "type": "string",
+                "pattern": "^clu_[a-zA-Z0-9]{10,64}$"
+              },
+              "similarity": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "label_en": {
+                "type": "string"
+              },
+              "date": {
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "required": [
+              "cluster_id",
+              "similarity",
+              "label_en",
+              "date"
+            ]
+          },
+          "maxItems": 20
+        },
+        "asset_impacts": {
+          "$ref": "#/$defs/AssetImpactBundle"
+        }
+      },
+      "required": [
+        "cluster",
+        "articles",
+        "evidence"
+      ]
+    },
+    "MoodSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "as_of": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "sentiment": {
+          "$ref": "#/$defs/Direction"
+        },
+        "trend": {
+          "type": "string",
+          "minLength": 1
+        },
+        "index_intraday": {
+          "type": "number"
+        },
+        "news_volume_intraday": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "news_volatility_intraday": {
+          "type": "number",
+          "minimum": 0
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "drivers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "cluster_id": {
+                "type": "string",
+                "pattern": "^clu_[a-zA-Z0-9]{10,64}$"
+              },
+              "headline_en": {
+                "type": "string"
+              },
+              "impact_score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "direction": {
+                "$ref": "#/$defs/Direction"
+              },
+              "contribution": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "cluster_id",
+              "headline_en",
+              "impact_score",
+              "direction",
+              "contribution"
+            ]
+          },
+          "maxItems": 25
+        },
+        "risk_vector": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "risk_appetite": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 1
+            },
+            "volatility_pressure": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "growth_outlook": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 1
+            },
+            "inflation_pressure": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 1
+            },
+            "rates_pressure": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 1
+            },
+            "liquidity_stress": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "geopolitical_risk": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "energy_supply_risk": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "risk_appetite",
+            "volatility_pressure",
+            "growth_outlook",
+            "inflation_pressure",
+            "rates_pressure",
+            "liquidity_stress",
+            "geopolitical_risk",
+            "energy_supply_risk"
+          ]
+        }
+      },
+      "required": [
+        "as_of",
+        "sentiment",
+        "trend",
+        "index_intraday",
+        "news_volume_intraday",
+        "news_volatility_intraday",
+        "confidence",
+        "drivers",
+        "risk_vector"
+      ]
+    },
+    "IntradayIndexPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ts": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "index_value": {
+          "type": "number"
+        },
+        "news_volume": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "news_volatility": {
+          "type": "number",
+          "minimum": 0
+        },
+        "sentiment": {
+          "$ref": "#/$defs/Direction"
+        }
+      },
+      "required": [
+        "ts",
+        "index_value",
+        "news_volume",
+        "news_volatility",
+        "sentiment"
+      ]
+    },
+    "EventStudyWindow": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "window": {
+          "type": "string",
+          "enum": [
+            "30m",
+            "2h",
+            "1d",
+            "3d",
+            "1w"
+          ]
+        },
+        "mean_return": {
+          "type": "number"
+        },
+        "median_return": {
+          "type": "number"
+        },
+        "mean_abs_return": {
+          "type": "number",
+          "minimum": 0
+        },
+        "hit_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "sample_size": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "window",
+        "mean_return",
+        "median_return",
+        "mean_abs_return",
+        "hit_rate",
+        "sample_size"
+      ]
+    },
+    "UniverseId": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9_]{3,64}$",
+      "examples": [
+        "sp500",
+        "nasdaq_composite"
+      ]
+    },
+    "MarketId": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 64,
+      "pattern": "^[A-Z0-9_]{3,64}$",
+      "examples": [
+        "SP500",
+        "NASDAQ_COMPOSITE"
+      ]
+    },
+    "SectorId": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 64,
+      "pattern": "^[a-z_]{3,64}$",
+      "examples": [
+        "health_care",
+        "information_technology"
+      ]
+    },
+    "TickerSymbol": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 12,
+      "pattern": "^[A-Z0-9]{1,6}([.-][A-Z0-9]{1,4})?$",
+      "examples": [
+        "AAPL",
+        "BRK.B"
+      ]
+    },
+    "AssetDirection": {
+      "type": "string",
+      "enum": [
+        "Up",
+        "Down",
+        "Neutral",
+        "Mixed",
+        "Unknown"
+      ]
+    },
+    "Sector": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sector_id": {
+          "$ref": "#/$defs/SectorId"
+        },
+        "name_en": {
+          "type": "string",
+          "minLength": 1
+        },
+        "taxonomy": {
+          "type": "string",
+          "minLength": 1,
+          "examples": [
+            "gics_like"
+          ]
+        }
+      },
+      "required": [
+        "sector_id",
+        "name_en",
+        "taxonomy"
+      ]
+    },
+    "MarketImpact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "market_id": {
+          "$ref": "#/$defs/MarketId"
+        },
+        "direction": {
+          "$ref": "#/$defs/AssetDirection"
+        },
+        "impact_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "horizon": {
+          "type": "string",
+          "enum": [
+            "intraday",
+            "1d",
+            "3d",
+            "1w",
+            "1m",
+            "unknown"
+          ]
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "maxItems": 20
+        },
+        "rationale_bullets_en": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "maxItems": 8
+        },
+        "evidence_urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          },
+          "maxItems": 50
+        }
+      },
+      "required": [
+        "market_id",
+        "direction",
+        "impact_score",
+        "confidence",
+        "horizon",
+        "channels",
+        "rationale_bullets_en",
+        "evidence_urls"
+      ]
+    },
+    "SectorImpact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sector_id": {
+          "$ref": "#/$defs/SectorId"
+        },
+        "sector_name_en": {
+          "type": "string",
+          "minLength": 1
+        },
+        "direction": {
+          "$ref": "#/$defs/AssetDirection"
+        },
+        "impact_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "horizon": {
+          "type": "string",
+          "enum": [
+            "intraday",
+            "1d",
+            "3d",
+            "1w",
+            "1m",
+            "unknown"
+          ]
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "maxItems": 20
+        },
+        "rationale_bullets_en": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "maxItems": 8
+        }
+      },
+      "required": [
+        "sector_id",
+        "sector_name_en",
+        "direction",
+        "impact_score",
+        "confidence",
+        "horizon",
+        "channels",
+        "rationale_bullets_en"
+      ]
+    },
+    "HistoricalEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "window": {
+          "type": "string",
+          "enum": [
+            "30m",
+            "2h",
+            "1d",
+            "3d",
+            "1w"
+          ]
+        },
+        "median_return": {
+          "type": "number"
+        },
+        "hit_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "sample_size": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "window",
+        "median_return",
+        "hit_rate",
+        "sample_size"
+      ]
+    },
+    "TickerImpact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "symbol": {
+          "$ref": "#/$defs/TickerSymbol"
+        },
+        "name": {
+          "type": "string"
+        },
+        "universe_memberships": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/UniverseId"
+          },
+          "maxItems": 10
+        },
+        "sector_id": {
+          "$ref": "#/$defs/SectorId"
+        },
+        "sector_name_en": {
+          "type": "string"
+        },
+        "direction": {
+          "$ref": "#/$defs/AssetDirection"
+        },
+        "impact_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "horizon": {
+          "type": "string",
+          "enum": [
+            "intraday",
+            "1d",
+            "3d",
+            "1w",
+            "1m",
+            "unknown"
+          ]
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "maxItems": 20
+        },
+        "rationale_bullets_en": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "maxItems": 10
+        },
+        "driver_clusters": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^clu_[a-zA-Z0-9]{10,64}$"
+          },
+          "maxItems": 20
+        },
+        "evidence_urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          },
+          "maxItems": 50
+        },
+        "historical_edge": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HistoricalEdge"
+          },
+          "maxItems": 5
+        }
+      },
+      "required": [
+        "symbol",
+        "universe_memberships",
+        "sector_id",
+        "direction",
+        "impact_score",
+        "confidence",
+        "horizon",
+        "channels",
+        "rationale_bullets_en",
+        "driver_clusters",
+        "evidence_urls",
+        "historical_edge"
+      ]
+    },
+    "AssetImpactBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "as_of": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cluster_id": {
+              "type": "string",
+              "pattern": "^clu_[a-zA-Z0-9]{10,64}$"
+            },
+            "since": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "until": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "min_impact_level": {
+              "$ref": "#/$defs/ImpactLevel"
+            },
+            "universes": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/UniverseId"
+              },
+              "maxItems": 10
+            }
+          },
+          "required": [
+            "universes"
+          ]
+        },
+        "most_affected_market": {
+          "$ref": "#/$defs/MarketImpact"
+        },
+        "markets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MarketImpact"
+          },
+          "minItems": 1,
+          "maxItems": 10
+        },
+        "sectors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SectorImpact"
+          },
+          "maxItems": 30
+        },
+        "winners": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TickerImpact"
+          },
+          "maxItems": 200
+        },
+        "losers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TickerImpact"
+          },
+          "maxItems": 200
+        },
+        "notes_en": {
+          "type": "string",
+          "maxLength": 1200
+        }
+      },
+      "required": [
+        "as_of",
+        "scope",
+        "most_affected_market",
+        "markets",
+        "sectors",
+        "winners",
+        "losers",
+        "notes_en"
+      ]
+    },
+    "UniverseRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "universe_id": {
+          "$ref": "#/$defs/UniverseId"
+        },
+        "name_en": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_en": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "as_of": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "constituent_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "universe_id",
+        "name_en",
+        "source",
+        "as_of",
+        "constituent_count"
+      ]
+    },
+    "SecurityRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "symbol": {
+          "$ref": "#/$defs/TickerSymbol"
+        },
+        "name": {
+          "type": "string"
+        },
+        "exchange": {
+          "type": "string"
+        },
+        "sector_id": {
+          "$ref": "#/$defs/SectorId"
+        },
+        "sector_name_en": {
+          "type": "string"
+        },
+        "universe_memberships": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/UniverseId"
+          },
+          "maxItems": 10
+        }
+      },
+      "required": [
+        "symbol",
+        "name",
+        "sector_id",
+        "universe_memberships"
+      ]
+    }
+  }
+}

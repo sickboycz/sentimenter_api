@@ -7,11 +7,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import Body, Depends, FastAPI, HTTPException, Query
+from fastapi import Body, Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
 
 from sentiment_api.api.auth import get_api_key
 from sentiment_api.api.keys import validate_api_key
+from sentiment_api.api.rate_limit import RateLimitMiddleware, _client_key, _dec_sse
 from sentiment_api.api.responses import error_detail, meta, pagination
 from sentiment_api.config import get_settings
 from sentiment_api.db.pool import close_pool, init_pool
@@ -53,30 +54,71 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="sentiment_api",
-    version="1.1.0",
+    version="1.2.0",
     summary="Global macro + political news impact intelligence (Sentimeter)",
     lifespan=lifespan,
 )
+
+
+app.add_middleware(RateLimitMiddleware)
+
+@app.middleware("http")
+async def request_id_middleware(request, call_next):
+    """Set request_id for envelope correlation."""
+    rid = request.headers.get("X-Request-Id") or f"req_{uuid.uuid4().hex[:12]}"
+    request.state.request_id = rid
+    response = await call_next(request)
+    response.headers["X-Request-Id"] = rid
+    return response
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request, exc: HTTPException):
+    """Return v1.2 envelope for HTTP errors on /v1/*."""
+    rid = getattr(request.state, "request_id", f"req_{uuid.uuid4().hex[:12]}")
+    detail = exc.detail
+    if isinstance(detail, dict) and "code" in detail and "message" in detail:
+        err_obj = {"code": detail["code"], "message": detail["message"]}
+        if detail.get("details"):
+            err_obj["details"] = detail["details"]
+        if detail.get("hint"):
+            err_obj["hint"] = detail["hint"]
+        body = {
+            "meta": {"request_id": rid, "as_of": datetime.now(UTC).isoformat().replace("+00:00", "Z")},
+            "data": {},
+            "errors": [err_obj],
+        }
+        return JSONResponse(status_code=exc.status_code, content=body)
+    # Fallback for legacy string detail
+    body = {
+        "meta": {"request_id": rid, "as_of": datetime.now(UTC).isoformat().replace("+00:00", "Z")},
+        "data": {},
+        "errors": [{"code": "http_error", "message": str(detail)}],
+    }
+    return JSONResponse(status_code=exc.status_code, content=body)
 
 
 @app.middleware("http")
 async def metrics_middleware(request, call_next):
     """Record API latency and errors for Prometheus (AC-M10.3)."""
     import time
-    from sentiment_api.metrics import api_latency_ms, api_errors_total
+    from sentiment_api.metrics import api_latency_ms, api_errors_total, api_requests_total
     start = time.perf_counter()
     try:
         response = await call_next(request)
         ms = (time.perf_counter() - start) * 1000
         route = request.url.path or "unknown"
+        status = str(response.status_code)
         api_latency_ms(route, ms)
+        api_requests_total(route, status)
         if response.status_code >= 400:
-            api_errors_total(route, str(response.status_code))
+            api_errors_total(route, status)
         return response
-    except Exception as e:
+    except Exception:
         ms = (time.perf_counter() - start) * 1000
         route = request.url.path or "unknown"
         api_latency_ms(route, ms)
+        api_requests_total(route, "500")
         api_errors_total(route, "500")
         raise
 
@@ -273,7 +315,32 @@ async def get_sp_sentiment(
 async def get_mood_now(_: Annotated[str, Depends(validate_api_key)]):
     """Latest mood snapshot (drivers + risk vector)."""
     import asyncpg
-    from sentiment_api.db.pool import acquire
+    from sentiment_api.db.pool import acquire, get_pool
+    if get_pool() is None:
+        return {
+            "meta": meta(),
+            "data": {
+                "as_of": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+                "sentiment": "Neutral",
+                "trend": "Flat",
+                "index_intraday": 0.0,
+                "news_volume_intraday": 0,
+                "news_volatility_intraday": 0.0,
+                "confidence": 0.0,
+                "drivers": [],
+                "risk_vector": {
+                    "risk_appetite": 0.0,
+                    "volatility_pressure": 0.0,
+                    "growth_outlook": 0.0,
+                    "inflation_pressure": 0.0,
+                    "rates_pressure": 0.0,
+                    "liquidity_stress": 0.0,
+                    "geopolitical_risk": 0.0,
+                    "energy_supply_risk": 0.0,
+                },
+            },
+            "errors": [],
+        }
     try:
         async with acquire() as conn:
             row = await conn.fetchrow(
@@ -663,6 +730,14 @@ async def get_latest_asset_impacts(
     include_historical_edge: bool = Query(False),
 ):
     """Latest news → predicted winners/losers (markets/sectors/tickers)."""
+    from sentiment_api.db.pool import get_pool
+    if get_pool() is None:
+        from datetime import datetime as dt, timezone
+        from sentiment_api.engines.asset_targeting import _empty_bundle
+        now = dt.now(timezone.utc)
+        iso = now.isoformat().replace("+00:00", "Z")
+        scope = {"since": iso, "until": iso, "min_impact_level": min_impact_level, "universes": universes or ["sp500", "nasdaq_composite"]}
+        return {"meta": meta(), "data": _empty_bundle(now, scope), "errors": []}
     try:
         from datetime import datetime as dt, timezone
         from sentiment_api.engines.asset_targeting import get_latest_asset_impacts as _get
@@ -750,6 +825,129 @@ async def list_sectors(_: Annotated[str, Depends(validate_api_key)]):
 
 
 # -----------------------------------------------------------------------------
+# /v1/topics/index — Topic indices (v1.2)
+# -----------------------------------------------------------------------------
+@app.get("/v1/topics/index")
+async def get_topics_index(
+    _: Annotated[str, Depends(validate_api_key)],
+    request: Request,
+    interval: str = Query("5m", pattern="^(1m|5m|15m|1h|1d)$"),
+    since: str | None = Query(None),
+    until: str | None = Query(None),
+    topics_filter: list[str] | None = Query(None, alias="topics"),
+    limit: int = Query(500, ge=1, le=500),
+    cursor: str | None = Query(None),
+):
+    """Topic contribution timeline (mood/topic index). v1.2"""
+    from sentiment_api.db.pool import get_pool, acquire
+    data: list[dict] = []
+    pool = get_pool()
+    if pool:
+        try:
+            async with acquire() as conn:
+                rows = await conn.fetch(
+                    """
+                    SELECT t.topic_id, t.ts, t.news_volume,
+                           initcap(replace(t.topic_id, '_', ' ')) AS topic_name_en
+                    FROM (
+                      SELECT unnest(c.topics) AS topic_id,
+                             date_trunc('hour', c.last_seen) AS ts,
+                             count(*)::int AS news_volume
+                      FROM clusters c
+                      WHERE array_length(c.topics, 1) > 0
+                        AND c.last_seen >= now() - interval '7 days'
+                        AND ($1::text[] IS NULL OR c.topics && $1)
+                      GROUP BY 1, 2
+                      ORDER BY ts DESC, news_volume DESC
+                      LIMIT $2
+                    ) t
+                    """,
+                    topics_filter or None,
+                    limit,
+                )
+                for r in rows:
+                    data.append({
+                        "ts": (r["ts"] or datetime.now(UTC)).isoformat().replace("+00:00", "Z"),
+                        "topic_id": r["topic_id"] or "unknown",
+                        "topic_name_en": r["topic_name_en"] or r["topic_id"] or "Unknown",
+                        "index_value": float(r["news_volume"] or 0) * 0.1,
+                        "sentiment": "Neutral",
+                        "news_volume": int(r["news_volume"] or 0),
+                    })
+        except Exception as e:
+            import logging
+            logging.getLogger("sentiment_api").debug("Topics index query failed: %s", e)
+    rid = getattr(request.state, "request_id", meta()["request_id"])
+    return {
+        "meta": {"request_id": rid, "as_of": meta()["as_of"]},
+        "pagination": pagination(limit=limit, returned=len(data), next_cursor=None),
+        "data": data,
+        "errors": [],
+    }
+
+
+# -----------------------------------------------------------------------------
+# /v1/stream/events — SSE (v1.2)
+# -----------------------------------------------------------------------------
+@app.get("/v1/stream/events")
+async def stream_events(request: Request, _: Annotated[str, Depends(validate_api_key)]):
+    """SSE stream: heartbeat, cluster_updated, mood_updated, impacts_updated, topics_updated. v1.2"""
+    import asyncio
+    from fastapi.responses import StreamingResponse
+    rid = getattr(request.state, "request_id", f"req_{uuid.uuid4().hex[:12]}")
+    key = _client_key(request)
+
+    async def gen():
+        from sentiment_api.db.pool import get_pool, acquire
+        try:
+            tick = 0
+            while True:
+                ts = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+                yield f"event: heartbeat\ndata: {json.dumps({'type':'heartbeat','ts':ts,'payload':{},'request_id':rid}, separators=(',', ':'))}\n\n"
+                tick += 1
+                if tick % 4 == 0:
+                    payload: dict = {}
+                    try:
+                        pool = get_pool()
+                        if pool:
+                            async with acquire() as conn:
+                                r = await conn.fetchrow("SELECT ts, index_value FROM sentiment_timeseries WHERE interval='5m' ORDER BY ts DESC LIMIT 1")
+                                if r:
+                                    payload = {"as_of": (r["ts"] or datetime.now(UTC)).isoformat().replace("+00:00", "Z"), "index_value": float(r["index_value"] or 0)}
+                    except Exception:
+                        pass
+                    evt = {"type": "mood_updated", "ts": ts, "payload": payload, "request_id": rid}
+                    yield f"event: mood_updated\ndata: {json.dumps(evt, separators=(',', ':'))}\n\n"
+                    try:
+                        from sentiment_api.engines.asset_targeting import get_latest_asset_impacts
+                        imp = await get_latest_asset_impacts(window="6h", limit_tickers=5, limit_sectors=5)
+                        evt = {"type": "impacts_updated", "ts": ts, "payload": imp, "request_id": rid}
+                        yield f"event: impacts_updated\ndata: {json.dumps(evt, separators=(',', ':'))}\n\n"
+                    except Exception:
+                        evt = {"type": "impacts_updated", "ts": ts, "payload": {}, "request_id": rid}
+                        yield f"event: impacts_updated\ndata: {json.dumps(evt, separators=(',', ':'))}\n\n"
+                    try:
+                        pool = get_pool()
+                        if pool:
+                            async with acquire() as conn:
+                                rows = await conn.fetch("SELECT unnest(topics) AS topic_id FROM clusters WHERE array_length(topics,1)>0 AND last_seen>=now()-interval '1 day' LIMIT 20")
+                                topics = list({r["topic_id"] for r in rows if r.get("topic_id")})
+                                evt = {"type": "topics_updated", "ts": ts, "payload": {"topics": topics}, "request_id": rid}
+                                yield f"event: topics_updated\ndata: {json.dumps(evt, separators=(',', ':'))}\n\n"
+                        else:
+                            evt = {"type": "topics_updated", "ts": ts, "payload": {}, "request_id": rid}
+                            yield f"event: topics_updated\ndata: {json.dumps(evt, separators=(',', ':'))}\n\n"
+                    except Exception:
+                        evt = {"type": "topics_updated", "ts": ts, "payload": {}, "request_id": rid}
+                        yield f"event: topics_updated\ndata: {json.dumps(evt, separators=(',', ':'))}\n\n"
+                await asyncio.sleep(15)
+        finally:
+            _dec_sse(key)
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
+
+
+# -----------------------------------------------------------------------------
 # /v1/research/spy/event-study
 # -----------------------------------------------------------------------------
 @app.get("/v1/research/spy/event-study")
@@ -789,10 +987,15 @@ async def get_spy_event_study(
 # -----------------------------------------------------------------------------
 @app.post("/v1/ask")
 async def ask_rag(
+    request: Request,
     _: Annotated[str, Depends(validate_api_key)],
     body: dict = Body(default={"query": ""}),
 ):
     """RAG query over memory: vector retrieval + LLM answer with citations."""
+    from sentiment_api.api.idempotency import get_cached, set_cached
+    cached = await get_cached(request)
+    if cached:
+        return JSONResponse(status_code=cached["status"], content=cached["body"])
     query = (body or {}).get("query", "")
     if not query:
         raise HTTPException(status_code=400, detail="query required in body")
@@ -808,7 +1011,9 @@ async def ask_rag(
         async with acquire() as conn:
             contexts = await retrieve_similar(conn, query_embedding, settings.model_embedding_id, top_k=10)
         answer, citations = generate_answer(query, contexts)
-        return {"meta": meta(), "data": {"answer": answer, "citations": citations}, "errors": []}
+        out = {"meta": meta(), "data": {"answer": answer, "citations": citations}, "errors": []}
+        await set_cached(request, 200, out)
+        return out
     except Exception as e:
         import logging
         logging.getLogger("sentiment_api").exception("RAG failed: %s", e)
@@ -862,10 +1067,15 @@ async def list_sources(
 # -----------------------------------------------------------------------------
 @app.post("/v1/admin/ingest/run")
 async def admin_ingest_run(
+    request: Request,
     _: Annotated[str, Depends(validate_api_key)],
     source_id: str | None = Query(None),
 ):
     """Trigger ingest run: push one poll cycle to queue. If source_id given, poll only that source."""
+    from sentiment_api.api.idempotency import get_cached, set_cached
+    cached = await get_cached(request)
+    if cached:
+        return JSONResponse(status_code=cached["status"], content=cached["body"])
     from sentiment_api.queue.client import get_queue, QUEUE_INGEST
     from sentiment_api.registry import load_registry
     settings = get_settings()
@@ -897,7 +1107,9 @@ async def admin_ingest_run(
             for item in scrape.collect(src, src.page_url):
                 await queue.rpush(QUEUE_INGEST, json.dumps(_serialize_item(item)))
                 total += 1
-    return {"meta": meta(), "data": {"pushed": total, "sources_polled": len(sources)}, "errors": []}
+    out = {"meta": meta(), "data": {"pushed": total, "sources_polled": len(sources)}, "errors": []}
+    await set_cached(request, 200, out)
+    return out
 
 
 # -----------------------------------------------------------------------------
@@ -905,10 +1117,15 @@ async def admin_ingest_run(
 # -----------------------------------------------------------------------------
 @app.post("/v1/admin/backfill")
 async def admin_backfill(
+    request: Request,
     _: Annotated[str, Depends(validate_api_key)],
     body: dict = Body(default={}),
 ):
     """Backfill sources by date range. Body: {from: YYYY-MM-DD, to: YYYY-MM-DD, source_id?: str}."""
+    from sentiment_api.api.idempotency import get_cached, set_cached
+    cached = await get_cached(request)
+    if cached:
+        return JSONResponse(status_code=cached["status"], content=cached["body"])
     from datetime import date as date_type
     from sentiment_api.ingest.backfill import run_backfill
     fd = body.get("from") or body.get("from_date")
@@ -924,7 +1141,9 @@ async def admin_backfill(
     if from_d > to_d:
         raise HTTPException(status_code=400, detail="from must be <= to")
     result = await run_backfill(from_d, to_d, source_id)
-    return {"meta": meta(), "data": result, "errors": []}
+    out = {"meta": meta(), "data": result, "errors": []}
+    await set_cached(request, 200, out)
+    return out
 
 
 def run():

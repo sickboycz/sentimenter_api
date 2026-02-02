@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentiment-api.local/schemas/v1/get_v1_impacts_cluster_by_id.response.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "$ref": "defs.json#/$defs/ResponseMeta"
+    },
+    "data": {
+      "$ref": "defs.json#/$defs/AssetImpactBundle"
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "$ref": "defs.json#/$defs/Error"
+      }
+    }
+  },
+  "required": [
+    "meta",
+    "data",
+    "errors"
+  ]
+}
