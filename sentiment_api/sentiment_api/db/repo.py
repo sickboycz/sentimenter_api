@@ -244,6 +244,41 @@ async def upsert_sentiment_daily(
     )
 
 
+async def insert_event_impacts(
+    conn: asyncpg.Connection,
+    event_id: str,
+    impacts: list[dict],
+) -> None:
+    """Insert event_impacts rows (markets, sectors, tickers). Per-asset audit."""
+    for imp in impacts:
+        instrument = imp.get("instrument") or imp.get("market_id") or imp.get("symbol")
+        if not instrument:
+            continue
+        direction = imp.get("direction", "Unknown")
+        if direction not in ("Up", "Down", "Neutral", "Mixed", "Unknown"):
+            direction = "Unknown"
+        try:
+            await conn.execute(
+                """
+                INSERT INTO event_impacts (event_id, instrument, instrument_type, direction, impact_score, horizon, confidence, details)
+                VALUES ($1, $2, $3, $4::asset_direction, $5, $6, $7, $8)
+                ON CONFLICT (event_id, instrument) DO UPDATE SET
+                    direction = EXCLUDED.direction, impact_score = EXCLUDED.impact_score,
+                    horizon = EXCLUDED.horizon, confidence = EXCLUDED.confidence, details = EXCLUDED.details
+                """,
+                event_id,
+                instrument,
+                imp.get("instrument_type", "ticker"),
+                direction,
+                float(imp.get("impact_score", 0) or 0),
+                imp.get("horizon", "unknown") or "unknown",
+                float(imp.get("confidence", 0) or 0),
+                json.dumps(imp.get("details", {})),
+            )
+        except Exception:
+            pass  # asset_direction enum may not exist in older DBs
+
+
 async def insert_event(
     conn: asyncpg.Connection,
     event_id: str,

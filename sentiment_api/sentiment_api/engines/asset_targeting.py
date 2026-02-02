@@ -1,5 +1,6 @@
 """M5.5 — Asset targeting engine (markets/sectors/tickers)."""
 
+import json
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -61,6 +62,33 @@ async def get_asset_impacts_for_cluster(
     direction = DIRECTION_MAP.get(imp.get("expected_direction", "Unknown"), "Unknown")
     score = float(imp.get("impact_score", 0) or 0)
     source_urls = list(row["source_urls"] or [])[:10]
+    # Optional: try LLM-based targeting when API key set (fallback to rule-based)
+    if score >= 20:
+        try:
+            from sentiment_api.llm.asset_targeting import try_llm_asset_targeting
+            async with acquire() as conn2:
+                sector_rows = await conn2.fetch("SELECT sector_id, name_en FROM sectors ORDER BY sector_id LIMIT $1", limit_sectors)
+                ticker_rows = await conn2.fetch(
+                    """SELECT s.symbol, s.name, s.sector_id, sec.name_en as sector_name_en
+                    FROM universe_memberships um JOIN securities s ON s.symbol = um.symbol
+                    LEFT JOIN sectors sec ON sec.sector_id = s.sector_id
+                    WHERE um.universe_id = ANY($1) AND (um.effective_to IS NULL OR um.effective_to >= current_date)
+                    ORDER BY s.symbol LIMIT $2""",
+                    universes, limit_tickers,
+                )
+            sectors_data = [{"sector_id": r["sector_id"], "name_en": r["name_en"]} for r in sector_rows]
+            tickers_data = [{"symbol": r["symbol"], "name": r["name"], "sector_id": r["sector_id"]} for r in ticker_rows]
+            llm_bundle = try_llm_asset_targeting(
+                cluster_id, row["headline_en"] or "", list(row.get("topics", []) or []),
+                score, imp.get("expected_direction", "Unknown"), source_urls,
+                tickers_data, sectors_data,
+            )
+            if llm_bundle and llm_bundle.get("markets") and llm_bundle.get("sectors"):
+                llm_bundle["scope"] = scope
+                llm_bundle["as_of"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+                return llm_bundle
+        except Exception as ex:
+            logger.debug("LLM asset targeting skipped: %s", ex)
     most_affected = {
         "market_id": "SP500" if score > 40 else "NASDAQ_COMPOSITE",
         "direction": direction,
@@ -183,3 +211,59 @@ async def get_latest_asset_impacts(
     bundle["scope"] = scope
     bundle["as_of"] = until.isoformat().replace("+00:00", "Z")
     return bundle
+
+
+def _bundle_to_event_impacts(bundle: dict, cluster_id: str) -> list[dict]:  # noqa: ARG001
+    """Convert AssetImpactBundle to event_impacts rows for audit persistence."""
+    rows = []
+    for m in bundle.get("markets", []):
+        rows.append({
+            "instrument": m.get("market_id"),
+            "instrument_type": "market",
+            "direction": m.get("direction", "Unknown"),
+            "impact_score": m.get("impact_score", 0),
+            "horizon": m.get("horizon", "unknown"),
+            "confidence": m.get("confidence", 0),
+            "details": {"cluster_id": cluster_id, "rationale_bullets_en": m.get("rationale_bullets_en", [])},
+        })
+    for s in bundle.get("sectors", []):
+        rows.append({
+            "instrument": f"sector:{s.get('sector_id', 'unknown')}",
+            "instrument_type": "sector",
+            "direction": s.get("direction", "Unknown"),
+            "impact_score": s.get("impact_score", 0),
+            "horizon": s.get("horizon", "unknown"),
+            "confidence": s.get("confidence", 0),
+            "details": {"cluster_id": cluster_id},
+        })
+    for t in bundle.get("winners", []) + bundle.get("losers", []):
+        rows.append({
+            "instrument": t.get("symbol"),
+            "instrument_type": "ticker",
+            "direction": t.get("direction", "Unknown"),
+            "impact_score": t.get("impact_score", 0),
+            "horizon": t.get("horizon", "unknown"),
+            "confidence": t.get("confidence", 0),
+            "details": {"cluster_id": cluster_id, "universe_memberships": t.get("universe_memberships", [])},
+        })
+    return rows
+
+
+async def persist_asset_targeting_audit(cluster_id: str, bundle: dict) -> None:
+    """Persist full scoring table for audit (AC-M5.5.5)."""
+    try:
+        async with acquire() as conn:
+            as_of = bundle.get("as_of") or datetime.now(timezone.utc).isoformat()
+            scope = bundle.get("scope", {})
+            await conn.execute(
+                """
+                INSERT INTO cluster_asset_targeting_audit (cluster_id, as_of, scope, bundle)
+                VALUES ($1, $2::timestamptz, $3, $4)
+                """,
+                cluster_id,
+                as_of,
+                json.dumps(scope),
+                json.dumps(bundle),
+            )
+    except Exception as e:
+        logger.debug("Asset targeting audit persist skipped: %s", e)

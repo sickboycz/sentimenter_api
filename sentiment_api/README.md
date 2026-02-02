@@ -70,7 +70,12 @@ All endpoints except `/v1/health` require an API key validated against `api_keys
 - `GET /v1/mood/now` — Current mood snapshot
 - `GET /v1/index/intraday` — Intraday index
 - `GET /v1/news/clusters` — Story clusters
-- `GET /v1/news/clusters/{cluster_id}` — Cluster drilldown
+- `GET /v1/news/clusters/{cluster_id}` — Cluster drilldown (`include_asset_impacts`)
+- `GET /v1/impacts/latest` — Latest winners/losers (markets/sectors/tickers)
+- `GET /v1/impacts/clusters/{cluster_id}` — Asset targeting for cluster
+- `GET /v1/universes` — Universe list
+- `GET /v1/universes/{id}/constituents` — Constituents (paged)
+- `GET /v1/sectors` — Sector taxonomy
 - `GET /v1/research/spy/event-study` — Event studies
 - `POST /v1/ask` — RAG query
 - `POST /v1/admin/ingest/run` — Trigger ingest (operator)

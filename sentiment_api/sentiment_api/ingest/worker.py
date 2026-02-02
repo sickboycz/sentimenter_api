@@ -16,6 +16,7 @@ from sentiment_api.db.repo import (
     add_cluster_member,
     insert_embedding,
     insert_event,
+    insert_event_impacts,
     insert_summary,
     insert_expectation,
     insert_run,
@@ -167,6 +168,17 @@ async def process_summarize(payload: dict) -> None:
             imp.get("impact_score", 0) / 100.0,
             "SPY",
         )
+        # M5.5: Asset targeting + event_impacts for L2+
+        level = imp.get("impact_level", "L0")
+        if level not in ("L0", "L1"):
+            try:
+                from sentiment_api.engines.asset_targeting import get_asset_impacts_for_cluster, _bundle_to_event_impacts, persist_asset_targeting_audit
+                bundle = await get_asset_impacts_for_cluster(cid, limit_tickers=30, limit_sectors=11)
+                await persist_asset_targeting_audit(cid, bundle)
+                impacts = _bundle_to_event_impacts(bundle, cid)
+                await insert_event_impacts(conn, ev_id, impacts)
+            except Exception as ex:
+                logger.debug("Asset targeting skipped: %s", ex)
     if run_id:
         async with acquire() as conn:
             await finish_run(conn, run_id, "ok", {"cluster_id": cid, "event_id": ev_id})

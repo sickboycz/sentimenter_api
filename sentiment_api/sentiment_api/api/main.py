@@ -535,13 +535,14 @@ async def get_asset_impacts_by_cluster(
     if not cluster_id.startswith("clu_") or len(cluster_id) < 14:
         raise HTTPException(status_code=400, detail="Invalid cluster_id format")
     try:
-        from sentiment_api.engines.asset_targeting import get_asset_impacts_for_cluster
+        from sentiment_api.engines.asset_targeting import get_asset_impacts_for_cluster, persist_asset_targeting_audit
         data = await get_asset_impacts_for_cluster(
             cluster_id,
             universes=universes or ["sp500", "nasdaq_composite"],
             limit_tickers=limit_tickers,
             limit_sectors=limit_sectors,
         )
+        await persist_asset_targeting_audit(cluster_id, data)
         return {"meta": meta(), "data": data, "errors": []}
     except Exception as e:
         from sentiment_api.api.responses import error_detail

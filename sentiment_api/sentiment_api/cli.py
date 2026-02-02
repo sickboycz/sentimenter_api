@@ -12,6 +12,7 @@ def main():
     sub.add_parser("api", help="Run API server")
     sub.add_parser("daemon", help="Run daemon (poll sources)")
     sub.add_parser("worker", help="Run worker (process queue)")
+    sub.add_parser("refresh-universes", help="Refresh universe constituents (idempotent)")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     if args.cmd == "api":
@@ -23,6 +24,10 @@ def main():
     elif args.cmd == "worker":
         from sentiment_api.ingest.worker import run_worker
         asyncio.run(run_worker())
+    elif args.cmd == "refresh-universes":
+        from sentiment_api.universe.refresh import refresh_universes
+        msg = asyncio.run(refresh_universes())
+        print(msg)
 
 
 if __name__ == "__main__":

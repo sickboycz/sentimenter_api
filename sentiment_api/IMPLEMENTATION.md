@@ -38,10 +38,17 @@ Implementation follows `Docs/sentiment_api_tech_package_v1.1/SENTIMENT_API_MASTE
 - `GET /v1/news/clusters` — Story clusters (filterable)
 - `GET /v1/news/clusters/{id}` — Cluster drilldown
 - `GET /v1/research/spy/event-study` — Event studies
+- `GET /v1/impacts/latest` — Latest news → winners/losers (markets/sectors/tickers)
+- `GET /v1/impacts/clusters/{id}` — Asset targeting for cluster
+- `GET /v1/universes` — Universe list
+- `GET /v1/universes/{id}/constituents` — Constituents (paged)
+- `GET /v1/sectors` — Sector taxonomy (GICS-like 11)
 - `POST /v1/ask` — RAG query (vector retrieval + LLM answer with citations)
 - `POST /v1/admin/ingest/run` — Trigger ingest (operator)
 - `GET /v1/sources` — Source registry
 - `GET /v1/health` — Health (no auth)
+
+CLI: `sentiment-api refresh-universes` — Refresh universe constituents (idempotent)
 
 ## Implemented Elements
 
@@ -52,6 +59,8 @@ Implementation follows `Docs/sentiment_api_tech_package_v1.1/SENTIMENT_API_MASTE
 - **Expectations/outcomes**: Forward eval ledger, outcome measurement
 - **Runs**: Audit for ingest, summarize, score, index
 - **Embeddings**: OpenAI or sentence-transformers fallback (3072-dim padded)
+- **Asset targeting (M5.5)**: Rule-based + optional LLM; event_impacts; cluster_asset_targeting_audit for full scoring
+- **Universe refresh**: `refresh-universes` CLI; GICS-like 11 sectors + unknown
 
 ## Run
 

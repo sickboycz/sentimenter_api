@@ -7,8 +7,9 @@ import asyncpg
 
 from sentiment_api.db.pool import acquire
 
-# GICS-like 11 sectors (AC-M0.5.4)
+# GICS-like 11 sectors + unknown (AC-M0.5.4)
 GICS_11 = [
+    ("unknown", "Unknown"),
     ("health_care", "Health Care"),
     ("information_technology", "Information Technology"),
     ("financials", "Financials"),
