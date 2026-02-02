@@ -59,6 +59,11 @@ if ! $SKIP_USER; then
   chown -R "$USER:$USER" "$HOME_DIR"
   chown -R "$POSTGRES_UID:$POSTGRES_UID" "${HOME_DIR}/volumes/postgres/data" 2>/dev/null || true
   chmod 700 "${HOME_DIR}/volumes/postgres/data"
+  # Grafana and Loki run as non-root in container; host dirs must match
+  chown -R 472:472 "${HOME_DIR}/volumes/grafana_data" 2>/dev/null || true
+  chmod 700 "${HOME_DIR}/volumes/grafana_data"
+  chown -R 10001:10001 "${HOME_DIR}/volumes/loki_data" 2>/dev/null || true
+  chmod 700 "${HOME_DIR}/volumes/loki_data"
 
   echo "[+] User and directories created"
 fi

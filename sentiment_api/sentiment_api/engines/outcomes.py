@@ -53,9 +53,9 @@ async def measure_outcomes(market: str = "SPY") -> int:
                 async with acquire() as conn:
                     await conn.execute(
                         """
-                        INSERT INTO outcomes (expectation_id, window, realized_return, realized_abs_return, realized_direction)
+                        INSERT INTO outcomes (expectation_id, "window", realized_return, realized_abs_return, realized_direction)
                         VALUES ($1, $2, $3, $4, $5::direction)
-                        ON CONFLICT (expectation_id, window) DO NOTHING
+                        ON CONFLICT (expectation_id, "window") DO NOTHING
                         """,
                         exp_id,
                         w,

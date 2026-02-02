@@ -234,8 +234,10 @@ sudo systemctl restart sentimenter-docker
 | Prometheus unhealthy / dependency failed | Check logs: `docker logs sentiment_api-prometheus-1`. Ensure `infra/prometheus/prometheus.yml` is valid; healthcheck uses `wget --spider` on `/-/ready` with 30s start_period. |
 | **Redis or Postgres failed to start** (dependency failed, exited 0) | See [6.4 Redis / Postgres won't start](#64-redis--postgres-wont-start). |
 | **relation "sectors" does not exist** (Postgres ERROR) | Database migrations not applied. See [6.5 Apply database migrations](#65-apply-database-migrations). |
+| **relation "sources" does not exist** (worker/API) | Base schema was never applied. Apply base schema first (see [6.5](#65-apply-database-migrations): base schema from `Docs/.../db/schema.sql`), then v1.1 migrations, then restart stack. |
 | **API failed to start** (dependency failed: sentiment_api-api-1 exited 0) | Check API logs: `docker logs sentiment_api-api-1`. Fix the reported error (e.g. missing schema → [6.5](#65-apply-database-migrations), registry path → remove/wrong SOURCE_REGISTRY_PATH in `/etc/sentimenter/env`). |
 | **Files missing / pull didn't bring new files** | See [Step 2.1](#step-21-verify-required-files-after-pull). Run `git fetch origin && git status`; if behind, run `git pull`. To match remote exactly (discard local changes): `git reset --hard origin/<branch>`. Then re-check required files under `sentiment_api/`. |
+| **Grafana or Loki restart loop** (permission denied on `/loki/rules` or `/var/lib/grafana`) | See [6.6 Grafana / Loki restart (permission denied)](#66-grafana--loki-restart-permission-denied). chown volumes to 472 (grafana) and 10001 (loki). |
 
 ### 6.4 Redis / Postgres won't start
 
@@ -285,17 +287,20 @@ sudo -u sentimenter docker compose --env-file /etc/sentimenter/env \
 
 ### 6.5 Apply database migrations
 
-If Postgres logs show `relation "sectors" does not exist` (or other missing tables), the v1.1 migrations were not applied.
+If the worker fails with **relation "sources" does not exist**, the **base schema** was never applied. If you see **relation "sectors" does not exist**, the **v1.1 migrations** were not applied. Apply in order: base schema first, then v1.1 migrations.
 
-**1. Ensure base schema is applied** (only if the DB was never initialized)
+**1. Apply base schema first** (creates `sources`, `api_keys`, and core tables — required if worker fails with "relation sources does not exist")
 
 ```bash
 cd /srv/sentimenter/repo/sentiment_api
 
-# If base schema exists in Docs (first install only)
+# Base schema lives in repo Docs/ (full clone only)
 if [ -f /srv/sentimenter/repo/Docs/sentiment_api_tech_package_v1.1/db/schema.sql ]; then
   docker compose -f docker-compose.yml -f docker-compose.production.yml exec -T postgres \
     psql -U sentiment -d sentiment -f /dev/stdin < /srv/sentimenter/repo/Docs/sentiment_api_tech_package_v1.1/db/schema.sql
+  echo "Base schema applied"
+else
+  echo "Base schema not found: clone full repo or copy schema.sql"
 fi
 ```
 
@@ -318,6 +323,31 @@ sudo -u sentimenter docker compose --env-file /etc/sentimenter/env \
   -f docker-compose.yml -f docker-compose.production.yml up -d
 ```
 
+### 6.6 Grafana / Loki restart (permission denied)
+
+If Grafana or Loki are in a restart loop and logs show **permission denied** on their data dir (e.g. Loki: `stat /loki/rules: permission denied`), fix volume ownership. The containers run as non-root:
+
+- **Grafana** runs as UID **472**
+- **Loki** runs as UID **10001**
+
+On the server:
+
+```bash
+sudo chown -R 472:472 /srv/sentimenter/volumes/grafana_data
+sudo chmod 700 /srv/sentimenter/volumes/grafana_data
+
+sudo chown -R 10001:10001 /srv/sentimenter/volumes/loki_data
+sudo chmod 700 /srv/sentimenter/volumes/loki_data
+```
+
+Then restart the stack:
+
+```bash
+cd /srv/sentimenter/repo/sentiment_api
+sudo -u sentimenter docker compose --env-file /etc/sentimenter/env \
+  -f docker-compose.yml -f docker-compose.production.yml up -d
+```
+
 ---
 
 ## 7. Docker volumes (production)
@@ -333,7 +363,7 @@ With `docker-compose.production.yml`, **all persistent data** is on the host und
 | `/srv/sentimenter/volumes/grafana_data` | `/var/lib/grafana` | grafana |
 | `/srv/sentimenter/volumes/loki_data` | `/loki` | loki |
 
-**Permissions:** Postgres data must be `chown 999:999` and `chmod 700`. Redis dir must be writable by the redis container (e.g. `999:999` or `chmod 700`). See [6.4 Redis / Postgres won't start](#64-redis--postgres-wont-start).
+**Permissions:** Postgres data must be `chown 999:999` and `chmod 700`. Redis dir must be writable by the redis container (e.g. `999:999` or `chmod 700`). **Grafana** runs as UID 472: `chown -R 472:472 /srv/sentimenter/volumes/grafana_data; chmod 700 ...`. **Loki** runs as UID 10001: `chown -R 10001:10001 /srv/sentimenter/volumes/loki_data; chmod 700 ...`. See [6.4 Redis / Postgres won't start](#64-redis--postgres-wont-start) and [6.6 Grafana / Loki restart (permission denied)](#66-grafana--loki-restart-permission-denied).
 
 **Backup:** Back up `/srv/sentimenter/volumes/` (especially `postgres/data` and `redis`). Stop the stack or use `pg_dump` for Postgres if you need consistent backups.
 
