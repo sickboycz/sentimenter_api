@@ -9,6 +9,7 @@ from sentiment_api.config import get_settings
 from sentiment_api.db.pool import init_pool, acquire
 from sentiment_api.db.universe_repo import (
     seed_sectors,
+    seed_industries,
     upsert_universe,
     upsert_security,
     upsert_universe_membership,
@@ -81,7 +82,8 @@ async def refresh_universes() -> str:
             symbol_to_name[symbol] = name
 
     async with acquire() as conn:
-        await seed_sectors(conn)
+        n_sectors = await seed_sectors(conn, base)
+        n_industries = await seed_industries(conn, base)
         await upsert_universe(conn, "sp500", "S&P 500", "csv", "S&P 500 constituents (registry/sp500.csv)")
         await upsert_universe(conn, "nasdaq100", "Nasdaq-100", "csv", "Nasdaq-100 constituents (registry/nasdaq100.csv)")
         # Optional: keep legacy universe for backward compat
@@ -98,10 +100,8 @@ async def refresh_universes() -> str:
             if symbol:
                 await upsert_universe_membership(conn, "nasdaq100", symbol, eff)
 
-    return (
-        f"Refreshed sectors + sp500 ({len(sp500_rows)}) + nasdaq100 ({len(nasdaq100_rows)}) "
-        f"→ {len(symbol_to_name)} unique securities"
-    )
+    parts = [f"sectors {n_sectors}", f"industries {n_industries}" if n_industries else None, f"sp500 {len(sp500_rows)}", f"nasdaq100 {len(nasdaq100_rows)}", f"→ {len(symbol_to_name)} unique securities"]
+    return "Refreshed " + ", ".join(p for p in parts if p)
 
 
 def run_refresh() -> None:

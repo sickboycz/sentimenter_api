@@ -1,6 +1,8 @@
 """Repository for universes, sectors, securities."""
 
+import re
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 import asyncpg
@@ -23,9 +25,106 @@ GICS_11 = [
     ("materials", "Materials"),
 ]
 
+# Sector display name (from CSV) -> sector_id
+_SECTOR_NAME_TO_ID = {
+    "healthcare": "health_care",
+    "financials": "financials",
+    "technology": "information_technology",
+    "industrials": "industrials",
+    "consumer discretionary": "consumer_discretionary",
+    "materials": "materials",
+    "communication services": "communication_services",
+    "real estate": "real_estate",
+    "consumer staples": "consumer_staples",
+    "energy": "energy",
+    "utilities": "utilities",
+}
 
-async def seed_sectors(conn: asyncpg.Connection) -> None:
-    """Ensure GICS-like 11 sectors exist."""
+# GICS industry -> sector mapping (keyword-based; order matters for overlapping terms)
+_INDUSTRY_SECTOR_RULES = [
+    # Health Care
+    (r"(biotech|medical|drug|pharma|diagnostics|healthcare|health care)", "health_care"),
+    # Real Estate (REIT before Financials)
+    (r"^REIT\b", "real_estate"),
+    (r"real estate", "real_estate"),
+    # Financials
+    (r"(bank|insurance|asset management|capital market|credit service|mortgage|financial)", "financials"),
+    # Information Technology
+    (r"(software|semiconductor|internet|computer hardware|information technology|electronic gaming)", "information_technology"),
+    (r"(electronic component|communication equipment)", "information_technology"),
+    # Energy
+    (r"(oil|gas|solar|uranium|coal)", "energy"),
+    # Utilities
+    (r"utilities", "utilities"),
+    # Materials
+    (r"(gold|silver|copper|aluminum|steel|chemical|mining|metal|building material|lumber|paper)", "materials"),
+    (r"specialty chemical", "materials"),
+    # Communication Services
+    (r"(telecom|broadcasting|advertising|publishing)", "communication_services"),
+    # Industrials
+    (r"(aerospace|defense|machinery|construction|airline|railroad|trucking|marine|logistics|industrial)", "industrials"),
+    (r"(waste management|security .* protection)", "industrials"),
+    # Consumer Staples
+    (r"(packaged food|grocery|beverage|tobacco|household .* product|confectioner|food distribution)", "consumer_staples"),
+    (r"(farm product|agricultural)", "consumer_staples"),
+    # Consumer Discretionary (catch many retail/leisure)
+    (r"(restaurant|retail|auto|entertainment|leisure|resort|travel|apparel|footwear|lodging|gambling)", "consumer_discretionary"),
+    (r"(specialty retail|internet retail|discount store|department store)", "consumer_discretionary"),
+    (r"(home improvement|pharmaceutical retailer)", "consumer_discretionary"),
+]
+
+
+def _industry_to_sector_id(industry_name: str) -> str:
+    """Map industry name to sector_id using GICS-like rules."""
+    lower = industry_name.lower()
+    for pattern, sector_id in _INDUSTRY_SECTOR_RULES:
+        if re.search(pattern, lower):
+            return sector_id
+    return "unknown"
+
+
+def _slug(name: str) -> str:
+    """Convert name to snake_case id."""
+    s = re.sub(r"[^\w\s-]", "", name.lower())
+    s = re.sub(r"[-\s]+", "_", s).strip("_")
+    return s or "unknown"
+
+
+async def seed_sectors(conn: asyncpg.Connection, registry_dir: Path | None = None) -> int:
+    """Ensure GICS-like sectors exist. Load from registry/sectors.csv if present, else use GICS_11."""
+    count = 0
+    # Always ensure "unknown" exists
+    await conn.execute(
+        """INSERT INTO sectors (sector_id, name_en, taxonomy) VALUES ('unknown', 'Unknown', 'gics_like')
+           ON CONFLICT (sector_id) DO UPDATE SET name_en = EXCLUDED.name_en"""
+    )
+    count += 1
+    csv_path = None
+    if registry_dir:
+        csv_path = registry_dir / "sectors.csv"
+    if csv_path and csv_path.exists():
+        with csv_path.open(newline="", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith(";;;;"):
+                    continue
+                parts = line.split(";")
+                name = (parts[1] if len(parts) > 1 else "").strip()
+                if not name:
+                    continue
+                sector_id = _SECTOR_NAME_TO_ID.get(name.lower(), _slug(name))
+                await conn.execute(
+                    """
+                    INSERT INTO sectors (sector_id, name_en, taxonomy)
+                    VALUES ($1, $2, 'gics_like')
+                    ON CONFLICT (sector_id) DO UPDATE SET name_en = EXCLUDED.name_en
+                    """,
+                    sector_id,
+                    name,
+                )
+                count += 1
+        if count > 0:
+            return count
     for sector_id, name_en in GICS_11:
         await conn.execute(
             """
@@ -36,6 +135,42 @@ async def seed_sectors(conn: asyncpg.Connection) -> None:
             sector_id,
             name_en,
         )
+        count += 1
+    return count
+
+
+async def seed_industries(conn: asyncpg.Connection, registry_dir: Path) -> int:
+    """Load industries from registry/industries.csv. Requires industries table (migration v1.1_add_industries)."""
+    path = registry_dir / "industries.csv"
+    if not path.exists():
+        return 0
+    count = 0
+    try:
+        with path.open(newline="", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                parts = line.split(";")
+                name = (parts[0] if parts else "").strip()
+                if not name:
+                    continue
+                industry_id = _slug(name)
+                sector_id = _industry_to_sector_id(name)
+                await conn.execute(
+                    """
+                    INSERT INTO industries (industry_id, name_en, sector_id)
+                    VALUES ($1, $2, $3)
+                    ON CONFLICT (industry_id) DO UPDATE SET name_en = EXCLUDED.name_en, sector_id = EXCLUDED.sector_id
+                    """,
+                    industry_id,
+                    name,
+                    sector_id,
+                )
+                count += 1
+    except asyncpg.UndefinedTableError:
+        pass  # industries table not created yet (migration not applied)
+    return count
 
 
 async def upsert_universe(conn: asyncpg.Connection, universe_id: str, name_en: str, source: str, description_en: str | None = None) -> None:

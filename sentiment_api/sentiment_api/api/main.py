@@ -31,9 +31,11 @@ async def lifespan(app: FastAPI):
         pool = get_pool()
         if pool:
             try:
-                from sentiment_api.db.universe_repo import seed_sectors, upsert_universe
+                from sentiment_api.db.universe_repo import seed_sectors, seed_industries, upsert_universe
                 async with pool.acquire() as conn:
-                    await seed_sectors(conn)
+                    registry_dir = Path(settings.source_registry_path).parent
+                    await seed_sectors(conn, registry_dir)
+                    await seed_industries(conn, registry_dir)
                     try:
                         from sentiment_api.universe import load_universe_registry
                         ureg = load_universe_registry(settings.universe_registry_path)

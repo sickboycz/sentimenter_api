@@ -8,6 +8,7 @@ Apply in this order on an **empty** database:
 |-------|------|---------|
 | 1 | `00_base_schema.sql` | Base schema: enums, sources, articles, clusters, events, embeddings, runs, etc. |
 | 2 | `v1.1_add_universes.sql` | Universes, sectors, securities, universe_memberships (idempotent: IF NOT EXISTS) |
+| 2b | `v1.1_add_industries.sql` | Industries table (GICS industries under sectors; idempotent) |
 | 3 | `v1.1_asset_targeting_audit.sql` | cluster_asset_targeting_audit table (idempotent) |
 | 4 | `v1.1_retention_tombstone.sql` | deleted_at on articles for retention (idempotent) |
 
@@ -25,7 +26,7 @@ Or manually with Docker Compose:
 
 ```bash
 cd /path/to/sentiment_api
-for f in migrations/00_base_schema.sql migrations/v1.1_add_universes.sql migrations/v1.1_asset_targeting_audit.sql migrations/v1.1_retention_tombstone.sql; do
+for f in migrations/00_base_schema.sql migrations/v1.1_add_universes.sql migrations/v1.1_add_industries.sql migrations/v1.1_asset_targeting_audit.sql migrations/v1.1_retention_tombstone.sql; do
   docker compose -f docker-compose.yml -f docker-compose.production.yml exec -T postgres \
     psql -U sentiment -d sentiment -f - < "$f"
 done
