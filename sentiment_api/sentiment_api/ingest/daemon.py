@@ -18,6 +18,12 @@ from sentiment_api.metrics import ingestion_errors_total, ingestion_lag_seconds,
 
 logger = logging.getLogger("sentiment_api.daemon")
 
+try:
+    from sentiment_api.logging_file import add_file_handler
+    add_file_handler("daemon")
+except Exception:
+    pass
+
 
 def _serialize_item(item) -> dict:
     """Serialize RawItem for queue."""

@@ -36,6 +36,12 @@ from sentiment_api.engines.index import compute_intraday_from_clusters, compute_
 
 logger = logging.getLogger("sentiment_api.worker")
 
+try:
+    from sentiment_api.logging_file import add_file_handler
+    add_file_handler("worker")
+except Exception:
+    pass
+
 
 def _event_id(cluster_id: str, event_type: str) -> str:
     h = hashlib.sha256(f"{cluster_id}|{event_type}|{datetime.utcnow().isoformat()[:10]}".encode()).digest()[:12]

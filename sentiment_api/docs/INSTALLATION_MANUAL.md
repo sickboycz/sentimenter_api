@@ -317,6 +317,56 @@ Ensure **OPENAI_API_KEY** is set in `/etc/sentimenter/env` if you use summarizat
 
 ---
 
+## 10.6 Start the stack and see what's happening
+
+**Start the stack** (from `sentiment_api/`):
+
+```bash
+cd /srv/sentimenter/repo/sentiment_api
+sudo -u sentimenter docker compose -f docker-compose.yml -f docker-compose.production.yml \
+  --env-file /etc/sentimenter/env up -d
+sudo systemctl start sentimenter-docker   # or restart, if using the systemd unit
+```
+
+**See if anything is running:**
+
+```bash
+# Container status (all services)
+docker compose -f docker-compose.yml -f docker-compose.production.yml ps
+
+# API health (postgres, redis, registry, etc.)
+curl -s http://127.0.0.1:8080/v1/health | head
+```
+
+**See what's happening in the background (logs):**
+
+```bash
+# Follow API logs (requests, errors)
+docker compose -f docker-compose.yml -f docker-compose.production.yml logs -f api
+
+# Follow worker logs (ingestion, clustering, summarization)
+docker compose -f docker-compose.yml -f docker-compose.production.yml logs -f worker
+
+# Follow daemon logs (source polling, push to queue)
+docker compose -f docker-compose.yml -f docker-compose.production.yml logs -f daemon
+```
+
+Use `Ctrl+C` to stop following. To see only the last N lines: `logs --tail 50 -f api`.
+
+**Logs on disk:** API, worker, and daemon also write to `/srv/sentimenter/volumes/logs/` (mounted as `/data/logs` in containers). You can `tail -f` files there if you bind-mount that directory.
+
+**Quick checks:**
+
+| What | Command |
+|------|--------|
+| All containers up | `docker compose ... ps` |
+| API healthy | `curl -s http://127.0.0.1:8080/v1/health` |
+| Article count | `docker compose ... exec postgres psql -U sentiment -d sentiment -c "SELECT COUNT(*) FROM articles;"` |
+| Trigger one ingest run | `curl -s -X POST "http://127.0.0.1:8080/v1/admin/ingest/run" -H "X-API-Key: YOUR_KEY"` |
+| Grafana (metrics) | http://SERVER:3001 (admin/admin) |
+
+---
+
 ## 11. Updating the service (safe)
 
 Repeatable, no data loss.

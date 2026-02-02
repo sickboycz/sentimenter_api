@@ -22,6 +22,8 @@ from sentiment_api.registry import load_registry, RegistryError
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from sentiment_api.logging_file import add_file_handler
+    add_file_handler("api")
     settings = get_settings()
     try:
         await init_pool(settings.database_url)
@@ -1246,6 +1248,37 @@ async def admin_backfill(
     out = {"meta": meta(), "data": result, "errors": []}
     await set_cached(request, 200, out)
     return out
+
+
+# -----------------------------------------------------------------------------
+# GET /v1/admin/logs — Tail log files (api, worker, daemon) for ops UI
+# -----------------------------------------------------------------------------
+_LOG_DIR = Path("/data/logs")
+_ALLOWED_LOG_SOURCES = frozenset({"api", "worker", "daemon"})
+
+
+@app.get("/v1/admin/logs")
+async def admin_logs(
+    _: Annotated[str, Depends(validate_api_key)],
+    sources: list[str] = Query(default=["api", "worker", "daemon"], description="api, worker, daemon"),
+    tail: int = Query(50, ge=1, le=500),
+):
+    """Return last N lines from each selected service log file (/data/logs/<source>.log)."""
+    data: dict[str, list[str]] = {}
+    for src in sources:
+        if src not in _ALLOWED_LOG_SOURCES:
+            continue
+        path = _LOG_DIR / f"{src}.log"
+        try:
+            if path.is_file():
+                with open(path, "r", encoding="utf-8", errors="replace") as f:
+                    lines = f.readlines()
+                data[src] = [line.rstrip("\n") for line in lines[-tail:]]
+            else:
+                data[src] = []
+        except OSError:
+            data[src] = []
+    return {"meta": meta(), "data": data, "errors": []}
 
 
 def run():
