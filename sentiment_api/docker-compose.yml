@@ -23,6 +23,8 @@ services:
   redis:
     image: redis:7
     restart: always
+    volumes:
+      - redis_data:/data
     ports:
       - "6379:6379"
     healthcheck:
@@ -130,10 +132,11 @@ services:
     depends_on:
       api: { condition: service_healthy }
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/ready 2>/dev/null | grep -q ready || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9090/-/ready || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 6
+      start_period: 30s
 
   grafana:
     image: grafana/grafana:11.2.2
@@ -205,6 +208,7 @@ services:
 
 volumes:
   pgdata:
+  redis_data:
   artifacts:
   grafana_data:
   loki_data:

@@ -10,6 +10,7 @@ Production deployment following **Generic Service Installation and Update Manual
 | Script | Purpose |
 |--------|---------|
 | `install.sh` | First-time install (user, dirs, build, start, DB init) |
+| `create-service.sh` | Create systemd unit only (e.g. after install failed before step 7) |
 | `update.sh` | Safe update (git pull, rebuild, restart) |
 | `rollback.sh` | Rollback to previous commit |
 
@@ -21,6 +22,10 @@ sudo ./install.sh
 
 # Re-run install (user/dirs exist)
 sudo ./install.sh --skip-user
+
+# Create service only (install failed before systemd unit was created)
+sudo ./create-service.sh --enable
+# or: sudo ./install.sh --service-only
 
 # Update (repo already cloned)
 sudo ./update.sh

@@ -90,7 +90,7 @@ The v1.2 package is a **skeleton/scaffold** with a different architecture (backe
 
 | File (v1.2) | In Main Repo | Why Not Implemented |
 |-------------|--------------|----------------------|
-| `infra/docker-compose.observability.yml` | ✓ | Main has `infra/docker-compose.observability.yml` (copied). Observability stack merged into main `docker-compose.yml`. |
+| `infra/docker-compose.observability.yml` | — | Removed; observability stack is in main `docker-compose.yml`. |
 
 ---
 

@@ -3,9 +3,10 @@
 # Follows Generic Service Installation & Update Manual (v2)
 # User: sentimenter | Data: /srv/sentimenter/volumes/ (out-of-Docker)
 #
-# Usage: sudo ./install.sh [--skip-user] [--skip-repo]
-#   --skip-user  Do not create user/dirs (already present)
-#   --skip-repo  Do not clone repo (already present)
+# Usage: sudo ./install.sh [--skip-user] [--skip-repo] [--service-only]
+#   --skip-user     Do not create user/dirs (already present)
+#   --skip-repo     Do not clone repo (already present)
+#   --service-only  Only create systemd unit (e.g. after install failed before step 7)
 
 set -e
 
@@ -16,15 +17,23 @@ REPO_DIR="${HOME_DIR}/repo"
 COMPOSE_DIR="${REPO_DIR}/sentiment_api"
 ENV_FILE="/etc/${SERVICE}/env"
 POSTGRES_UID=999
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 SKIP_USER=false
 SKIP_REPO=false
+SERVICE_ONLY=false
 for arg in "$@"; do
   case "$arg" in
     --skip-user) SKIP_USER=true ;;
     --skip-repo) SKIP_REPO=true ;;
+    --service-only) SERVICE_ONLY=true ;;
   esac
 done
+
+if $SERVICE_ONLY; then
+  echo "[*] Creating systemd service only (--service-only)"
+  exec "$SCRIPT_DIR/create-service.sh" --enable
+fi
 
 echo "[*] sentiment_api deployment (user: $USER, home: $HOME_DIR)"
 
@@ -145,8 +154,8 @@ RemainAfterExit=yes
 User=sentimenter
 WorkingDirectory=/srv/sentimenter/repo/sentiment_api
 EnvironmentFile=/etc/sentimenter/env
-ExecStart=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
-ExecStop=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.production.yml down
+ExecStart=/usr/bin/docker compose --env-file /etc/sentimenter/env -f docker-compose.yml -f docker-compose.production.yml up -d
+ExecStop=/usr/bin/docker compose --env-file /etc/sentimenter/env -f docker-compose.yml -f docker-compose.production.yml down
 TimeoutStartSec=300
 
 [Install]

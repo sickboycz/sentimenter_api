@@ -80,7 +80,12 @@ def load_registry(path: Path | str) -> SourceRegistry:
     """
     path = Path(path)
     if not path.exists():
-        raise RegistryError(f"Registry file not found: {path}")
+        # Docker Compose mounts registry at this path; use it when env has wrong path
+        container_path = Path("/etc/sentiment_api/source_registry.yaml")
+        if container_path.exists():
+            path = container_path
+        else:
+            raise RegistryError(f"Registry file not found: {path}")
 
     raw = path.read_text()
     if path.suffix in (".json",):

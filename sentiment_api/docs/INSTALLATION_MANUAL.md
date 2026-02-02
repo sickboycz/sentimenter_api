@@ -114,6 +114,8 @@ OPENAI_API_KEY=sk-xxx
 SENTIMENT_API_ENV=production
 ```
 
+**Do not set** `SOURCE_REGISTRY_PATH` in this file when using Docker Compose — the stack mounts the registry at `/etc/sentiment_api/source_registry.yaml`. If you set it, use exactly: `SOURCE_REGISTRY_PATH=/etc/sentiment_api/source_registry.yaml`. Wrong paths (e.g. `Docs/...`) will make worker and daemon fail with "Registry file not found".
+
 **Important:** Do not commit secrets to the repo.
 
 ---

@@ -131,23 +131,197 @@ sudo -u sentimenter docker compose --env-file /etc/sentimenter/env \
 
 ## 6. Troubleshooting
 
+### 6.1 Service was never created (install failed earlier)
+
+If installation failed before the systemd unit was created (e.g. build or compose up failed), create the service afterward:
+
+```bash
+cd /srv/sentimenter/repo/sentiment_api/scripts/deploy
+sudo ./create-service.sh --enable
+```
+
+Or re-run install with service-only (same effect):
+
+```bash
+sudo ./install.sh --service-only
+```
+
+Then start the stack and the service:
+
+```bash
+cd /srv/sentimenter/repo/sentiment_api
+sudo -u sentimenter docker compose --env-file /etc/sentimenter/env \
+  -f docker-compose.yml -f docker-compose.production.yml up -d
+sudo systemctl start sentimenter-docker
+```
+
+### 6.2 `sentimenter-docker.service` failed to start
+
+On the server, get the real error:
+
+```bash
+systemctl status sentimenter-docker.service
+journalctl -xeu sentimenter-docker.service --no-pager
+```
+
+Then try running what the unit runs, as user `sentimenter`:
+
+```bash
+cd /srv/sentimenter/repo/sentiment_api
+sudo -u sentimenter docker compose --env-file /etc/sentimenter/env \
+  -f docker-compose.yml -f docker-compose.production.yml up -d
+```
+
+| Likely cause | Fix |
+|--------------|-----|
+| **Permission denied** (Docker socket) | Ensure `sentimenter` is in the `docker` group: `sudo usermod -aG docker sentimenter`; then log out/in or reboot. |
+| **Cannot read /etc/sentimenter/env** | Ensure file exists and is readable by `sentimenter`: `sudo chown root:sentimenter /etc/sentimenter/env && sudo chmod 640 /etc/sentimenter/env`. |
+| **WorkingDirectory / path** | Unit uses `WorkingDirectory=/srv/sentimenter/repo/sentiment_api`. If your repo is elsewhere, edit the unit: `sudo systemctl edit --full sentimenter-docker` and fix `WorkingDirectory` and `ExecStart`. |
+| **`docker compose` not found** | Install Docker Compose plugin or use standalone `docker-compose`; then ensure the unit’s `ExecStart` matches (e.g. `docker-compose` instead of `docker compose`). |
+
+If you fix the unit file (e.g. add `--env-file /etc/sentimenter/env` to `ExecStart`), reload and restart:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart sentimenter-docker
+```
+
+### 6.3 Other issues
+
 | Symptom | Action |
 |---------|--------|
-| `Registry file not found` | Ensure `registry/source_registry.yaml` exists in repo; docker-compose sets `SOURCE_REGISTRY_PATH=/etc/sentiment_api/source_registry.yaml` |
+| `Registry file not found: Docs/...` | `/etc/sentimenter/env` is overriding with a wrong path. Remove `SOURCE_REGISTRY_PATH` from that file, or set `SOURCE_REGISTRY_PATH=/etc/sentiment_api/source_registry.yaml`. Then restart: `docker compose ... up -d` and `systemctl restart sentimenter-docker`. |
+| `Registry file not found` (other) | Ensure `registry/source_registry.yaml` exists in repo; docker-compose sets `SOURCE_REGISTRY_PATH=/etc/sentiment_api/source_registry.yaml` |
 | Worker/daemon crash loop | Check logs: `docker logs sentiment_api-worker-1`; verify Postgres + Redis healthy |
 | `git pull` fails | Check SSH key / auth; `sudo -u sentimenter git status` |
 | Build fails | `docker compose build --no-cache`; check Dockerfile, pyproject.toml |
 | Port conflict | Stop other stacks: `docker compose down` (from other compose dirs) |
+| Prometheus unhealthy / dependency failed | Check logs: `docker logs sentiment_api-prometheus-1`. Ensure `infra/prometheus/prometheus.yml` is valid; healthcheck uses `wget --spider` on `/-/ready` with 30s start_period. |
+| **Redis or Postgres failed to start** (dependency failed, exited 0) | See [6.4 Redis / Postgres won't start](#64-redis--postgres-wont-start). |
+| **relation "sectors" does not exist** (Postgres ERROR) | Database migrations not applied. See [6.5 Apply database migrations](#65-apply-database-migrations). |
+| **API failed to start** (dependency failed: sentiment_api-api-1 exited 0) | Check API logs: `docker logs sentiment_api-api-1`. Fix the reported error (e.g. missing schema → [6.5](#65-apply-database-migrations), registry path → remove/wrong SOURCE_REGISTRY_PATH in `/etc/sentimenter/env`). |
+
+### 6.4 Redis / Postgres won't start
+
+If you see `dependency failed to start: container sentiment_api-redis-1 exited (0)` or Postgres failing:
+
+**1. Get the real error from the containers**
+
+```bash
+docker logs sentiment_api-redis-1
+docker logs sentiment_api-postgres-1
+```
+
+**2. Fix volume permissions (most common cause)**
+
+Postgres requires the data directory to be owned by UID 999 and not writable by others. Redis needs a writable `/data` (volume).
+
+```bash
+# Postgres: UID 999, mode 700
+sudo chown -R 999:999 /srv/sentimenter/volumes/postgres/data
+sudo chmod 700 /srv/sentimenter/volumes/postgres/data
+
+# Redis: writable by container (Redis often runs as UID 999 or 1000)
+sudo chown -R 999:999 /srv/sentimenter/volumes/redis
+sudo chmod 700 /srv/sentimenter/volumes/redis
+```
+
+If Redis still fails, try making the redis volume world-writable temporarily to confirm it's permissions: `sudo chmod 777 /srv/sentimenter/volumes/redis` (then lock it down again once it works).
+
+**3. Check for port conflicts**
+
+Another process may be using 5432 or 6379:
+
+```bash
+ss -tlnp | grep -E '5432|6379'
+# or: sudo lsof -i :5432 -i :6379
+```
+
+Stop the other service or change the compose ports if needed.
+
+**4. Restart the stack**
+
+```bash
+cd /srv/sentimenter/repo/sentiment_api
+sudo -u sentimenter docker compose --env-file /etc/sentimenter/env \
+  -f docker-compose.yml -f docker-compose.production.yml up -d
+```
+
+### 6.5 Apply database migrations
+
+If Postgres logs show `relation "sectors" does not exist` (or other missing tables), the v1.1 migrations were not applied.
+
+**1. Ensure base schema is applied** (only if the DB was never initialized)
+
+```bash
+cd /srv/sentimenter/repo/sentiment_api
+
+# If base schema exists in Docs (first install only)
+if [ -f /srv/sentimenter/repo/Docs/sentiment_api_tech_package_v1.1/db/schema.sql ]; then
+  docker compose -f docker-compose.yml -f docker-compose.production.yml exec -T postgres \
+    psql -U sentiment -d sentiment -f /dev/stdin < /srv/sentimenter/repo/Docs/sentiment_api_tech_package_v1.1/db/schema.sql
+fi
+```
+
+**2. Apply migrations** (creates sectors, universes, etc.)
+
+```bash
+cd /srv/sentimenter/repo/sentiment_api
+
+for f in migrations/v1.1_add_universes.sql migrations/v1.1_asset_targeting_audit.sql migrations/v1.1_retention_tombstone.sql; do
+  [ -f "$f" ] && docker compose -f docker-compose.yml -f docker-compose.production.yml exec -T postgres \
+    psql -U sentiment -d sentiment -f - < "$f" && echo "Applied $f"
+done
+```
+
+**3. Restart API/worker/daemon** so they pick up the schema
+
+```bash
+cd /srv/sentimenter/repo/sentiment_api
+sudo -u sentimenter docker compose --env-file /etc/sentimenter/env \
+  -f docker-compose.yml -f docker-compose.production.yml up -d
+```
 
 ---
 
-## 7. Files Reference
+## 7. Docker volumes (production)
+
+With `docker-compose.production.yml`, **all persistent data** is on the host under `/srv/sentimenter/volumes/` (bind mounts). There are no Docker named volumes in production.
+
+| Host path | Container path / use | Service |
+|-----------|----------------------|---------|
+| `/srv/sentimenter/volumes/postgres/data` | `/var/lib/postgresql/data` | postgres |
+| `/srv/sentimenter/volumes/redis` | `/data` | redis |
+| `/srv/sentimenter/volumes/artifacts` | `/data/artifacts` | api, worker |
+| `/srv/sentimenter/volumes/logs` | `/data/logs` | api, worker, daemon |
+| `/srv/sentimenter/volumes/grafana_data` | `/var/lib/grafana` | grafana |
+| `/srv/sentimenter/volumes/loki_data` | `/loki` | loki |
+
+**Permissions:** Postgres data must be `chown 999:999` and `chmod 700`. Redis dir must be writable by the redis container (e.g. `999:999` or `chmod 700`). See [6.4 Redis / Postgres won't start](#64-redis--postgres-wont-start).
+
+**Backup:** Back up `/srv/sentimenter/volumes/` (especially `postgres/data` and `redis`). Stop the stack or use `pg_dump` for Postgres if you need consistent backups.
+
+**Local dev** (no production override): compose uses **named** volumes `pgdata`, `redis_data`, `artifacts`, `grafana_data`, `loki_data`.
+
+### 7.1 Cross-check: registry and volumes
+
+| Service | Registry mount | SOURCE_REGISTRY_PATH | Data volumes (prod) |
+|---------|----------------|----------------------|----------------------|
+| api | `./registry/source_registry.yaml` → `/etc/sentiment_api/source_registry.yaml:ro` | `/etc/sentiment_api/source_registry.yaml` | `/data/artifacts`, `/data/logs` → `/srv/sentimenter/volumes/*` |
+| worker | same | same | same |
+| daemon | same | same | `/data/logs` only → `/srv/sentimenter/volumes/logs` |
+
+All three compose files (base, production override, frontend_only) mount the registry at the same container path and set the same env var. Production override replaces named volumes with bind mounts under `/srv/sentimenter/volumes/`; base compose uses named volumes for postgres, redis, artifacts, grafana, loki.
+
+---
+
+## 8. Files Reference
 
 | Path | Purpose |
 |------|---------|
 | `/srv/sentimenter/repo` | Git checkout (root) |
 | `/srv/sentimenter/repo/sentiment_api` | Compose dir |
-| `/srv/sentimenter/volumes/` | Postgres, Redis, artifacts, logs |
+| `/srv/sentimenter/volumes/` | Postgres, Redis, artifacts, logs, grafana, loki (see §7) |
 | `/etc/sentimenter/env` | Secrets (DATABASE_URL, REDIS_URL, OPENAI_API_KEY, SENTIMENT_API_API_KEYS) |
 | `scripts/deploy/update.sh` | Update script |
 | `scripts/deploy/rollback.sh` | Rollback script |
