@@ -63,16 +63,34 @@ sudo loginctl enable-linger sentimenter
     ├── postgres/
     │   └── data/
     ├── redis/
+    ├── weaviate/
     ├── artifacts/
     ├── logs/
     ├── reports/
+    ├── embedding_cache/
     ├── grafana_data/
     └── loki_data/
 ```
 
 ---
 
-## 4. Permissions
+## 4. Permissions and volume directories
+
+Create volume directories (if not using `install.sh`, which creates them):
+
+```bash
+sudo mkdir -p /srv/sentimenter/volumes/postgres/data \
+  /srv/sentimenter/volumes/redis \
+  /srv/sentimenter/volumes/weaviate \
+  /srv/sentimenter/volumes/artifacts \
+  /srv/sentimenter/volumes/logs \
+  /srv/sentimenter/volumes/reports \
+  /srv/sentimenter/volumes/embedding_cache \
+  /srv/sentimenter/volumes/grafana_data \
+  /srv/sentimenter/volumes/loki_data
+```
+
+Set ownership:
 
 ```bash
 sudo chown -R sentimenter:sentimenter /srv/sentimenter
@@ -80,7 +98,7 @@ sudo chown -R 999:999 /srv/sentimenter/volumes/postgres/data
 sudo chmod 700 /srv/sentimenter/volumes/postgres/data
 ```
 
-Postgres runs as UID 999 inside the container; the host directory must be owned accordingly.
+Postgres runs as UID 999 inside the container; the host directory must be owned accordingly. Grafana and Loki use fixed UIDs in their images; if you create their dirs manually, you may need `chown 472:472` (grafana_data) and `chown 10001:10001` (loki_data). The deployment script `install.sh` handles this.
 
 ---
 
@@ -154,32 +172,64 @@ Production uses bind mounts so data lives outside the repo. The file `sentiment_
 
 ```bash
 cd /srv/sentimenter/repo/sentiment_api/scripts/deploy
-sudo ./install.sh --skip-user   # if user/dirs already exist
-sudo ./install.sh --skip-repo   # if repo already cloned
+sudo ./install.sh              # first time
+# Or, if user/dirs or repo already exist:
+sudo ./install.sh --skip-user   # user/dirs already exist
+sudo ./install.sh --skip-repo   # repo already cloned
 ```
+
+After the stack is up, run **seed universes** and **create API key** (same as Option B steps 3–6 below), then add the printed key to `/etc/sentimenter/env` as `SENTIMENT_API_API_KEYS=...` and restart.
 
 ### Option B: Manual
 
 ```bash
 cd /srv/sentimenter/repo/sentiment_api
+ENV_FILE="/etc/sentimenter/env"
+COMPOSE="docker compose -f docker-compose.yml -f docker-compose.production.yml --env-file $ENV_FILE"
 
-sudo -u sentimenter docker compose -f docker-compose.yml -f docker-compose.production.yml \
-  --env-file /etc/sentimenter/env build --no-cache
-
-# Start postgres + redis first
-sudo -u sentimenter docker compose -f docker-compose.yml -f docker-compose.production.yml \
-  --env-file /etc/sentimenter/env up -d postgres redis
+# Build and start postgres + redis first
+sudo -u sentimenter $COMPOSE build --no-cache
+sudo -u sentimenter $COMPOSE up -d postgres redis
 
 # Wait for postgres
 sleep 15
+until docker compose -f docker-compose.yml -f docker-compose.production.yml exec -T postgres pg_isready -U sentiment 2>/dev/null; do sleep 2; done
 
-# Init DB
-docker compose -f docker-compose.yml -f docker-compose.production.yml exec -T postgres \
-  psql -U sentiment -d sentiment < /srv/sentimenter/repo/Docs/sentiment_api_tech_package_v1.1/db/schema.sql
+# 1. Apply DB schema (migrations)
+./scripts/apply_schema_from_zero.sh
 
-# Start all services
-sudo -u sentimenter docker compose -f docker-compose.yml -f docker-compose.production.yml \
-  --env-file /etc/sentimenter/env up -d
+# 2. Start API so we can run seed and create-key inside container
+sudo -u sentimenter $COMPOSE up -d
+
+# 3. Seed universes (no uv required — runs inside API container)
+docker compose -f docker-compose.yml -f docker-compose.production.yml --env-file $ENV_FILE exec api python -c "
+import asyncio
+from sentiment_api.universe.refresh import refresh_universes
+print(asyncio.run(refresh_universes()))
+"
+
+# 4. Create API key (no uv required — runs inside API container)
+# Copy the printed key and add to /etc/sentimenter/env as SENTIMENT_API_API_KEYS=key_here
+docker compose -f docker-compose.yml -f docker-compose.production.yml --env-file $ENV_FILE exec api python -c "
+import asyncio, secrets
+from sentiment_api.db.pool import init_pool, acquire
+from sentiment_api.config import get_settings
+from argon2 import PasswordHasher
+async def main():
+    s = get_settings()
+    await init_pool(s.database_url)
+    key = secrets.token_urlsafe(32)
+    h = PasswordHasher().hash(key)
+    async with acquire() as c:
+        await c.execute('''INSERT INTO api_keys (name, key_hash, enabled, rate_limit_per_min, notes) VALUES (\$1, \$2, true, 120, \$3)''', 'default', h, 'Bootstrap key')
+    print('API key (add to /etc/sentimenter/env as SENTIMENT_API_API_KEYS=...):')
+    print(key)
+asyncio.run(main())
+"
+
+# 5. Edit /etc/sentimenter/env: add SENTIMENT_API_API_KEYS=<the key printed above>
+# 6. Restart so API loads the new key
+sudo systemctl restart sentimenter-docker   # or: sudo -u sentimenter $COMPOSE up -d --force-recreate api
 ```
 
 ### Systemd (optional)
@@ -193,17 +243,14 @@ sudo systemctl start sentimenter-docker
 
 ## 9. Database migrations (if applicable)
 
-sentiment_api uses SQL schema + migrations, not Alembic:
+sentiment_api uses SQL migrations (no Alembic). Apply in order:
 
 ```bash
 cd /srv/sentimenter/repo/sentiment_api
-
-# Apply additional migrations
-for f in migrations/*.sql; do
-  docker compose -f docker-compose.yml -f docker-compose.production.yml exec -T postgres \
-    psql -U sentiment -d sentiment -f - < "$f"
-done
+./scripts/apply_schema_from_zero.sh
 ```
+
+This applies: `00_base_schema.sql` → `v1.1_add_universes.sql` → `v1.1_asset_targeting_audit.sql` → `v1.1_retention_tombstone.sql`. Scripts are idempotent (safe to re-run). See `migrations/README.md` for details. If the DB was created with the old single schema file (`Docs/.../schema.sql`), run only the three `v1.1_*.sql` files (see `migrations/README.md`).
 
 ---
 
@@ -278,12 +325,68 @@ sudo ./scripts/deploy/rollback.sh
 
 ---
 
+## 13. Troubleshooting
+
+### Permissions
+
+- **Postgres data dir:** Must be owned by UID 999 (Postgres in container).  
+  `sudo chown -R 999:999 /srv/sentimenter/volumes/postgres/data && sudo chmod 700 /srv/sentimenter/volumes/postgres/data`
+- **Compose / env file:** Run `docker compose` as user `sentimenter` so it can read `/etc/sentimenter/env`.  
+  `sudo chown sentimenter:sentimenter /etc/sentimenter/env && sudo chmod 600 /etc/sentimenter/env`
+- **Volume dirs:** All under `/srv/sentimenter/volumes/` should be owned by `sentimenter` (except postgres/data as above).  
+  `sudo chown -R sentimenter:sentimenter /srv/sentimenter/volumes`
+- **Grafana / Loki:** If you created their dirs manually, use `chown 472:472` (grafana_data) and `chown 10001:10001` (loki_data). The `install.sh` script does this.
+
+### `uv: command not found`
+
+You do not need `uv` on the server. Seed universes and create API key **inside the API container** (see section 8, Option B, steps 3–4):
+
+```bash
+cd /srv/sentimenter/repo/sentiment_api
+docker compose -f docker-compose.yml -f docker-compose.production.yml --env-file /etc/sentimenter/env exec api python -c "
+import asyncio; from sentiment_api.universe.refresh import refresh_universes; print(asyncio.run(refresh_universes()))
+"
+# Create API key: run the longer python -c "..." block from section 8 Option B step 4.
+```
+
+### Registry file not found
+
+Worker or daemon fails with "Registry file not found". Do **not** set `SOURCE_REGISTRY_PATH` in `/etc/sentimenter/env` unless you use exactly:  
+`SOURCE_REGISTRY_PATH=/etc/sentiment_api/source_registry.yaml`.  
+The Compose stack mounts the registry at that path; wrong paths (e.g. `Docs/...`) cause this error.
+
+### API key not working
+
+- Ensure the key is in `/etc/sentimenter/env`: `SENTIMENT_API_API_KEYS=your_key_here` (comma-separated for multiple).
+- Restart the API after changing env: `sudo systemctl restart sentimenter-docker` or `docker compose ... up -d --force-recreate api`.
+- Create a new key with the "Create API key" command in section 8 (Option B step 4) if the old one was lost.
+
+### Connection refused / service not up
+
+- Check containers: `docker compose -f docker-compose.yml -f docker-compose.production.yml --env-file /etc/sentimenter/env ps`.
+- Start stack: `sudo -u sentimenter docker compose ... up -d` (from `sentiment_api/`).
+- Ensure postgres is ready before migrations: `docker compose ... exec postgres pg_isready -U sentiment`.
+
+### Migrations fail (relation already exists, etc.)
+
+If the DB was created with the old single schema file, do **not** run `apply_schema_from_zero.sh` (base would conflict). Run only the v1.1 migrations:
+
+```bash
+cd /srv/sentimenter/repo/sentiment_api
+for f in migrations/v1.1_add_universes.sql migrations/v1.1_asset_targeting_audit.sql migrations/v1.1_retention_tombstone.sql; do
+  docker compose -f docker-compose.yml -f docker-compose.production.yml exec -T postgres psql -U sentiment -d sentiment -f - < "$f"
+done
+```
+
+---
+
 ## Ports
 
 | Service | Port | Purpose |
 |---------|------|---------|
 | API | 8080 | REST API |
 | Frontend | 3000 | Next.js dashboard |
+| Weaviate | 8081 | Vector store (optional) |
 | Prometheus | 9090 | Metrics |
 | Grafana | 3001 | Dashboards (admin/admin) |
 | Postgres | 5432 | Database |
