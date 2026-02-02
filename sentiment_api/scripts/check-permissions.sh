@@ -136,10 +136,8 @@ check_dir "${VOLUMES_DIR}/loki_data" "loki" "700" "loki_data"
 # Env file
 check_file "$ENV_FILE" "600" "ENV_FILE $ENV_FILE"
 if [[ -f "$ENV_FILE" ]]; then
-  local env_owner
   env_owner=$(_stat_owner "$ENV_FILE")
   if getent passwd "$USER" >/dev/null 2>&1; then
-    local uid
     uid=$(id -u "$USER")
     if [[ "$(echo "$env_owner" | cut -d: -f1)" != "$uid" ]]; then
       report "ERROR" "ENV_FILE $ENV_FILE: should be owned by $USER"
@@ -153,7 +151,6 @@ fi
 # Recursive check: ensure no world-writable dirs in volumes
 if [[ -d "$VOLUMES_DIR" ]]; then
   while IFS= read -r -d '' d; do
-    local m
     m=$(_stat_mode "$d")
     if [[ "$m" == *2 ]] || [[ "$m" == *6 ]]; then
       report "WARN" "World-writable: $d (mode $m)"
