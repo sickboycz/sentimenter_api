@@ -88,22 +88,23 @@ export function Topbar() {
   };
 
   return (
-    <div className="glass-strong p-2 flex items-center gap-3">
-      <div className="flex items-center gap-2">
-        <div className="font-display font-semibold">Sentimeter Dashboard</div>
-        <div className="text-xs opacity-60">API status at a glance</div>
-      </div>
+    <div className="glass-strong p-2 sm:p-3 flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2">
+          <div className="font-display font-semibold text-sm sm:text-base">Sentimeter</div>
+          <div className="text-xs opacity-60 hidden lg:block">Dashboard</div>
+          <div className="text-[11px] opacity-50 hidden xl:block">API status at a glance</div>
+        </div>
 
-      <div className="flex items-center gap-2 ml-3">
-        {pills.map((p) => (
-          <StatusPill key={p.label} label={p.label} status={p.status} />
-        ))}
-      </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {pills.map((p) => (
+            <StatusPill key={p.label} label={p.label} status={p.status} />
+          ))}
+        </div>
 
-      <div className="flex-1" />
+        <div className="flex-1" />
 
-      <div className="flex items-center gap-2">
-        <Badge tone={activityTone}>
+        <Badge tone={activityTone} className="whitespace-nowrap">
           <span className="inline-flex items-center gap-2">
             <span className={`inline-block w-2 h-2 rounded-full ${dotClass} ${dotPulse}`} />
             <span>Activity</span>
@@ -113,8 +114,10 @@ export function Topbar() {
             <span>worker {workerLabel}</span>
           </span>
         </Badge>
+      </div>
 
-        <div className="glass p-1 flex gap-1">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="glass p-1 flex gap-1 shrink-0">
           {(["1h","6h","24h"] as const).map((t) => (
             <button
               key={t}
@@ -127,24 +130,32 @@ export function Topbar() {
           ))}
         </div>
 
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search clusters, tickers…"
-          className="w-[240px] xl:w-[300px] px-3 py-2 rounded-xl bg-black/20 border border-white/10 outline-none focus:border-white/25"
-        />
+        <div className="flex-1 min-w-[160px] max-w-[320px]">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search clusters, tickers…"
+            className="w-full px-3 py-2 rounded-xl bg-black/20 border border-white/10 outline-none focus:border-white/25"
+          />
+        </div>
 
-        <div className="flex items-center gap-2 ml-2">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            saveKey();
+          }}
+          className="flex flex-wrap items-center gap-2"
+        >
           <div className="text-xs opacity-70">API Key</div>
           <input
             value={key}
             onChange={(e) => setKey(e.target.value)}
             placeholder="paste key"
-            className="w-[220px] px-3 py-2 rounded-xl bg-black/20 border border-white/10 outline-none text-sm"
+            className="min-w-[160px] max-w-[240px] w-[200px] px-3 py-2 rounded-xl bg-black/20 border border-white/10 outline-none text-sm"
             type="password"
           />
-          <Button onClick={saveKey} className="px-3">Apply</Button>
-        </div>
+          <Button type="submit" className="px-3">Apply</Button>
+        </form>
       </div>
     </div>
   );

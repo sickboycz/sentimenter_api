@@ -9,7 +9,7 @@ function color(status: string) {
 
 export function StatusPill({ label, status }: { label: string; status: string }) {
   return (
-    <span className={`px-2 py-0.5 rounded-lg text-[10px] uppercase tracking-wide border ${color(status)}`}>
+    <span className={`inline-flex items-center gap-1 whitespace-nowrap px-2 py-0.5 rounded-lg text-[10px] uppercase tracking-wide border ${color(status)}`}>
       {label}: {status}
     </span>
   );
