@@ -40,7 +40,7 @@ Examples:
 cd frontend
 npm install
 npm run lint | tee test-artifacts/lint.txt
-npm run lint:ts | tee test-artifacts/typecheck.txt
+npm run typecheck | tee test-artifacts/typecheck.txt
 npm run test | tee test-artifacts/vitest.txt
 npm run test:e2e
 ```

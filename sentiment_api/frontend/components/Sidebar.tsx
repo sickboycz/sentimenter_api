@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, Newspaper, Layers, Activity, Shield, Building2, Factory, LineChart, Hash } from "lucide-react";
+import { BarChart3, Newspaper, Layers, Activity, Shield, Building2, Factory, LineChart, Hash, Settings } from "lucide-react";
 
 const items = [
   { href: "/", label: "Overview", icon: BarChart3 },
@@ -10,7 +10,8 @@ const items = [
   { href: "/topics", label: "Topics", icon: Hash },
   { href: "/research", label: "Research", icon: Layers },
   { href: "/ops", label: "Ops", icon: Activity },
-  { href: "/sources", label: "Sources", icon: Shield }
+  { href: "/sources", label: "Sources", icon: Shield },
+  { href: "/settings", label: "Settings", icon: Settings }
 ];
 
 export function Sidebar() {

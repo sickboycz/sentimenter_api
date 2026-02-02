@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
+// TODO: Add virtualization (e.g. react-window) when winners/losers > 50 to avoid UI freeze on large payloads.
 import { Shell } from "../../components/Shell";
 import { TickerSpan } from "../../components/TickerSpan";
 import { apiGet, getDefaultApiKey } from "../../lib/api";

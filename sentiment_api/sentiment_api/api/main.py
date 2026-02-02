@@ -64,12 +64,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS: allow frontend origin(s) from config; also allow any origin on port 3000 (same-host UI by IP)
+# CORS: allow frontend origin(s) from config; regex allows any host:3000 (same-host UI by IP)
+# [^:/]+ = host (no colon/slash) so :3000 is matched; [^/]+ would greedily consume the port
 _cors_origins = [o.strip() for o in get_settings().cors_origins.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
-    allow_origin_regex=r"https?://[^/]+:3000",  # e.g. http://80.211.210.49:3000 when UI opened by IP
+    allow_origin_regex=r"https?://[^:/]+:3000",  # e.g. http://80.211.210.49:3000 when UI opened by IP
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],

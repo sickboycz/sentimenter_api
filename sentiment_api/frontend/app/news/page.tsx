@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
+// TODO: Add virtualization (e.g. react-window) when clusters > 50 to avoid UI freeze on large payloads.
 import { Shell } from "../../components/Shell";
 import { apiGet, getDefaultApiKey } from "../../lib/api";
 import { NewsCard } from "../../components/NewsCard";

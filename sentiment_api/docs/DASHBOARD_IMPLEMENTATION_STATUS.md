@@ -13,13 +13,13 @@
 | News Feed | ✓ | `/news` — clusters |
 | Cluster Detail | ✓ | `/clusters/[clusterId]` |
 | Markets | ✓ | `/markets` — impacts |
-| Sectors | ✓ | `/sectors` — sector impacts |
+| Sectors | ✓ | `/sectors` — heatmap + drilldown (tickers by sector) |
 | Tickers | ✓ | `/tickers` — winners/losers |
 | Topics | ✓ | `/topics` — topic indices |
 | Research | ✓ | `/research` — event study |
 | Sources | ✓ | `/sources` — source registry |
 | Ops | ✓ | `/ops` — health, logs, links |
-| Settings | ✓ | `/settings` — API key |
+| Settings | ✓ | `/settings` — API key (dedicated page) |
 | Backend `/v1/status` | ✓ | Returns api, ingestion, allocation, research |
 | Zod validation | ✓ | `lib/schemas.ts` + `api.ts` validateResponse |
 | Volume permissions script | ✓ | `scripts/check-permissions.sh` |
@@ -30,8 +30,8 @@
 |---------|--------|------|
 | Ingestion / Allocation pills | Partial | Derived from `runs` table (ingest, summarize). Shows `unknown` if no recent runs. |
 | Timeframe wiring to API | Partial | Context exists; pages can pass `window` from `useTimeframe()`. Some pages use hardcoded `6h`. |
-| Virtualization for large lists | Partial | No virtualization; TODO + guardrails for payload size. |
-| 429 / 503 handling | Partial | api.ts does not yet backoff on 429 or degrade gracefully on 503. |
+| Virtualization for large lists | Partial | TODO in news/tickers; guardrails (limit 50). |
+| 429 / 503 handling | ✓ | api.ts: 429 retry with Retry-After; 503 throws ApiDegradedError. |
 
 ## Optional
 

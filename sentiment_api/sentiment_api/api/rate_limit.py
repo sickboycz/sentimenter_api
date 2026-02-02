@@ -72,10 +72,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     """v1.2: 60 req/min default, 10 req/min research, 10 SSE streams per api_key."""
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        # Skip rate limit for /metrics, /ready, /v1/health (readiness probes)
+        # Skip rate limit for /metrics, /ready, /v1/health (readiness probes) and preflight OPTIONS
         path = request.url.path or ""
         if path in ("/metrics", "/ready", "/v1/health", "/v1/status", "/"):
             return await call_next(request)
+        if request.method == "OPTIONS":
+            return await call_next(request)  # CORS preflight; let CORSMiddleware handle
 
         key = _client_key(request)
         limit = RESEARCH_LIMIT if _is_research_path(path) else DEFAULT_LIMIT
