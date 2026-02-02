@@ -74,7 +74,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         # Skip rate limit for /metrics, /ready, /v1/health (readiness probes)
         path = request.url.path or ""
-        if path in ("/metrics", "/ready", "/v1/health", "/"):
+        if path in ("/metrics", "/ready", "/v1/health", "/v1/status", "/"):
             return await call_next(request)
 
         key = _client_key(request)

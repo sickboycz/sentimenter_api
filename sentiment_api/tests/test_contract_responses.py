@@ -59,6 +59,12 @@ def test_health_contract(client):
     _validate(resp.json(), "get_v1_health.response.json")
 
 
+def test_status_contract(client):
+    resp = client.get("/v1/status")
+    assert resp.status_code == 200
+    _validate(resp.json(), "get_v1_status.response.json")
+
+
 def test_mood_now_contract(client, api_key):
     resp = client.get("/v1/mood/now", headers={"X-API-Key": api_key})
     assert resp.status_code == 200

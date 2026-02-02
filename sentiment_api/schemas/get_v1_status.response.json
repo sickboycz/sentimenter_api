@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["api", "ingestion", "allocation", "research", "as_of"],
+  "properties": {
+    "api": { "type": "string", "enum": ["ok", "degraded", "down"] },
+    "ingestion": { "type": "string", "enum": ["ok", "degraded", "unknown"] },
+    "allocation": { "type": "string", "enum": ["ok", "degraded", "unknown"] },
+    "research": { "type": "string", "enum": ["ok", "degraded", "unknown"] },
+    "as_of": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

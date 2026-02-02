@@ -265,6 +265,51 @@ async def health():
 
 
 # -----------------------------------------------------------------------------
+# /v1/status — Dashboard status pills (API, Ingestion, Allocation, Research)
+# -----------------------------------------------------------------------------
+@app.get("/v1/status")
+async def get_status():
+    """Dashboard at-a-glance: api, ingestion, allocation, research. No auth."""
+    h = await health()
+    api_status = h["status"]
+    as_of = h["as_of"]
+
+    ingestion_status = "unknown"
+    allocation_status = "unknown"
+    research_status = "unknown"
+
+    try:
+        from sentiment_api.db.pool import get_pool, acquire
+        pool = get_pool()
+        if pool:
+            async with acquire() as conn:
+                # Ingestion: recent ingest run in last 15 min
+                row = await conn.fetchrow(
+                    """SELECT status FROM runs WHERE run_type = 'ingest' AND started_at > now() - interval '15 minutes'
+                       ORDER BY started_at DESC LIMIT 1"""
+                )
+                if row:
+                    ingestion_status = "ok" if row["status"] == "ok" else "degraded"
+                # Allocation: recent summarize run in last 30 min
+                row = await conn.fetchrow(
+                    """SELECT status FROM runs WHERE run_type = 'summarize' AND started_at > now() - interval '30 minutes'
+                       ORDER BY started_at DESC LIMIT 1"""
+                )
+                if row:
+                    allocation_status = "ok" if row["status"] == "ok" else "degraded"
+    except Exception:
+        pass
+
+    return {
+        "api": api_status,
+        "ingestion": ingestion_status,
+        "allocation": allocation_status,
+        "research": research_status,
+        "as_of": as_of,
+    }
+
+
+# -----------------------------------------------------------------------------
 # /api/sp-sentiment — Moodix-compatible (AC-M9.1)
 # -----------------------------------------------------------------------------
 @app.get("/api/sp-sentiment")

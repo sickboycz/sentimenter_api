@@ -428,6 +428,14 @@ sudo ./scripts/deploy/rollback.sh
 
 ### Permissions
 
+**Check all volume and file permissions:**
+
+```bash
+cd /srv/sentimenter/repo/sentiment_api
+sudo ./scripts/check-permissions.sh
+# To fix issues: sudo ./scripts/check-permissions.sh --fix
+```
+
 - **Postgres data dir:** Must be owned by UID 999 (Postgres in container).  
   `sudo chown -R 999:999 /srv/sentimenter/volumes/postgres/data && sudo chmod 700 /srv/sentimenter/volumes/postgres/data`
 - **Compose / env file:** Run `docker compose` as user `sentimenter` so it can read `/etc/sentimenter/env`.  

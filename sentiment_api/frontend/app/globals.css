@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import "../styles/tokens.css";
+
 /* Glassy dark shell */
 :root {
   color-scheme: dark;
@@ -19,9 +21,9 @@ body {
 }
 
 .glass {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.10);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--border-0);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border-radius: var(--r-md);
 }

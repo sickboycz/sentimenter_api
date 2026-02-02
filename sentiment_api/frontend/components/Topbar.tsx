@@ -1,102 +1,49 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Activity, CheckCircle, AlertCircle, XCircle, RefreshCw, Server } from "lucide-react";
+import { Activity, RefreshCw } from "lucide-react";
+import { StatusPill } from "./ui/StatusPill";
+import { useTimeframe } from "../contexts/TimeframeContext";
 
 const API_KEY_STORAGE = "sentiment_api_key";
 
 type HealthStatus = "ok" | "degraded" | "down";
-
-function HealthPill({
-  status,
-  coreOk,
-  coreTotal,
-  onRefresh,
-  isRefetching,
-}: {
-  status: HealthStatus;
-  coreOk: number;
-  coreTotal: number;
-  onRefresh?: () => void;
-  isRefetching?: boolean;
-}) {
-  const config = {
-    ok: {
-      icon: CheckCircle,
-      label: "Healthy",
-      className: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 ring-emerald-400/20",
-      dot: "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]",
-    },
-    degraded: {
-      icon: AlertCircle,
-      label: "Degraded",
-      className: "bg-amber-500/20 text-amber-300 border-amber-500/40",
-      dot: "bg-amber-400",
-    },
-    down: {
-      icon: XCircle,
-      label: "Down",
-      className: "bg-red-500/20 text-red-300 border-red-500/40",
-      dot: "bg-red-400",
-    },
-  };
-  const c = config[status];
-  const Icon = c.icon;
-  return (
-    <div
-      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium shadow-sm ${c.className} ${status === "ok" ? "ring-2 ring-inset" : ""}`}
-      title={`API core checks: ${coreOk}/${coreTotal} (postgres, redis, registry, artifacts)`}
-    >
-      <Server className="h-3.5 w-3.5 opacity-80" aria-hidden />
-      <span className={`relative flex h-2 w-2 shrink-0 ${status === "ok" ? "animate-pulse" : ""}`}>
-        <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${c.dot}`} />
-        <span className={`relative inline-flex rounded-full h-2 w-2 ${c.dot}`} />
-      </span>
-      <Icon className="h-3.5 w-3.5 shrink-0" />
-      <span>{c.label}</span>
-      <span className="opacity-70 tabular-nums">{coreOk}/{coreTotal}</span>
-      {onRefresh && (
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={isRefetching}
-          className="ml-0.5 p-0.5 rounded hover:bg-white/10 transition-opacity disabled:opacity-50"
-          title="Refresh health"
-          aria-label="Refresh health"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${isRefetching ? "animate-spin" : ""}`} />
-        </button>
-      )}
-    </div>
-  );
-}
 
 export function Topbar() {
   const queryClient = useQueryClient();
   const [apiKey, setApiKeyState] = useState("");
   const [reveal, setReveal] = useState(false);
 
-  const health = useQuery({
-    queryKey: ["health-topbar"],
+  const statusQuery = useQuery({
+    queryKey: ["status-topbar"],
     queryFn: async () => {
       const base = typeof window !== "undefined" && !process.env.NEXT_PUBLIC_API_BASE_URL
         ? `${window.location.protocol}//${window.location.hostname}:8080`
         : (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080");
-      const res = await fetch(`${base}/v1/health`, { cache: "no-store" });
-      if (!res.ok) throw new Error("Health check failed");
-      return res.json() as Promise<{ status: HealthStatus; checks: Array<{ name: string; status: string }> }>;
+      const res = await fetch(`${base}/v1/status`, { cache: "no-store" });
+      if (!res.ok) throw new Error("Status check failed");
+      return res.json() as Promise<{ api: string; ingestion: string; allocation: string; research: string }>;
     },
     refetchInterval: 30_000,
     retry: 1,
     staleTime: 20_000,
   });
 
-  const coreNames = ["postgres", "redis", "registry", "artifacts"];
-  const coreChecks = health.data?.checks?.filter((c) => coreNames.includes(c.name)) ?? [];
-  const coreOk = coreChecks.filter((c) => c.status === "ok").length;
-  const coreTotal = coreChecks.length;
-  const status = (health.data?.status as HealthStatus) ?? (health.isError ? "down" : "degraded");
+  const status = statusQuery.data;
+  const apiStatus = (status?.api as HealthStatus) ?? (statusQuery.isError ? "down" : "degraded");
+  const { timeframe, setTimeframe } = useTimeframe();
+  const [q, setQ] = useState("");
+
+  const pills = useMemo(
+    () => [
+      { label: "API", status: apiStatus },
+      { label: "Ingestion", status: (status?.ingestion ?? "unknown") as string },
+      { label: "Allocation", status: (status?.allocation ?? "unknown") as string },
+      { label: "Research", status: (status?.research ?? "unknown") as string },
+    ],
+    [apiStatus, status?.ingestion, status?.allocation, status?.research]
+  );
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -128,22 +75,47 @@ export function Topbar() {
         </div>
       </div>
       <div className="h-8 w-px bg-white/10 shrink-0" aria-hidden />
-      <div className="flex items-center gap-2 shrink-0">
-        <span className="text-xs text-white/50 uppercase tracking-wider hidden sm:inline">API</span>
-        {health.isLoading ? (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/20 text-xs text-white/60">
-            <span className="h-2 w-2 rounded-full bg-white/50 animate-pulse" />
-            Checking…
-          </div>
-        ) : (
-          <HealthPill
-            status={status}
-            coreOk={coreOk}
-            coreTotal={coreTotal || 4}
-            onRefresh={() => health.refetch()}
-            isRefetching={health.isFetching}
+      <div className="flex items-center gap-2 shrink-0 flex-wrap">
+        {pills.map((p) => (
+          <StatusPill
+            key={p.label}
+            label={p.label}
+            status={p.label === "API" && statusQuery.isLoading ? "unknown" : p.status}
           />
-        )}
+        ))}
+        <button
+          type="button"
+          onClick={() => statusQuery.refetch()}
+          disabled={statusQuery.isFetching}
+          className="ml-0.5 p-1 rounded opacity-70 hover:opacity-100 disabled:opacity-50"
+          title="Refresh API health"
+          aria-label="Refresh API health"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${statusQuery.isFetching ? "animate-spin" : ""}`} />
+        </button>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <div className="glass p-1 flex gap-1">
+          {(["1h", "6h", "24h"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              className={`px-2 py-1 rounded-lg text-xs ${timeframe === t ? "bg-white/10" : "opacity-70 hover:opacity-100"}`}
+              onClick={() => setTimeframe(t)}
+              title={`Timeframe: ${t}`}
+              aria-pressed={timeframe === t}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search clusters, tickers…"
+          className="w-64 max-w-full px-3 py-2 rounded-xl bg-black/20 border border-white/10 outline-none text-sm hidden md:block"
+          aria-label="Global search"
+        />
       </div>
       <div className="flex-1 min-w-0" />
       <form

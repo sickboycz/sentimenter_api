@@ -10,6 +10,7 @@ Production deployment following **Generic Service Installation and Update Manual
 | Script | Purpose |
 |--------|---------|
 | `install.sh` | First-time install (user, dirs, build, start, DB init) |
+| `../check-permissions.sh` | Check volume/file permissions; `--fix` to repair |
 | `create-service.sh` | Create systemd unit only (e.g. after install failed before step 7) |
 | `verify-repo.sh` | Check required files after pull; optional `--pull` to fetch and pull |
 | `update.sh` | Safe update (git pull, rebuild, restart) |
@@ -37,6 +38,10 @@ sudo ./update.sh
 
 # Rollback
 sudo ./rollback.sh
+
+# Check volume permissions (from sentiment_api/)
+sudo ../check-permissions.sh
+sudo ../check-permissions.sh --fix   # attempt to fix
 ```
 
 ## Fresh deploy (prune + pull + rebuild)

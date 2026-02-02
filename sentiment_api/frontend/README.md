@@ -34,10 +34,23 @@ Examples:
 - local: `http://localhost:8000`
 - docker: `http://api:8000`
 
+## Quality gates (exact commands)
+
+```bash
+cd frontend
+npm install
+npm run lint | tee test-artifacts/lint.txt
+npm run lint:ts | tee test-artifacts/typecheck.txt
+npm run test | tee test-artifacts/vitest.txt
+npm run test:e2e
+```
+
+Artifacts are written to `frontend/test-artifacts/`. E2E requires the dev server (Playwright starts it automatically unless `E2E_NO_SERVER=1`).
+
 ## Notes
 - This UI expects the API endpoints defined in the PRD:
   - `/v1/mood/now`
-  - `/v1/impact/summary`
+  - `/v1/impacts/latest`
   - `/v1/news/clusters`
   - `/v1/news/clusters/{cluster_id}`
   - `/v1/health`
