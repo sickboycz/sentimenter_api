@@ -44,7 +44,7 @@ services:
       SOURCE_REGISTRY_PATH: /etc/sentiment_api/source_registry.yaml
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
-      - ../Docs/sentiment_api_tech_package_v1.1/registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
+      - ./registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
       - artifacts_fe:/data/artifacts
     ports:
       - "8080:8080"

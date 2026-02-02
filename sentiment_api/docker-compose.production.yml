@@ -15,19 +15,19 @@ services:
 
   api:
     volumes:
-      - ../Docs/sentiment_api_tech_package_v1.1/registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
+      - ./registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
       - /srv/sentimenter/volumes/artifacts:/data/artifacts
       - /srv/sentimenter/volumes/logs:/data/logs
 
   worker:
     volumes:
-      - ../Docs/sentiment_api_tech_package_v1.1/registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
+      - ./registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
       - /srv/sentimenter/volumes/artifacts:/data/artifacts
       - /srv/sentimenter/volumes/logs:/data/logs
 
   daemon:
     volumes:
-      - ../Docs/sentiment_api_tech_package_v1.1/registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
+      - ./registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
       - /srv/sentimenter/volumes/logs:/data/logs
 
   grafana:

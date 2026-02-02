@@ -26,8 +26,14 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("REDIS_URL", "SENTIMENT_API_REDIS_URL"),
     )
     artifact_root: Path = Path("/data/artifacts")
-    source_registry_path: Path = Path("Docs/sentiment_api_tech_package_v1.1/registry/source_registry.yaml")
-    universe_registry_path: Path = Path("Docs/sentiment_api_tech_package_v1.1/registry/universe_registry.yaml")
+    source_registry_path: Path = Field(
+        default=Path("Docs/sentiment_api_tech_package_v1.1/registry/source_registry.yaml"),
+        validation_alias=AliasChoices("SOURCE_REGISTRY_PATH", "SENTIMENT_API_SOURCE_REGISTRY_PATH"),
+    )
+    universe_registry_path: Path = Field(
+        default=Path("Docs/sentiment_api_tech_package_v1.1/registry/universe_registry.yaml"),
+        validation_alias=AliasChoices("UNIVERSE_REGISTRY_PATH", "SENTIMENT_API_UNIVERSE_REGISTRY_PATH"),
+    )
 
     openai_api_key: str | None = None
     model_summarizer_id: str = "gpt-5-mini"
