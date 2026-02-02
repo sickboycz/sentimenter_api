@@ -3,6 +3,7 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Shell } from "../../components/Shell";
+import { TickerSpan } from "../../components/TickerSpan";
 import { apiGet, getDefaultApiKey } from "../../lib/api";
 
 export default function TickersPage() {
@@ -21,7 +22,7 @@ export default function TickersPage() {
       <div className="glass p-4">
         <div className="font-semibold">Tickers</div>
         <div className="text-sm opacity-75">
-          Winners/losers derived from latest news impacts (SP500 + Nasdaq Composite).
+          Winners/losers derived from latest news impacts (S&P 500 + Nasdaq-100). Hover over a ticker for company name.
         </div>
       </div>
 
@@ -31,7 +32,9 @@ export default function TickersPage() {
           <div className="space-y-1 text-sm">
             {winners.slice(0, 50).map((t: any) => (
               <div key={t.symbol ?? t.ticker} className="flex justify-between">
-                <span>{t.symbol ?? t.ticker}</span>
+                <TickerSpan symbol={t.symbol ?? t.ticker} name={t.name} className="cursor-help">
+                  {t.symbol ?? t.ticker}
+                </TickerSpan>
                 <span className="opacity-75">+{Math.round(t.impact_score ?? 0)}</span>
               </div>
             ))}
@@ -43,7 +46,9 @@ export default function TickersPage() {
           <div className="space-y-1 text-sm">
             {losers.slice(0, 50).map((t: any) => (
               <div key={t.symbol ?? t.ticker} className="flex justify-between">
-                <span>{t.symbol ?? t.ticker}</span>
+                <TickerSpan symbol={t.symbol ?? t.ticker} name={t.name} className="cursor-help">
+                  {t.symbol ?? t.ticker}
+                </TickerSpan>
                 <span className="opacity-75">-{Math.round(t.impact_score ?? 0)}</span>
               </div>
             ))}

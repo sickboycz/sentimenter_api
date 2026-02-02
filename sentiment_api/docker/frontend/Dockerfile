@@ -8,6 +8,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules /app/node_modules
 COPY frontend /app
 ENV NEXT_TELEMETRY_DISABLED=1
+# Build-time API URL (for remote access set e.g. http://YOUR_SERVER_IP:8080)
+ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 RUN npm run build
 
 FROM node:20-alpine

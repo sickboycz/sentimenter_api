@@ -268,6 +268,55 @@ curl -s http://127.0.0.1:3001/api/health # Grafana (admin/admin)
 
 ---
 
+## 10.5 Ingestion pipeline (how it runs)
+
+When the stack is up, the **daemon** and **worker** containers are already running:
+
+- **Daemon** — Polls enabled sources (RSS, GDELT, scrape) from `registry/source_registry.yaml` every **update_interval_sec** (default 300). Pushes raw items to the Redis ingest queue.
+- **Worker** — Consumes the queue: normalize → cluster → summarize → score → index. Writes articles, clusters, embeddings, and runs to Postgres.
+
+No extra start step: ingestion runs automatically. To confirm and optionally trigger a run immediately:
+
+**1. Check daemon and worker are up**
+```bash
+docker compose -f docker-compose.yml -f docker-compose.production.yml --env-file /etc/sentimenter/env ps
+# daemon and worker should be "Up" or "running"
+```
+
+**2. Trigger one poll cycle now (optional)**  
+Instead of waiting for the next interval, trigger a run via the API (use an API key from `/etc/sentimenter/env`):
+
+```bash
+curl -s -X POST "http://127.0.0.1:8080/v1/admin/ingest/run" -H "X-API-Key: YOUR_KEY"
+# Optional: ?source_id=gdelt_doc_v2 to poll only one source
+```
+
+**3. Verify ingestion**
+```bash
+# Daemon/worker logs
+docker compose -f docker-compose.yml -f docker-compose.production.yml logs -f daemon
+docker compose -f docker-compose.yml -f docker-compose.production.yml logs -f worker
+
+# Article count (after a few minutes)
+docker compose -f docker-compose.yml -f docker-compose.production.yml exec postgres \
+  psql -U sentiment -d sentiment -c "SELECT COUNT(*) FROM articles;"
+```
+
+**4. Backfill historical data (optional)**  
+To backfill a date range (e.g. last 7 days):
+
+```bash
+curl -s -X POST "http://127.0.0.1:8080/v1/admin/backfill" -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" -d '{"from":"2026-01-27","to":"2026-02-02"}'
+```
+
+Or inside the API container:  
+`docker compose ... exec api sentiment-api backfill --from 2026-01-27 --to 2026-02-02`
+
+Ensure **OPENAI_API_KEY** is set in `/etc/sentimenter/env` if you use summarization/embeddings; otherwise worker steps that call OpenAI may fail.
+
+---
+
 ## 11. Updating the service (safe)
 
 Repeatable, no data loss.
@@ -366,6 +415,31 @@ The Compose stack mounts the registry at that path; wrong paths (e.g. `Docs/...`
 - Check containers: `docker compose -f docker-compose.yml -f docker-compose.production.yml --env-file /etc/sentimenter/env ps`.
 - Start stack: `sudo -u sentimenter docker compose ... up -d` (from `sentiment_api/`).
 - Ensure postgres is ready before migrations: `docker compose ... exec postgres pg_isready -U sentiment`.
+
+### Web UI: CORS / "blocked by CORS policy" or "loopback" when opening by IP
+
+When you open the UI at **http://YOUR_SERVER_IP:3000** (e.g. http://80.211.210.49:3000), the browser must call the API at the **same host**, not `localhost`. Do this once:
+
+1. **Set API URL and CORS** in `/etc/sentimenter/env` (replace with your server IP or hostname):
+   ```bash
+   NEXT_PUBLIC_API_BASE_URL=http://80.211.210.49:8080
+   CORS_ORIGINS=http://80.211.210.49:3000
+   ```
+
+2. **Rebuild the frontend** (API URL is baked in at build time):
+   ```bash
+   cd /srv/sentimenter/repo/sentiment_api
+   sudo -u sentimenter docker compose -f docker-compose.yml -f docker-compose.production.yml \
+     --env-file /etc/sentimenter/env build --no-cache frontend
+   ```
+
+3. **Restart the stack** so the API loads the new CORS origins:
+   ```bash
+   sudo systemctl restart sentimenter-docker
+   ```
+   Or: `docker compose ... up -d --force-recreate api frontend`
+
+Then open **http://YOUR_SERVER_IP:3000** again; the UI will call **http://YOUR_SERVER_IP:8080** and CORS will allow it.
 
 ### Migrations fail (relation already exists, etc.)
 

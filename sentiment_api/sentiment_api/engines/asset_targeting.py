@@ -70,7 +70,7 @@ async def get_asset_impacts_for_cluster(
     limit_sectors: int = 11,
 ) -> dict:
     """Get asset impacts for a single cluster (AC-M5.5)."""
-    universes = universes or ["sp500", "nasdaq_composite"]
+    universes = universes or ["sp500", "nasdaq100"]
     scope = {"cluster_id": cluster_id, "universes": universes}
     async with acquire() as conn:
         valid_symbols = await _get_valid_symbols(conn, universes)
@@ -210,7 +210,7 @@ async def get_latest_asset_impacts(
     limit_sectors: int = 11,
 ) -> dict:
     """Get aggregated asset impacts for latest qualifying clusters (AC-M5.5.6)."""
-    universes = universes or ["sp500", "nasdaq_composite"]
+    universes = universes or ["sp500", "nasdaq100"]
     until = until or datetime.now(timezone.utc)
     window_sec = {"1h": 3600, "2h": 7200, "6h": 21600, "12h": 43200, "24h": 86400, "3d": 259200, "7d": 604800}.get(window, 21600)
     since = since or (until - timedelta(seconds=window_sec))

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Query, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
 
 from sentiment_api.api.auth import get_api_key
@@ -38,7 +39,7 @@ async def lifespan(app: FastAPI):
                             await upsert_universe(conn, u.universe_id, u.name_en, "registry", u.description_en)
                     except Exception:
                         await upsert_universe(conn, "sp500", "S&P 500", "seed", "S&P 500 constituents")
-                        await upsert_universe(conn, "nasdaq_composite", "Nasdaq Composite", "seed", "Nasdaq Composite constituents")
+                        await upsert_universe(conn, "nasdaq100", "Nasdaq-100", "seed", "Nasdaq-100 constituents")
             except Exception as ex:
                 import logging
                 logging.getLogger("sentiment_api").debug("Universe seed skipped (tables may not exist): %s", ex)
@@ -59,6 +60,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS: allow frontend origin(s) from config (e.g. http://80.211.210.49:3000 when accessing UI by IP)
+_cors_origins = [o.strip() for o in get_settings().cors_origins.split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 app.add_middleware(RateLimitMiddleware)
 
@@ -702,7 +712,7 @@ async def get_asset_impacts_by_cluster(
         from sentiment_api.engines.asset_targeting import get_asset_impacts_for_cluster, persist_asset_targeting_audit
         data = await get_asset_impacts_for_cluster(
             cluster_id,
-            universes=universes or ["sp500", "nasdaq_composite"],
+            universes=universes or ["sp500", "nasdaq100"],
             limit_tickers=limit_tickers,
             limit_sectors=limit_sectors,
         )
@@ -736,7 +746,7 @@ async def get_latest_asset_impacts(
         from sentiment_api.engines.asset_targeting import _empty_bundle
         now = dt.now(timezone.utc)
         iso = now.isoformat().replace("+00:00", "Z")
-        scope = {"since": iso, "until": iso, "min_impact_level": min_impact_level, "universes": universes or ["sp500", "nasdaq_composite"]}
+        scope = {"since": iso, "until": iso, "min_impact_level": min_impact_level, "universes": universes or ["sp500", "nasdaq100"]}
         return {"meta": meta(), "data": _empty_bundle(now, scope), "errors": []}
     try:
         from datetime import datetime as dt, timezone
@@ -748,7 +758,7 @@ async def get_latest_asset_impacts(
             since=since_dt,
             until=until_dt,
             min_impact_level=min_impact_level,
-            universes=universes or ["sp500", "nasdaq_composite"],
+            universes=universes or ["sp500", "nasdaq100"],
             limit_tickers=limit_tickers,
             limit_sectors=limit_sectors,
         )
@@ -805,6 +815,28 @@ async def list_universe_constituents(
     except Exception as e:
         from sentiment_api.api.responses import error_detail
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# -----------------------------------------------------------------------------
+# /v1/tickers/{symbol}/detail — Company detail from Yahoo Finance (no storage)
+# -----------------------------------------------------------------------------
+@app.get("/v1/tickers/{symbol}/detail")
+async def get_ticker_detail(
+    _: Annotated[str, Depends(validate_api_key)],
+    symbol: str,
+):
+    """Company detail from Yahoo Finance: summary, current price, earnings, key statistics. Fetched on demand, not stored."""
+    try:
+        from sentiment_api.services.yahoo_finance import get_company_detail
+        data = await get_company_detail(symbol)
+        if data.get("error"):
+            raise HTTPException(status_code=404, detail=data["error"])
+        return {"meta": meta(), "data": data, "errors": []}
+    except HTTPException:
+        raise
+    except Exception as e:
+        from sentiment_api.api.responses import error_detail
+        return {"meta": meta(), "data": {}, "errors": [error_detail("TICKER_DETAIL_ERROR", str(e))]}
 
 
 # -----------------------------------------------------------------------------

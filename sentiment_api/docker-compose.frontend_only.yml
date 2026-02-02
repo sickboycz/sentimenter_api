@@ -2,7 +2,6 @@
 # Run from sentiment_api/: docker compose -f docker-compose.frontend_only.yml up -d
 # Provides: postgres, redis, api, frontend — no worker, daemon, observability
 
-version: "3.9"
 name: sentiment_api_frontend
 
 services:

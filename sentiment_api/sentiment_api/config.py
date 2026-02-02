@@ -58,6 +58,12 @@ class Settings(BaseSettings):
     api_port: int = 8080
     retention_days: int = 90  # tombstone articles older than N days (AC-M7.3)
     api_keys: str = Field(default="", description="SENTIMENT_API_API_KEYS, comma-separated")
+    # CORS: comma-separated origins (e.g. http://localhost:3000,http://80.211.210.49:3000)
+    cors_origins: str = Field(
+        default="http://localhost:3000",
+        description="CORS_ORIGINS: allowed origins for browser requests (comma-separated)",
+        validation_alias=AliasChoices("CORS_ORIGINS", "SENTIMENT_API_CORS_ORIGINS"),
+    )
 
     # Vector store: pgvector (default) | pinecone | weaviate (see docs/PINECONE_WEAVIATE_INTEGRATION.md)
     vector_store_backend: str = Field(

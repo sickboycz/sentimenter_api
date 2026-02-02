@@ -1,7 +1,6 @@
 # sentiment_api — local dev stack
 # Run from sentiment_api/: docker compose up -d
 
-version: "3.9"
 services:
   postgres:
     image: pgvector/pgvector:pg15
@@ -66,6 +65,8 @@ services:
       ARTIFACT_ROOT: /data/artifacts
       SOURCE_REGISTRY_PATH: /etc/sentiment_api/source_registry.yaml
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # CORS: allow frontend origin (set to http://YOUR_SERVER_IP:3000 for remote access)
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       # Optional: use Weaviate for vectors (3072-dim). Default: pgvector
       VECTOR_STORE_BACKEND: ${VECTOR_STORE_BACKEND:-pgvector}
       WEAVIATE_URL: http://weaviate:8080
@@ -140,8 +141,11 @@ services:
     build:
       context: .
       dockerfile: docker/frontend/Dockerfile
+      args:
+        # For remote access (e.g. http://YOUR_SERVER_IP:3000), set to http://YOUR_SERVER_IP:8080 and rebuild
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
     ports:
       - "3000:3000"
     depends_on:

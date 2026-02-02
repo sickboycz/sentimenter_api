@@ -1,0 +1,504 @@
+;;
+1;Nvidia;NVDA
+2;Apple Inc.;AAPL
+3;Microsoft;MSFT
+4;Amazon;AMZN
+5;Alphabet Inc. (Class A);GOOGL
+6;Alphabet Inc. (Class C);GOOG
+7;Meta Platforms;META
+8;Tesla, Inc.;TSLA
+9;Broadcom;AVGO
+10;Berkshire Hathaway;BRK.B
+11;Walmart;WMT
+12;Lilly (Eli);LLY
+13;JPMorgan Chase;JPM
+14;Visa Inc.;V
+15;ExxonMobil;XOM
+16;Johnson & Johnson;JNJ
+17;Oracle Corporation;ORCL
+18;Mastercard;MA
+19;Micron Technology;MU
+20;Costco;COST
+21;AbbVie;ABBV
+22;Advanced Micro Devices;AMD
+23;Bank of America;BAC
+24;Home Depot (The);HD
+25;Palantir Technologies;PLTR
+26;Procter & Gamble;PG
+27;Netflix;NFLX
+28;Chevron Corporation;CVX
+29;Coca-Cola Company (The);KO
+30;GE Aerospace;GE
+31;Cisco;CSCO
+32;Caterpillar Inc.;CAT
+33;Morgan Stanley;MS
+34;IBM;IBM
+35;Lam Research;LRCX
+36;Goldman Sachs;GS
+37;Wells Fargo;WFC
+38;Philip Morris International;PM
+39;Merck & Co.;MRK
+40;RTX Corporation;RTX
+41;UnitedHealth Group;UNH
+42;Applied Materials;AMAT
+43;American Express;AXP
+44;Intel;INTC
+45;McDonald's;MCD
+46;T-Mobile US;TMUS
+47;Thermo Fisher Scientific;TMO
+48;Linde plc;LIN
+49;PepsiCo;PEP
+50;Citigroup;C
+51;Salesforce;CRM
+52;GE Vernova;GEV
+53;Texas Instruments;TXN
+54;Walt Disney Company (The);DIS
+55;Abbott Laboratories;ABT
+56;KLA Corporation;KLAC
+57;Verizon;VZ
+58;Charles Schwab Corporation;SCHW
+59;AT&T;T
+60;Amgen;AMGN
+61;NextEra Energy;NEE
+62;Boeing;BA
+63;Intuitive Surgical;ISRG
+64;Arista Networks;ANET
+65;Gilead Sciences;GILD
+66;Amphenol;APH
+67;BlackRock;BLK
+68;AppLovin Corporation;APP
+69;TJX Companies;TJX
+70;Uber;UBER
+71;Accenture;ACN
+72;Booking Holdings;BKNG
+73;Qualcomm;QCOM
+74;S&P Global;SPGI
+75;Danaher Corporation;DHR
+76;Analog Devices;ADI
+77;Pfizer;PFE
+78;Lowe's;LOW
+79;Honeywell;HON
+80;Lockheed Martin;LMT
+81;Deere & Company;DE
+82;Stryker Corporation;SYK
+83;Boston Scientific;BSX
+84;Intuit;INTU
+85;Union Pacific Corporation;UNP
+86;Eaton Corporation;ETN
+87;Capital One;COF
+88;Medtronic;MDT
+89;Welltower;WELL
+90;ConocoPhillips;COP
+91;ServiceNow;NOW
+92;Palo Alto Networks;PANW
+93;Newmont;NEM
+94;Progressive Corporation;PGR
+95;Prologis;PLD
+96;Chubb Limited;CB
+97;Adobe Inc.;ADBE
+98;Vertex Pharmaceuticals;VRTX
+99;Parker Hannifin;PH
+100;Blackstone Inc.;BX
+101;Bristol Myers Squibb;BMY
+102;HCA Healthcare;HCA
+103;CrowdStrike;CRWD
+104;Comcast;CMCSA
+105;Starbucks;SBUX
+106;CME Group;CME
+107;Altria;MO
+108;McKesson Corporation;MCK
+109;KKR;KKR
+110;Constellation Energy;CEG
+111;Intercontinental Exchange;ICE
+112;Automatic Data Processing;ADP
+113;Southern Company;SO
+114;Northrop Grumman;NOC
+115;General Dynamics;GD
+116;CVS Health;CVS
+117;Duke Energy;DUK
+118;Trane Technologies;TT
+119;Moody's Corporation;MCO
+120;Nike, Inc.;NKE
+121;Marsh & McLennan Companies, Inc.;MRSH
+122;PNC Financial Services;PNC
+123;Waste Management;WM
+124;United Parcel Service;UPS
+125;Corning Inc.;GLW
+126;Synopsys;SNPS
+127;Sherwin-Williams;SHW
+128;DoorDash;DASH
+129;Royal Caribbean Group;RCL
+130;Seagate Technology;STX
+131;Sandisk Corporation;SNDK
+132;U.S. Bancorp;USB
+133;Robinhood Markets, Inc.;HOOD
+134;Freeport-McMoRan;FCX
+135;Marriott International;MAR
+136;American Tower;AMT
+137;Western Digital;WDC
+138;O'Reilly Auto Parts;ORLY
+139;Emerson Electric;EMR
+140;Howmet Aerospace;HWM
+141;BNY Mellon;BK
+142;CRH plc;CRH
+143;Williams Companies;WMB
+144;3M;MMM
+145;TransDigm Group;TDG
+146;Equinix;EQIX
+147;Cummins;CMI
+148;Cadence Design Systems;CDNS
+149;Ecolab;ECL
+150;Monster Beverage;MNST
+151;Airbnb;ABNB
+152;Apollo Global Management;APO
+153;Regeneron Pharmaceuticals;REGN
+154;Cintas;CTAS
+155;Elevance Health;ELV
+156;General Motors;GM
+157;Illinois Tool Works;ITW
+158;Dell Technologies;DELL
+159;Mondelez International;MDLZ
+160;FedEx;FDX
+161;Aon;AON
+162;Cigna;CI
+163;Johnson Controls;JCI
+164;Colgate-Palmolive;CL
+165;Hilton Worldwide;HLT
+166;Schlumberger;SLB
+167;Quanta Services;PWR
+168;CSX Corporation;CSX
+169;Cencora;COR
+170;Warner Bros. Discovery;WBD
+171;Motorola Solutions;MSI
+172;Kinder Morgan;KMI
+173;Republic Services;RSG
+174;Norfolk Southern Railway;NSC
+175;Truist Financial;TFC
+176;Paccar;PCAR
+177;TE Connectivity;TEL
+178;Arthur J. Gallagher & Co.;AJG
+179;American Electric Power;AEP
+180;L3Harris;LHX
+181;Simon Property Group;SPG
+182;Travelers Companies (The);TRV
+183;AutoZone;AZO
+184;Ross Stores;ROST
+185;Air Products;APD
+186;Fortinet;FTNT
+187;EOG Resources;EOG
+188;Aflac;AFL
+189;Becton Dickinson;BDX
+190;Digital Realty;DLR
+191;Phillips 66;PSX
+192;NXP Semiconductors;NXPI
+193;Sempra;SRE
+194;Realty Income;O
+195;Carvana Co.;CVNA
+196;Nasdaq, Inc.;NDAQ
+197;Ford Motor Company;F
+198;Baker Hughes;BKR
+199;Zoetis;ZTS
+200;Valero Energy;VLO
+201;Autodesk;ADSK
+202;Monolithic Power Systems;MPWR
+203;Vistra Corp.;VST
+204;Idexx Laboratories;IDXX
+205;Marathon Petroleum;MPC
+206;Allstate;ALL
+207;MetLife;MET
+208;Ametek;AME
+209;Dominion Energy;D
+210;W. W. Grainger;GWW
+211;Chipotle Mexican Grill;CMG
+212;Cardinal Health;CAH
+213;Electronic Arts;EA
+214;Coinbase Global;COIN
+215;CBRE Group;CBRE
+216;Carrier Global;CARR
+217;Fastenal;FAST
+218;United Rentals;URI
+219;Corteva;CTVA
+220;PayPal;PYPL
+221;ONEOK;OKE
+222;Public Storage;PSA
+223;Ameriprise Financial;AMP
+224;Target Corporation;TGT
+225;Edwards Lifesciences;EW
+226;Rockwell Automation;ROK
+227;Workday, Inc.;WDAY
+228;Diamondback Energy;FANG
+229;Datadog;DDOG
+230;Exelon;EXC
+231;Xcel Energy;XEL
+232;MSCI;MSCI
+233;Occidental Petroleum;OXY
+234;Delta Air Lines;DAL
+235;D. R. Horton;DHI
+236;Entergy;ETR
+237;Yum! Brands;YUM
+238;Targa Resources;TRGP
+239;Estée Lauder Companies (The);EL
+240;Carnival;CCL
+241;eBay;EBAY
+242;Public Service Enterprise Group;PEG
+243;Take-Two Interactive;TTWO
+244;Nucor;NUE
+245;American International Group;AIG
+246;Comfort Systems USA, Inc.;FIX
+247;Microchip Technology;MCHP
+248;Sysco;SYY
+249;Kroger;KR
+250;Vulcan Materials Company;VMC
+251;Hershey Company (The);HSY
+252;Cognizant;CTSH
+253;Roper Technologies;ROP
+254;Wabtec;WAB
+255;Martin Marietta Materials;MLM
+256;Copart;CPRT
+257;Prudential Financial;PRU
+258;Garmin;GRMN
+259;IQVIA;IQV
+260;Consolidated Edison;ED
+261;Axon Enterprise;AXON
+262;Crown Castle;CCI
+263;Teradyne;TER
+264;ResMed;RMD
+265;Hartford (The);HIG
+266;Agilent Technologies;A
+267;Keurig Dr Pepper;KDP
+268;Keysight Technologies;KEYS
+269;Paychex;PAYX
+270;Ventas;VTR
+271;State Street Corporation;STT
+272;Block, Inc.;XYZ
+273;WEC Energy Group;WEC
+274;GE HealthCare;GEHC
+275;Old Dominion;ODFL
+276;Las Vegas Sands;LVS
+277;Arch Capital Group;ACGL
+278;Fair Isaac;FICO
+279;EQT Corporation;EQT
+280;Fiserv, Inc.;FISV
+281;Ingersoll Rand;IR
+282;PG&E Corporation;PCG
+283;Live Nation Entertainment;LYV
+284;M&T Bank;MTB
+285;Kenvue;KVUE
+286;United Airlines Holdings;UAL
+287;Xylem Inc.;XYL
+288;Interactive Brokers Group;IBKR
+289;Kimberly-Clark;KMB
+290;Otis Worldwide;OTIS
+291;Ares Management Corporation;ARES
+292;Expedia Group;EXPE
+293;Raymond James Financial;RJF
+294;Fifth Third Bancorp;FITB
+295;Archer Daniels Midland;ADM
+296;EMCOR Group, Inc.;EME
+297;Dollar General;DG
+298;Willis Towers Watson;WTW
+299;Rollins, Inc.;ROL
+300;Verisk Analytics;VRSK
+301;Vici Properties;VICI
+302;Extra Space Storage;EXR
+303;NRG Energy;NRG
+304;Fidelity National Information Services;FIS
+305;Teledyne Technologies;TDY
+306;Ulta Beauty;ULTA
+307;Hewlett Packard Enterprise;HPE
+308;Dexcom;DXCM
+309;Kraft Heinz;KHC
+310;Ameren;AEE
+311;DTE Energy;DTE
+312;Mettler Toledo;MTD
+313;Northern Trust;NTRS
+314;Halliburton;HAL
+315;Dover Corporation;DOV
+316;FirstEnergy;FE
+317;Iron Mountain;IRM
+318;Cboe Global Markets;CBOE
+319;Huntington Bancshares;HBAN
+320;Citizens Financial Group;CFG
+321;Constellation Brands;STZ
+322;Lennar;LEN
+323;Atmos Energy;ATO
+324;Tractor Supply;TSCO
+325;PPL Corporation;PPL
+326;Biogen;BIIB
+327;Steel Dynamics;STLD
+328;Charter Communications;CHTR
+329;Expand Energy;EXE
+330;CoStar Group;CSGP
+331;Tapestry, Inc.;TPR
+332;Eversource Energy;ES
+333;W. R. Berkley Corporation;WRB
+334;PPG Industries;PPG
+335;CenterPoint Energy;CNP
+336;Hubbell Incorporated;HUBB
+337;Steris;STE
+338;American Water Works;AWK
+339;Cincinnati Financial;CINF
+340;Synchrony Financial;SYF
+341;Southwest Airlines;LUV
+342;AvalonBay Communities;AVB
+343;Jabil;JBL
+344;Regions Financial Corporation;RF
+345;General Mills;GIS
+346;Veralto;VLTO
+347;Devon Energy;DVN
+348;Equifax;EFX
+349;PulteGroup;PHM
+350;Williams-Sonoma;WSM
+351;Brown & Brown;BRO
+352;First Solar;FSLR
+353;Omnicom Group;OMC
+354;Edison International;EIX
+355;Leidos;LDOS
+356;ON Semiconductor;ON
+357;Equity Residential;EQR
+358;Texas Pacific Land Corporation;TPL
+359;KeyCorp;KEY
+360;Dollar Tree;DLTR
+361;Tyson Foods;TSN
+362;Corpay;CPAY
+363;T. Rowe Price;TROW
+364;C.H. Robinson;CHRW
+365;Darden Restaurants;DRI
+366;Church & Dwight;CHD
+367;Humana;HUM
+368;LabCorp;LH
+369;Broadridge Financial Solutions;BR
+370;Verisign;VRSN
+371;Waters Corporation;WAT
+372;CMS Energy;CMS
+373;Loews Corporation;L
+374;Bunge Global;BG
+375;Smurfit WestRock;SW
+376;Expeditors International;EXPD
+377;Ralph Lauren Corporation;RL
+378;International Paper;IP
+379;Coterra;CTRA
+380;Centene Corporation;CNC
+381;NiSource;NI
+382;Quest Diagnostics;DGX
+383;Principal Financial Group;PFG
+384;Amcor;AMCR
+385;Lululemon Athletica;LULU
+386;NVR, Inc.;NVR
+387;Qnity Electronics;Q
+388;Packaging Corporation of America;PKG
+389;Global Payments;GPN
+390;Incyte;INCY
+391;Dow Inc.;DOW
+392;SBA Communications;SBAC
+393;Albemarle Corporation;ALB
+394;J.B. Hunt;JBHT
+395;Genuine Parts Company;GPC
+396;Snap-on;SNA
+397;NetApp;NTAP
+398;Weyerhaeuser;WY
+399;DuPont;DD
+400;PTC Inc.;PTC
+401;Insulet Corporation;PODD
+402;International Flavors & Fragrances;IFF
+403;HP Inc.;HPQ
+404;Evergy;EVRG
+405;Zimmer Biomet;ZBH
+406;Supermicro;SMCI
+407;Lennox International;LII
+408;Deckers Brands;DECK
+409;Pentair;PNR
+410;Moderna;MRNA
+411;Alliant Energy;LNT
+412;Fortive;FTV
+413;Hologic;HOLX
+414;McCormick & Company;MKC
+415;West Pharmaceutical Services;WST
+416;Huntington Ingalls Industries;HII
+417;CDW;CDW
+418;Invitation Homes;INVH
+419;Essex Property Trust;ESS
+420;Trimble Inc.;TRMB
+421;Aptiv;APTV
+422;Cooper Companies (The);COO
+423;Tyler Technologies;TYL
+424;Jacobs Solutions;J
+425;TKO Group Holdings;TKO
+426;Mid-America Apartment Communities;MAA
+427;LyondellBasell;LYB
+428;F5, Inc.;FFIV
+429;Fox Corporation (Class B);FOX
+430;Textron;TXT
+431;Nordson Corporation;NDSN
+432;Ball Corporation;BALL
+433;Gartner;IT
+434;Fox Corporation (Class A);FOXA
+435;Viatris;VTRS
+436;IDEX Corporation;IEX
+437;Gen Digital;GEN
+438;Erie Indemnity;ERIE
+439;The Trade Desk, Inc.;TTD
+440;CF Industries;CF
+441;Kimco Realty;KIM
+442;Allegion;ALLE
+443;Avery Dennison;AVY
+444;Akamai Technologies;AKAM
+445;Everest Group;EG
+446;Domino's;DPZ
+447;Franklin Resources;BEN
+448;Clorox;CLX
+449;Masco;MAS
+450;GoDaddy;GDDY
+451;Hormel Foods;HRL
+452;Best Buy;BBY
+453;Solventum;SOLV
+454;Regency Centers;REG
+455;Jack Henry & Associates;JKHY
+456;Host Hotels & Resorts;HST
+457;Universal Health Services;UHS
+458;Brown–Forman;BF.B
+459;Builders FirstSource;BLDR
+460;Hasbro;HAS
+461;Paramount Skydance Corp;PSKY
+462;UDR, Inc.;UDR
+463;Invesco;IVZ
+464;Healthpeak Properties;DOC
+465;Stanley Black & Decker;SWK
+466;Assurant;AIZ
+467;Zebra Technologies;ZBRA
+468;Revvity;RVTY
+469;Align Technology;ALGN
+470;Camden Property Trust;CPT
+471;EPAM Systems;EPAM
+472;J.M. Smucker Company (The);SJM
+473;Pinnacle West;PNW
+474;Wynn Resorts;WYNN
+475;Globe Life;GL
+476;Dayforce;DAY
+477;AES Corporation;AES
+478;Charles River Laboratories;CRL
+479;Baxter International;BAX
+480;BXP, Inc.;BXP
+481;News Corp (Class A);NWSA
+482;Bio-Techne;TECH
+483;Norwegian Cruise Line Holdings;NCLH
+484;A. O. Smith;AOS
+485;Generac;GNRC
+486;Molson Coors Beverage Company;TAP
+487;Pool Corporation;POOL
+488;FactSet;FDS
+489;Alexandria Real Estate Equities;ARE
+490;MGM Resorts;MGM
+491;Molina Healthcare;MOH
+492;APA Corporation;APA
+493;Conagra Brands;CAG
+494;Henry Schein;HSIC
+495;Mosaic Company (The);MOS
+496;Federal Realty Investment Trust;FRT
+497;Campbell Soup Company;CPB
+498;Skyworks Solutions;SWKS
+499;DaVita;DVA
+500;Paycom;PAYC
+501;Match Group;MTCH
+502;Lamb Weston;LW
+503;News Corp (Class B);NWS

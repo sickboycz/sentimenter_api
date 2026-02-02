@@ -3,6 +3,7 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Shell } from "../../../components/Shell";
+import { TickerSpan } from "../../../components/TickerSpan";
 import { apiGet, getDefaultApiKey } from "../../../lib/api";
 import { ImpactBadge } from "../../../components/ImpactBadge";
 
@@ -60,7 +61,9 @@ export default function ClusterDetailPage({ params }: { params: { clusterId: str
                 <div className="space-y-1 text-sm">
                   {winners.slice(0, 15).map((t: any) => (
                     <div key={t.symbol ?? t.ticker} className="flex justify-between">
-                      <span>{t.symbol ?? t.ticker}</span>
+                      <TickerSpan symbol={t.symbol ?? t.ticker} name={t.name} className="cursor-help">
+                        {t.symbol ?? t.ticker}
+                      </TickerSpan>
                       <span className="opacity-75">+{Math.round(t.impact_score ?? 0)}</span>
                     </div>
                   ))}
@@ -69,7 +72,9 @@ export default function ClusterDetailPage({ params }: { params: { clusterId: str
                 <div className="space-y-1 text-sm">
                   {losers.slice(0, 15).map((t: any) => (
                     <div key={t.symbol ?? t.ticker} className="flex justify-between">
-                      <span>{t.symbol ?? t.ticker}</span>
+                      <TickerSpan symbol={t.symbol ?? t.ticker} name={t.name} className="cursor-help">
+                        {t.symbol ?? t.ticker}
+                      </TickerSpan>
                       <span className="opacity-75">-{Math.round(t.impact_score ?? 0)}</span>
                     </div>
                   ))}
