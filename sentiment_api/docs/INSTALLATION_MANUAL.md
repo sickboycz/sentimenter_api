@@ -418,15 +418,19 @@ The Compose stack mounts the registry at that path; wrong paths (e.g. `Docs/...`
 
 ### Web UI: CORS / "blocked by CORS policy" or "loopback" when opening by IP
 
-When you open the UI at **http://YOUR_SERVER_IP:3000** (e.g. http://80.211.210.49:3000), the browser must call the API at the **same host**, not `localhost`. Do this once:
+When you open the UI at **http://YOUR_SERVER_IP:3000** (e.g. http://80.211.210.49:3000), the browser must call the API at the **same host**, not `localhost`.
 
-1. **Set API URL and CORS** in `/etc/sentimenter/env` (replace with your server IP or hostname):
+**Auto-detection:** If you do *not* set `NEXT_PUBLIC_API_BASE_URL`, the frontend uses the same host as the page with port 8080 (e.g. page at http://80.211.210.49:3000 → API at http://80.211.210.49:8080). For same-host deployments you only need to allow the frontend origin in CORS and rebuild.
+
+1. **Set CORS** (and optionally API URL) in `/etc/sentimenter/env` (replace with your server IP or hostname):
    ```bash
-   NEXT_PUBLIC_API_BASE_URL=http://80.211.210.49:8080
+   # Required so the API accepts requests from the UI origin
    CORS_ORIGINS=http://80.211.210.49:3000
+   # Optional: only if the API is on a different host/port
+   # NEXT_PUBLIC_API_BASE_URL=http://80.211.210.49:8080
    ```
 
-2. **Rebuild the frontend** (API URL is baked in at build time):
+2. **Rebuild the frontend** (so CORS and any API URL are applied):
    ```bash
    cd /srv/sentimenter/repo/sentiment_api
    sudo -u sentimenter docker compose -f docker-compose.yml -f docker-compose.production.yml \

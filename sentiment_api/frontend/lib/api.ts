@@ -1,8 +1,10 @@
 import { ApiEnvelope, ApiListEnvelope } from "./schemas";
 
-/** sentiment_api base URL (default port 8080) */
+/** sentiment_api base URL (default port 8080). In browser, when unset, use same host as page to avoid Private Network Access block (e.g. page at http://SERVER:3000 → API at http://SERVER:8080). */
 export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+  (typeof window !== "undefined" && !process.env.NEXT_PUBLIC_API_BASE_URL)
+    ? `${window.location.protocol}//${window.location.hostname}:8080`
+    : (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080");
 
 /** API key (set via NEXT_PUBLIC_API_KEY or pass to apiGet) */
 export const getDefaultApiKey = () =>

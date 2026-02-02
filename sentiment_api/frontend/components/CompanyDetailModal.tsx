@@ -61,9 +61,9 @@ export function CompanyDetailModal({
         <div className="flex items-center justify-between">
           <div>
             <div className="font-semibold">{symbol}</div>
-            {summary.longName && (
+            {summary.longName != null ? (
               <div className="text-sm opacity-75">{String(summary.longName)}</div>
-            )}
+            ) : null}
           </div>
           <button
             type="button"
@@ -84,51 +84,51 @@ export function CompanyDetailModal({
 
         {!loading && !error && data && (
           <>
-            {summary.longBusinessSummary && section("Summary", <p className="leading-relaxed">{String(summary.longBusinessSummary)}</p>)}
+            {summary.longBusinessSummary != null ? section("Summary", <p className="leading-relaxed">{String(summary.longBusinessSummary)}</p>) : null}
 
-            {(summary.sector || summary.industry || summary.website || summary.fullTimeEmployees != null) && section(
+            {(summary.sector != null || summary.industry != null || summary.website != null || summary.fullTimeEmployees != null) ? section(
               "Company",
               <dl className="grid grid-cols-2 gap-x-4 gap-y-1 opacity-85">
-                {summary.sector && <><dt className="opacity-75">Sector</dt><dd>{String(summary.sector)}</dd></>}
-                {summary.industry && <><dt className="opacity-75">Industry</dt><dd>{String(summary.industry)}</dd></>}
-                {summary.website && <><dt className="opacity-75">Website</dt><dd><a href={String(summary.website)} target="_blank" rel="noopener noreferrer" className="underline opacity-90">{String(summary.website)}</a></dd></>}
-                {summary.fullTimeEmployees != null && <><dt className="opacity-75">Employees</dt><dd>{fmt(summary.fullTimeEmployees)}</dd></>}
+                {summary.sector != null ? <><dt className="opacity-75">Sector</dt><dd>{String(summary.sector)}</dd></> : null}
+                {summary.industry != null ? <><dt className="opacity-75">Industry</dt><dd>{String(summary.industry)}</dd></> : null}
+                {summary.website != null ? <><dt className="opacity-75">Website</dt><dd><a href={String(summary.website)} target="_blank" rel="noopener noreferrer" className="underline opacity-90">{String(summary.website)}</a></dd></> : null}
+                {summary.fullTimeEmployees != null ? <><dt className="opacity-75">Employees</dt><dd>{fmt(summary.fullTimeEmployees)}</dd></> : null}
               </dl>
-            )}
+            ) : null}
 
-            {(price.regularMarketPrice != null || price.previousClose != null || price.volume != null) && section(
+            {(price.regularMarketPrice != null || price.previousClose != null || price.volume != null) ? section(
               "Price",
               <dl className="grid grid-cols-2 gap-x-4 gap-y-1 opacity-85">
-                {price.regularMarketPrice != null && <><dt className="opacity-75">Price</dt><dd>{fmt(price.regularMarketPrice)} {price.currency && String(price.currency)}</dd></>}
-                {price.previousClose != null && <><dt className="opacity-75">Previous Close</dt><dd>{fmt(price.previousClose)}</dd></>}
-                {price.dayLow != null && <><dt className="opacity-75">Day Range</dt><dd>{fmt(price.dayLow)} – {fmt(price.dayHigh)}</dd></>}
-                {price.volume != null && <><dt className="opacity-75">Volume</dt><dd>{fmt(price.volume)}</dd></>}
-                {price.marketCap != null && <><dt className="opacity-75">Market Cap</dt><dd>{fmt(price.marketCap)}</dd></>}
+                {price.regularMarketPrice != null ? <><dt className="opacity-75">Price</dt><dd>{fmt(price.regularMarketPrice)} {price.currency != null ? String(price.currency) : null}</dd></> : null}
+                {price.previousClose != null ? <><dt className="opacity-75">Previous Close</dt><dd>{fmt(price.previousClose)}</dd></> : null}
+                {price.dayLow != null ? <><dt className="opacity-75">Day Range</dt><dd>{fmt(price.dayLow)} – {fmt(price.dayHigh)}</dd></> : null}
+                {price.volume != null ? <><dt className="opacity-75">Volume</dt><dd>{fmt(price.volume)}</dd></> : null}
+                {price.marketCap != null ? <><dt className="opacity-75">Market Cap</dt><dd>{fmt(price.marketCap)}</dd></> : null}
               </dl>
-            )}
+            ) : null}
 
-            {(statistics.trailingPE != null || statistics.trailingEps != null || statistics.beta != null) && section(
+            {(statistics.trailingPE != null || statistics.trailingEps != null || statistics.beta != null) ? section(
               "Statistics",
               <dl className="grid grid-cols-2 gap-x-4 gap-y-1 opacity-85">
-                {statistics.trailingPE != null && <><dt className="opacity-75">P/E</dt><dd>{fmt(statistics.trailingPE)}</dd></>}
-                {statistics.trailingEps != null && <><dt className="opacity-75">EPS</dt><dd>{fmt(statistics.trailingEps)}</dd></>}
-                {statistics.dividendYield != null && <><dt className="opacity-75">Div Yield</dt><dd>{fmt(statistics.dividendYield)}</dd></>}
-                {statistics.beta != null && <><dt className="opacity-75">Beta</dt><dd>{fmt(statistics.beta)}</dd></>}
-                {statistics.profitMargins != null && <><dt className="opacity-75">Profit Margin</dt><dd>{fmt(statistics.profitMargins)}</dd></>}
+                {statistics.trailingPE != null ? <><dt className="opacity-75">P/E</dt><dd>{fmt(statistics.trailingPE)}</dd></> : null}
+                {statistics.trailingEps != null ? <><dt className="opacity-75">EPS</dt><dd>{fmt(statistics.trailingEps)}</dd></> : null}
+                {statistics.dividendYield != null ? <><dt className="opacity-75">Div Yield</dt><dd>{fmt(statistics.dividendYield)}</dd></> : null}
+                {statistics.beta != null ? <><dt className="opacity-75">Beta</dt><dd>{fmt(statistics.beta)}</dd></> : null}
+                {statistics.profitMargins != null ? <><dt className="opacity-75">Profit Margin</dt><dd>{fmt(statistics.profitMargins)}</dd></> : null}
               </dl>
-            )}
+            ) : null}
 
-            {earnings.length > 0 && section(
+            {earnings.length > 0 ? section(
               "Earnings",
               <div className="space-y-1">
-                {earnings.slice(0, 8).map((row: Record<string, unknown>, i: number) => (
+                {(earnings as Array<Record<string, unknown>>).slice(0, 8).map((row, i) => (
                   <div key={i} className="flex justify-between opacity-85 text-sm">
                     <span>{fmt(row.date)}</span>
                     <span>Est. {fmt(row.eps_estimate)} / Reported {fmt(row.reported_eps)}</span>
                   </div>
                 ))}
               </div>
-            )}
+            ) : null}
 
             <div className="text-xs opacity-60 pt-2">Data from Yahoo Finance, on demand.</div>
           </>
