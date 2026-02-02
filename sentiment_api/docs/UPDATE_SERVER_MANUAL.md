@@ -31,6 +31,41 @@ sudo -u sentimenter git fetch --all
 sudo -u sentimenter git pull
 ```
 
+**If you're unsure pull worked** (e.g. old files still there, missing new files): ensure you're on the right branch and match the remote exactly:
+
+```bash
+cd /srv/sentimenter/repo
+sudo -u sentimenter git fetch origin
+sudo -u sentimenter git status          # see branch and "Your branch is up to date" or "behind"
+sudo -u sentimenter git pull           # or: git reset --hard origin/prod-v1.1.1  (discards local changes)
+```
+
+Use `git reset --hard origin/<branch>` only if you want to **discard all local changes** and match the remote exactly (e.g. branch is `prod-v1.1.1`).
+
+### Step 2.1: Verify required files (after pull)
+
+These paths must exist under `/srv/sentimenter/repo/sentiment_api/` for the stack to run:
+
+| Path | Purpose |
+|------|---------|
+| `registry/source_registry.yaml` | Source registry (compose mounts it into containers) |
+| `docker-compose.yml` | Main compose |
+| `docker-compose.production.yml` | Production override |
+| `migrations/v1.1_add_universes.sql` | DB migrations (sectors, etc.) |
+| `infra/prometheus/prometheus.yml` | Prometheus config |
+| `infra/grafana/` | Grafana provisioning/dashboards |
+| `infra/loki/loki-config.yaml` | Loki config |
+
+Quick check on the server (or run the verify script with optional pull):
+
+```bash
+cd /srv/sentimenter/repo/sentiment_api
+test -f registry/source_registry.yaml && test -f docker-compose.yml && test -f docker-compose.production.yml && echo "OK: required files present" || echo "MISSING: check paths above"
+# Or: cd scripts/deploy && sudo ./verify-repo.sh --pull
+```
+
+**Base DB schema** (first-time init): if you use the install script, it looks for `../Docs/sentiment_api_tech_package_v1.1/db/schema.sql` (i.e. `/srv/sentimenter/repo/Docs/...`). That folder lives in the **full** repo (Sentimenter root with `Docs/` and `sentiment_api/`). If your clone has no `Docs/`, apply the base schema from another source or use migrations only on an already-initialized DB.
+
 ### Step 3: Rebuild and restart
 
 ```bash
@@ -200,6 +235,7 @@ sudo systemctl restart sentimenter-docker
 | **Redis or Postgres failed to start** (dependency failed, exited 0) | See [6.4 Redis / Postgres won't start](#64-redis--postgres-wont-start). |
 | **relation "sectors" does not exist** (Postgres ERROR) | Database migrations not applied. See [6.5 Apply database migrations](#65-apply-database-migrations). |
 | **API failed to start** (dependency failed: sentiment_api-api-1 exited 0) | Check API logs: `docker logs sentiment_api-api-1`. Fix the reported error (e.g. missing schema → [6.5](#65-apply-database-migrations), registry path → remove/wrong SOURCE_REGISTRY_PATH in `/etc/sentimenter/env`). |
+| **Files missing / pull didn't bring new files** | See [Step 2.1](#step-21-verify-required-files-after-pull). Run `git fetch origin && git status`; if behind, run `git pull`. To match remote exactly (discard local changes): `git reset --hard origin/<branch>`. Then re-check required files under `sentiment_api/`. |
 
 ### 6.4 Redis / Postgres won't start
 
