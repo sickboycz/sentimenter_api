@@ -65,7 +65,8 @@ MAX_BACKOFF = 60.0
 
 _robots_cache: dict[str, tuple[RobotFileParser, float]] = {}
 _ROBOTS_CACHE_TTL = 3600
-_USER_AGENT = "SentimentAPI/1.1 (+https://sentiment-api.local)"
+# Polite, identifiable User-Agent so sites that allow named bots may permit access
+_USER_AGENT = "SentimentAPI/1.2 (research data aggregation; +https://sentiment-api.local)"
 
 
 def _check_robots(url: str) -> bool:
@@ -82,7 +83,7 @@ def _check_robots(url: str) -> bool:
     try:
         rp = RobotFileParser()
         rp.set_url(robots_url)
-        with httpx.Client(timeout=5.0) as c:
+        with httpx.Client(timeout=5.0, headers={"User-Agent": _USER_AGENT}) as c:
             resp = c.get(robots_url)
             if resp.status_code == 200:
                 rp.parse(resp.text.splitlines())

@@ -50,7 +50,7 @@ async def _record_run(pool, run_type: str, source_id: str | None, status: str, s
         logger.debug("Record run failed: %s", ex)
 
 
-async def poll_source(source, queue, rss: RSSCollector, gdelt: GDELTCollector, scrape: ScrapeCollector) -> int:
+async def poll_source(source, queue, rss: RSSCollector, gdelt: GDELTCollector, scrape: ScrapeCollector, defaults) -> int:
     """Poll one source, push items to ingest queue. Returns count pushed."""
     import time
     if is_open(source.source_id):
@@ -58,17 +58,18 @@ async def poll_source(source, queue, rss: RSSCollector, gdelt: GDELTCollector, s
         return 0
     count = 0
     t0 = time.perf_counter()
+    respect_robots = source.effective_respect_robots_txt(defaults)
     try:
         if source.type == "rss" and source.feed_url:
-            for item in rss.collect(source, source.feed_url):
+            for item in rss.collect(source, source.feed_url, respect_robots=respect_robots):
                 await queue.rpush(QUEUE_INGEST, json.dumps(_serialize_item(item)))
                 count += 1
         elif source.type == "gdelt" and source.base_url:
-            for item in gdelt.collect(source, source.base_url, source.query_profiles):
+            for item in gdelt.collect(source, source.base_url, source.query_profiles, respect_robots=respect_robots):
                 await queue.rpush(QUEUE_INGEST, json.dumps(_serialize_item(item)))
                 count += 1
         elif source.type == "scrape" and source.page_url:
-            for item in scrape.collect(source, source.page_url):
+            for item in scrape.collect(source, source.page_url, respect_robots=respect_robots):
                 await queue.rpush(QUEUE_INGEST, json.dumps(_serialize_item(item)))
                 count += 1
     except Exception as e:
@@ -139,7 +140,7 @@ async def run_daemon() -> None:
                     logger.warning("Registry reload failed, using cached: %s", ex)
             total = 0
             for src in sources:
-                n = await poll_source(src, queue, rss, gdelt, scrape)
+                n = await poll_source(src, queue, rss, gdelt, scrape, reg.defaults)
                 total += n
                 if n > 0:
                     logger.debug("Source %s: %d items", src.source_id, n)

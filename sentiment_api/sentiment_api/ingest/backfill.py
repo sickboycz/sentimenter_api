@@ -57,19 +57,20 @@ async def run_backfill(from_date: date, to_date: date, source_id: str | None = N
     end_str = to_date.strftime("%Y-%m-%d")
     for src in sources:
         count = 0
+        respect_robots = src.effective_respect_robots_txt(reg.defaults)
         try:
             if src.type == "gdelt" and src.base_url:
-                for item in gdelt.collect(src, src.base_url, getattr(src, "query_profiles", None), start_date=start_str, end_date=end_str):
+                for item in gdelt.collect(src, src.base_url, getattr(src, "query_profiles", None), start_date=start_str, end_date=end_str, respect_robots=respect_robots):
                     await queue.rpush(QUEUE_INGEST, json.dumps(_serialize_item(item)))
                     count += 1
             elif src.type == "rss" and src.feed_url:
-                for item in rss.collect(src, src.feed_url):
+                for item in rss.collect(src, src.feed_url, respect_robots=respect_robots):
                     pub = item.published_at
                     if pub and from_date <= pub.date() <= to_date:
                         await queue.rpush(QUEUE_INGEST, json.dumps(_serialize_item(item)))
                         count += 1
             elif src.type == "scrape" and src.page_url:
-                for item in scrape.collect(src, src.page_url):
+                for item in scrape.collect(src, src.page_url, respect_robots=respect_robots):
                     pub = item.published_at
                     if pub and from_date <= pub.date() <= to_date:
                         await queue.rpush(QUEUE_INGEST, json.dumps(_serialize_item(item)))

@@ -466,6 +466,28 @@ The Compose stack mounts the registry at that path; wrong paths (e.g. `Docs/...`
 - Start stack: `sudo -u sentimenter docker compose ... up -d` (from `sentiment_api/`).
 - Ensure postgres is ready before migrations: `docker compose ... exec postgres pg_isready -U sentiment`.
 
+### Daemon: "robots.txt disallows this URL" warnings
+
+The daemon respects `robots.txt` by default. Many government and institutional sites (e.g. federalreserve.gov, bls.gov, gdeltproject.org) disallow automated access, so you will see warnings like:
+
+- `GDELT query failed macro_global: robots.txt disallows this URL`
+- `RSS fetch failed https://www.federalreserve.gov/...: robots.txt disallows this URL`
+
+**This is expected.** The daemon still ingests from sources that allow bots (BEA, Census, Treasury press, Eurostat, IMF, NATO, OFAC, etc.); the log line "Poll cycle: N items queued" confirms items are being collected.
+
+**Optional per-source override:** If you have permission or accept the site’s terms, you can disable robots.txt for a specific source in `registry/source_registry.yaml` by adding `respect_robots_txt: false` to that source. Example:
+
+```yaml
+  - source_id: us_fed_rss
+    name: "Federal Reserve Board RSS"
+    ...
+    respect_robots_txt: false   # only if you are allowed to fetch this feed
+```
+
+The API uses a polite User-Agent (`SentimentAPI/1.2 (research data aggregation; ...)`); some sites allow such bots even when they block generic crawlers.
+
+---
+
 ### Web UI: CORS / "blocked by CORS policy" or "loopback" when opening by IP
 
 When you open the UI at **http://YOUR_SERVER_IP:3000** (e.g. http://80.211.210.49:3000), the browser must call the API at the **same host**, not `localhost`.

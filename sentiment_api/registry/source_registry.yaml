@@ -29,6 +29,7 @@ sources:
     pack: global_firehose
     type: gdelt
     enabled: true
+    respect_robots_txt: false
     base_url: "https://api.gdeltproject.org/api/v2/doc/doc"
     language_hint: auto
     translate_to_en: true
@@ -50,6 +51,7 @@ sources:
     pack: official_macro
     type: rss
     enabled: true
+    respect_robots_txt: false
     feed_url: "https://www.federalreserve.gov/feeds/feeds.htm"
     credibility_tier: official
     license_class: open
@@ -61,6 +63,7 @@ sources:
     pack: official_macro
     type: rss
     enabled: true
+    respect_robots_txt: false
     feed_url: "https://www.bls.gov/feed/"
     credibility_tier: official
     license_class: open
@@ -96,6 +99,7 @@ sources:
     pack: official_macro
     type: rss
     enabled: true
+    respect_robots_txt: false
     feed_url: "https://treasurydirect.gov/rss/"
     credibility_tier: official
     license_class: open
@@ -154,6 +158,7 @@ sources:
     pack: geopolitics
     type: rss
     enabled: true
+    respect_robots_txt: false
     feed_url: "https://www.consilium.europa.eu/en/about-site/rss/"
     credibility_tier: official
     license_class: open
@@ -165,6 +170,7 @@ sources:
     pack: official_macro
     type: rss
     enabled: true
+    respect_robots_txt: false
     feed_url: "https://www.bankofengland.co.uk/rss"
     credibility_tier: official
     license_class: open
@@ -210,6 +216,7 @@ sources:
     pack: official_macro
     type: scrape
     enabled: true
+    respect_robots_txt: false
     page_url: "https://www.oecd.org/newsroom/"
     credibility_tier: official
     license_class: open
@@ -222,6 +229,7 @@ sources:
     pack: geopolitics
     type: rss
     enabled: true
+    respect_robots_txt: false
     feed_url: "https://www.un.org/en/ga/rss/index.shtml"
     credibility_tier: official
     license_class: open
@@ -233,6 +241,7 @@ sources:
     pack: sanctions
     type: scrape
     enabled: true
+    respect_robots_txt: false
     page_url: "https://main.un.org/securitycouncil/en/content/list-updates-unsc-consolidated-list"
     credibility_tier: official
     license_class: open
@@ -291,6 +300,7 @@ sources:
     pack: sanctions
     type: scrape
     enabled: true
+    respect_robots_txt: false
     page_url: "https://www.sanctionsmap.eu/"
     credibility_tier: official
     license_class: open
@@ -383,6 +393,7 @@ sources:
     pack: energy_nuclear
     type: scrape
     enabled: true
+    respect_robots_txt: false
     page_url: "https://www.opec.org/opec_web/en/press_room/28.htm"
     credibility_tier: official
     license_class: open
@@ -395,6 +406,7 @@ sources:
     pack: energy_nuclear
     type: scrape
     enabled: true
+    respect_robots_txt: false
     page_url: "https://www.irena.org/Newsroom"
     credibility_tier: official
     license_class: open

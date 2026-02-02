@@ -22,8 +22,8 @@ class ScrapeCollector:
     def __init__(self, timeout_sec: int = 20):
         self.timeout = timeout_sec
 
-    def _fetch(self, url: str) -> tuple[str, str]:
-        resp = fetch_with_retry(url, timeout=float(self.timeout))
+    def _fetch(self, url: str, *, respect_robots: bool = True) -> tuple[str, str]:
+        resp = fetch_with_retry(url, timeout=float(self.timeout), respect_robots=respect_robots)
         html = resp.text
         text = trafilatura.extract(html) or ""
         return html, text
@@ -50,10 +50,10 @@ class ScrapeCollector:
                 results.append((full, path))
         return results[:50]
 
-    def collect(self, source: Source, page_url: str) -> Iterator[RawItem]:
+    def collect(self, source: Source, page_url: str, *, respect_robots: bool = True) -> Iterator[RawItem]:
         """Yield raw items from scraped page (one item per discovered article link)."""
         try:
-            html, text = self._fetch(page_url)
+            html, text = self._fetch(page_url, respect_robots=respect_robots)
         except Exception as e:
             logger.warning("Scrape fetch failed %s: %s", page_url, e)
             return

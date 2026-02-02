@@ -63,6 +63,11 @@ class Source(BaseModel):
     query_profiles: list[QueryProfile] | None = None
     notes: str | None = None
     config: dict[str, Any] = Field(default_factory=dict)
+    respect_robots_txt: bool | None = None
+
+    def effective_respect_robots_txt(self, defaults: RegistryDefaults) -> bool:
+        """Whether to respect robots.txt for this source (defaults from registry)."""
+        return self.respect_robots_txt if self.respect_robots_txt is not None else defaults.respect_robots_txt
 
     def model_post_init(self, __context: Any) -> None:
         # Type-specific URL requirements (validated in load_registry)

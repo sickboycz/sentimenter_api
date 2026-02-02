@@ -20,14 +20,14 @@ class RSSCollector:
     def __init__(self, timeout_sec: int = 20):
         self.timeout = timeout_sec
 
-    def fetch_feed(self, feed_url: str) -> feedparser.FeedParserDict:
-        resp = fetch_with_retry(feed_url, timeout=float(self.timeout))
+    def fetch_feed(self, feed_url: str, *, respect_robots: bool = True) -> feedparser.FeedParserDict:
+        resp = fetch_with_retry(feed_url, timeout=float(self.timeout), respect_robots=respect_robots)
         return feedparser.parse(resp.content, response_headers=dict(resp.headers))
 
-    def collect(self, source: Source, feed_url: str) -> Iterator[RawItem]:
+    def collect(self, source: Source, feed_url: str, *, respect_robots: bool = True) -> Iterator[RawItem]:
         """Yield raw items from RSS feed."""
         try:
-            feed = self.fetch_feed(feed_url)
+            feed = self.fetch_feed(feed_url, respect_robots=respect_robots)
         except Exception as e:
             logger.warning("RSS fetch failed %s: %s", feed_url, e)
             return

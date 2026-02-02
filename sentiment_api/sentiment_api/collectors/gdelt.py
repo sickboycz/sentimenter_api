@@ -27,13 +27,15 @@ class GDELTCollector:
         max_records: int = 250,
         start_date: str | None = None,
         end_date: str | None = None,
+        *,
+        respect_robots: bool = True,
     ) -> list[dict]:
         params = {"query": query, "mode": mode, "maxrecords": max_records, "format": "json"}
         if start_date:
             params["startdatetime"] = start_date.replace("-", "") + "000000" if len(start_date) == 10 else start_date
         if end_date:
             params["enddatetime"] = end_date.replace("-", "") + "235959" if len(end_date) == 10 else end_date
-        resp = fetch_with_retry(base_url, params=params, timeout=float(self.timeout))
+        resp = fetch_with_retry(base_url, params=params, timeout=float(self.timeout), respect_robots=respect_robots)
         data = resp.json()
         articles = data.get("articles", []) if isinstance(data, dict) else []
         return articles if isinstance(articles, list) else []
@@ -45,6 +47,8 @@ class GDELTCollector:
         query_profiles: list[QueryProfile] | None = None,
         start_date: str | None = None,
         end_date: str | None = None,
+        *,
+        respect_robots: bool = True,
     ) -> Iterator[RawItem]:
         """Yield raw items from GDELT API. Optional start_date/end_date (YYYY-MM-DD) for backfill."""
         profiles = query_profiles or []
@@ -54,7 +58,7 @@ class GDELTCollector:
         now = datetime.now(timezone.utc)
         for profile in profiles:
             try:
-                articles = self._query(base_url, profile.query, start_date=start_date, end_date=end_date)
+                articles = self._query(base_url, profile.query, start_date=start_date, end_date=end_date, respect_robots=respect_robots)
             except Exception as e:
                 logger.warning("GDELT query failed %s: %s", profile.profile_id, e)
                 continue

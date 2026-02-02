@@ -27,6 +27,23 @@ sudo systemctl restart sentimenter-docker
 
 Or use the script: `cd /srv/sentimenter/repo/sentiment_api/scripts/deploy && sudo ./update.sh`
 
+**Push new code and restart (so frontend shows latest):**
+
+1. **Locally:** commit and push (you already did).
+2. **On the server:** pull, rebuild images (so frontend gets new code), then restart:
+
+```bash
+cd /srv/sentimenter/repo
+sudo -u sentimenter git pull
+cd sentiment_api
+sudo -u sentimenter docker compose --env-file /etc/sentimenter/env -f docker-compose.yml -f docker-compose.production.yml build --no-cache
+sudo -u sentimenter docker compose --env-file /etc/sentimenter/env -f docker-compose.yml -f docker-compose.production.yml up -d
+sudo systemctl restart sentimenter-docker
+```
+
+Or in one line: run the **One-liner (full upgrade)** above, or `sudo ./update.sh` from `sentiment_api/scripts/deploy`.  
+If the UI still looks old, hard-refresh the browser (Ctrl+Shift+R / Cmd+Shift+R) or try an incognito window.
+
 ---
 
 ## 1. Prerequisites
