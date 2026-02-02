@@ -13,28 +13,50 @@ function getApiKey(): string {
 
 export function Topbar() {
   const health = useHealth();
-  const sources = useSources();
-  const tickers = useImpactTickers();
-
-  const apiStatus = health.data?.status ?? "unknown";
-  const ingestionStatus = (sources.data?.sources?.length ?? 0) > 0 ? "ok" : "unknown";
-  const allocationStatus = (tickers.data?.winners?.length ?? 0) > 0 ? "ok" : "unknown";
 
   const [key, setKey] = useState("");
-  const ops = useOpsStatus(!!key);
+  const hasKey = key.trim().length >= 16;
+  const ops = useOpsStatus(hasKey);
+  const sourcesWithKey = useSources(hasKey);
+  const tickersWithKey = useImpactTickers(hasKey);
   const [tf, setTf] = useState<"1h" | "6h" | "24h">("24h");
   const [q, setQ] = useState("");
 
   useEffect(() => setKey(getApiKey()), []);
 
+  const apiStatus = health.data?.status ?? "unknown";
+  const ingestionStatus = !hasKey
+    ? "unknown"
+    : sourcesWithKey.isError
+      ? "down"
+      : (sourcesWithKey.data?.sources?.length ?? 0) > 0
+        ? "ok"
+        : "unknown";
+  const allocationStatus = !hasKey
+    ? "unknown"
+    : tickersWithKey.isError
+      ? "down"
+      : (tickersWithKey.data?.winners?.length ?? 0) > 0
+        ? "ok"
+        : "unknown";
+
+  const authStatus = useMemo(() => {
+    if (!hasKey) return "down";
+    const err = (ops as any)?.error || (sourcesWithKey as any)?.error || (tickersWithKey as any)?.error;
+    const status = (err as any)?.status;
+    if (status === 401) return "down";
+    return "ok";
+  }, [hasKey, ops, sourcesWithKey, tickersWithKey]);
+
   const pills = useMemo(() => {
     return [
       { label: "API", status: apiStatus },
+      { label: "Auth", status: authStatus },
       { label: "Ingestion", status: ingestionStatus },
       { label: "Allocation", status: allocationStatus },
       { label: "Research", status: "unknown" }
     ];
-  }, [apiStatus, ingestionStatus, allocationStatus]);
+  }, [apiStatus, authStatus, ingestionStatus, allocationStatus]);
 
   const queueTotal = useMemo(() => {
     const q = ops.data?.queues || {};
@@ -44,14 +66,14 @@ export function Topbar() {
 
   const workerAge = ops.data?.heartbeats?.worker?.age_sec ?? null;
   const workerAlive = workerAge !== null && workerAge < 30;
-  const activityTone = !ops.data
+  const activityTone = !ops.data || ops.isError
     ? "neutral"
     : queueTotal > 0 && !workerAlive
       ? "bad"
       : queueTotal > 0
         ? "good"
         : "neutral";
-  const activityLabel = !ops.data ? "unknown" : (queueTotal > 0 ? `${queueTotal} queued` : "idle");
+  const activityLabel = !ops.data || ops.isError ? "unknown" : (queueTotal > 0 ? `${queueTotal} queued` : "idle");
   const workerLabel = workerAge === null ? "—" : `${Math.round(workerAge)}s`;
   const dotClass = activityTone === "good"
     ? "bg-[var(--good)]"
@@ -66,7 +88,7 @@ export function Topbar() {
   };
 
   return (
-    <div className="glass-strong p-3 flex items-center gap-3">
+    <div className="glass-strong p-2 flex items-center gap-3">
       <div className="flex items-center gap-2">
         <div className="font-display font-semibold">Sentimeter Dashboard</div>
         <div className="text-xs opacity-60">API status at a glance</div>
@@ -109,7 +131,7 @@ export function Topbar() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search clusters, tickers…"
-          className="w-[320px] xl:w-[360px] px-3 py-2 rounded-xl bg-black/20 border border-white/10 outline-none focus:border-white/25"
+          className="w-[240px] xl:w-[300px] px-3 py-2 rounded-xl bg-black/20 border border-white/10 outline-none focus:border-white/25"
         />
 
         <div className="flex items-center gap-2 ml-2">

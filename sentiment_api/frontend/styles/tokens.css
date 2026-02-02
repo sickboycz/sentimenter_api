@@ -20,16 +20,16 @@
   --accent-violet: rgba(180, 120, 255, 1);
   --accent-amber: rgba(255, 190, 90, 1);
 
-  --blur: 18px;
+  --blur: 16px;
 
   --r-xs: 10px;
   --r-sm: 12px;
-  --r-md: 16px;
-  --r-lg: 18px;
-  --r-xl: 22px;
+  --r-md: 14px;
+  --r-lg: 16px;
+  --r-xl: 20px;
 
   --shadow-1: 0 14px 38px rgba(0,0,0,0.45);
   --shadow-2: 0 22px 70px rgba(0,0,0,0.55);
 
-  --grid-gap: 14px;
+  --grid-gap: 10px;
 }

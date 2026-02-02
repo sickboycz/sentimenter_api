@@ -16,7 +16,7 @@ export function Button({
   className?: string;
   disabled?: boolean;
 }) {
-  const base = "px-3 py-2 rounded-xl border text-sm font-medium transition-all";
+  const base = "px-2.5 py-1.5 rounded-xl border text-sm font-medium transition-all";
   const cls =
     variant === "primary"
       ? `${base} bg-white/10 hover:bg-white/15 border-white/20 shadow-sm`

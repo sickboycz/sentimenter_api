@@ -18,7 +18,7 @@ export function Badge({
     ? "text-[var(--bad)] border-[var(--bad)]/25 bg-[var(--bad)]/10"
     : "text-white/70 border-white/10 bg-white/5";
   return (
-    <span className={cn("px-2 py-1 rounded-lg text-[11px] uppercase tracking-wide border", cls, className)}>
+    <span className={cn("px-2 py-1 rounded-lg text-[10px] uppercase tracking-wide border", cls, className)}>
       {children}
     </span>
   );

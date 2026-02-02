@@ -99,7 +99,7 @@ const ImpactsLatestBundle = z.object({
   notes_en: z.string().optional()
 });
 
-export function useImpactMarkets() {
+export function useImpactMarkets(enabled: boolean = true) {
   return useQuery<z.infer<typeof MarketImpactSummary>>({
     queryKey: ["impactMarkets"],
     queryFn: async () => {
@@ -111,11 +111,12 @@ export function useImpactMarkets() {
         methodology_version: "v1.2"
       } as z.infer<typeof MarketImpactSummary>;
     },
-    refetchInterval: 30_000
+    refetchInterval: 30_000,
+    enabled
   });
 }
 
-export function useImpactSectors() {
+export function useImpactSectors(enabled: boolean = true) {
   return useQuery<z.infer<typeof SectorImpactSummary>>({
     queryKey: ["impactSectors"],
     queryFn: async () => {
@@ -127,11 +128,12 @@ export function useImpactSectors() {
         methodology_version: "v1.2"
       } as z.infer<typeof SectorImpactSummary>;
     },
-    refetchInterval: 30_000
+    refetchInterval: 30_000,
+    enabled
   });
 }
 
-export function useImpactTickers() {
+export function useImpactTickers(enabled: boolean = true) {
   return useQuery<z.infer<typeof TickerImpactSummary>>({
     queryKey: ["impactTickers"],
     queryFn: async () => {
@@ -144,11 +146,12 @@ export function useImpactTickers() {
         methodology_version: "v1.2"
       } as z.infer<typeof TickerImpactSummary>;
     },
-    refetchInterval: 30_000
+    refetchInterval: 30_000,
+    enabled
   });
 }
 
-export function useTopicsIndex() {
+export function useTopicsIndex(enabled: boolean = true) {
   return useQuery<z.infer<typeof TopicsIndexData>>({
     queryKey: ["topicsIndex"],
     queryFn: async () => {
@@ -158,38 +161,42 @@ export function useTopicsIndex() {
         points: res.data as Array<z.infer<typeof TopicPoint>>
       };
     },
-    refetchInterval: 30_000
+    refetchInterval: 30_000,
+    enabled
   });
 }
 
-export function useClusters() {
+export function useClusters(enabled: boolean = true) {
   return useQuery<Array<z.infer<typeof ClusterSummary>>>({
     queryKey: ["clusters"],
     queryFn: async () => {
       const res = await apiGetData("/v1/news/clusters?min_impact_level=L2&limit=50", z.array(ClusterSummary));
       return res.data as Array<z.infer<typeof ClusterSummary>>;
     },
-    refetchInterval: 30_000
+    refetchInterval: 30_000,
+    enabled
   });
 }
 
-export function useClusterDetail(clusterId: string) {
+export function useClusterDetail(clusterId: string, enabled: boolean = true) {
   return useQuery<z.infer<typeof ClusterDetail>>({
     queryKey: ["clusterDetail", clusterId],
     queryFn: async () => {
       const res = await apiGetData(`/v1/news/clusters/${clusterId}?include_articles=true&include_evidence=true`, ClusterDetail);
       return res.data as z.infer<typeof ClusterDetail>;
-    }
+    },
+    enabled
   });
 }
 
-export function useSources() {
+export function useSources(enabled: boolean = true) {
   return useQuery<z.infer<typeof SourcesData>>({
     queryKey: ["sources"],
     queryFn: async () => {
       const res = await apiGetData("/v1/sources", SourcesData);
       return res.data as z.infer<typeof SourcesData>;
     },
-    refetchInterval: 60_000
+    refetchInterval: 60_000,
+    enabled
   });
 }

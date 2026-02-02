@@ -29,7 +29,7 @@ const items = [
 export function Sidebar() {
   const pathname = usePathname();
   return (
-    <aside className="w-72 hidden lg:flex flex-col p-4 gap-3">
+    <aside className="w-56 hidden lg:flex flex-col p-3 gap-3">
       <div className="glass-strong p-3 flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl glass flex items-center justify-center">
           <span className="text-lg font-bold">S</span>
@@ -47,7 +47,7 @@ export function Sidebar() {
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition ${
+              className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border transition ${
                 active ? "bg-white/10 border-white/20" : "border-transparent hover:bg-white/5 hover:border-white/10"
               }`}
             >
