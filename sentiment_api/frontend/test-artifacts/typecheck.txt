@@ -1,0 +1,4 @@
+
+> sentimeter-dashboard-v2@2.0.0 typecheck
+> tsc -p tsconfig.json --noEmit
+

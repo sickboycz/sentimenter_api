@@ -820,6 +820,117 @@ async def get_latest_asset_impacts(
 
 
 # -----------------------------------------------------------------------------
+# /v1/impact/markets — Dashboard: top market impacts (v2.0 UI compatibility)
+# -----------------------------------------------------------------------------
+@app.get("/v1/impact/markets")
+async def get_impact_markets(_: Annotated[str, Depends(validate_api_key)]):
+    """Top market impacts for dashboard (derived from /v1/impacts/latest)."""
+    try:
+        from sentiment_api.engines.asset_targeting import get_latest_asset_impacts
+        from datetime import datetime as dt, timezone
+        bundle = await get_latest_asset_impacts(window="6h", limit_tickers=0, limit_sectors=0)
+    except Exception:
+        from sentiment_api.engines.asset_targeting import _empty_bundle
+        from datetime import datetime as dt, timezone
+        bundle = _empty_bundle(dt.now(timezone.utc), {"window": "6h"})
+    _dir_map = {"Up": "RiskOn", "Down": "RiskOff", "Neutral": "Neutral", "Mixed": "Mixed", "Unknown": "Unknown"}
+    top_markets = []
+    for m in bundle.get("markets", [])[:20]:
+        direction = m.get("direction", "Unknown")
+        top_markets.append({
+            "market_id": m.get("market_id", "unknown"),
+            "label_en": m.get("market_id", "unknown").replace("_", " ").title(),
+            "expected_direction": _dir_map.get(direction, direction),
+            "magnitude": min(1.0, max(0, float(m.get("impact_score", 0) or 0) / 100)),
+            "confidence": float(m.get("confidence", 0) or 0),
+            "horizon": m.get("horizon", "unknown"),
+            "channels": list(m.get("channels", [])),
+            "rationale_en": (m.get("rationale_bullets_en") or ["—"])[0] if m.get("rationale_bullets_en") else "—",
+        })
+    return {
+        "meta": meta(),
+        "data": {"as_of": bundle.get("as_of", ""), "top_markets": top_markets, "methodology_version": "v1.2"},
+        "errors": [],
+    }
+
+
+# -----------------------------------------------------------------------------
+# /v1/impact/sectors — Dashboard: sector impacts (v2.0 UI compatibility)
+# -----------------------------------------------------------------------------
+@app.get("/v1/impact/sectors")
+async def get_impact_sectors(_: Annotated[str, Depends(validate_api_key)]):
+    """Sector impacts for dashboard (derived from /v1/impacts/latest)."""
+    try:
+        from sentiment_api.engines.asset_targeting import get_latest_asset_impacts
+        from datetime import datetime as dt, timezone
+        bundle = await get_latest_asset_impacts(window="6h", limit_tickers=0, limit_sectors=20)
+    except Exception:
+        from sentiment_api.engines.asset_targeting import _empty_bundle
+        from datetime import datetime as dt, timezone
+        bundle = _empty_bundle(dt.now(timezone.utc), {"window": "6h"})
+    _dir_map = {"Up": "RiskOn", "Down": "RiskOff", "Neutral": "Neutral", "Mixed": "Mixed", "Unknown": "Unknown"}
+    sectors = []
+    for s in bundle.get("sectors", [])[:20]:
+        direction = s.get("direction", "Unknown")
+        sectors.append({
+            "sector_id": s.get("sector_id", "unknown"),
+            "sector_name_en": s.get("name_en", s.get("sector_id", "unknown")),
+            "expected_direction": _dir_map.get(direction, direction),
+            "impact_score": min(100, max(0, float(s.get("impact_score", 0) or 0))),
+            "confidence": float(s.get("confidence", 0) or 0),
+            "horizon": s.get("horizon", "unknown"),
+            "channels": list(s.get("channels", [])),
+            "rationale_en": (s.get("rationale_bullets_en") or ["—"])[0] if s.get("rationale_bullets_en") else "—",
+        })
+    return {
+        "meta": meta(),
+        "data": {"as_of": bundle.get("as_of", ""), "sectors": sectors, "methodology_version": "v1.2"},
+        "errors": [],
+    }
+
+
+# -----------------------------------------------------------------------------
+# /v1/impact/tickers — Dashboard: winners/losers (v2.0 UI compatibility)
+# -----------------------------------------------------------------------------
+@app.get("/v1/impact/tickers")
+async def get_impact_tickers(_: Annotated[str, Depends(validate_api_key)]):
+    """Winners/losers for dashboard (derived from /v1/impacts/latest)."""
+    try:
+        from sentiment_api.engines.asset_targeting import get_latest_asset_impacts
+        from datetime import datetime as dt, timezone
+        bundle = await get_latest_asset_impacts(window="6h", limit_tickers=50, limit_sectors=0)
+    except Exception:
+        from sentiment_api.engines.asset_targeting import _empty_bundle
+        from datetime import datetime as dt, timezone
+        bundle = _empty_bundle(dt.now(timezone.utc), {"window": "6h"})
+    _dir_map = {"Up": "RiskOn", "Down": "RiskOff", "Neutral": "Neutral", "Mixed": "Mixed", "Unknown": "Unknown"}
+
+    def map_ticker(t, universe_default="sp500"):
+        direction = t.get("direction", "Unknown")
+        score = float(t.get("impact_score", 0) or 0)
+        return {
+            "symbol": (t.get("symbol") or "—")[:16],
+            "company_name_en": t.get("name"),
+            "universe": universe_default,
+            "sector_id": t.get("sector_id"),
+            "expected_direction": _dir_map.get(direction, direction),
+            "expected_return_bps": int(t.get("expected_return_bps", score * 5)),
+            "expected_volatility_delta": float(t.get("expected_volatility_delta", 0) or 0),
+            "confidence": float(t.get("confidence", 0) or 0),
+            "horizon": t.get("horizon", "unknown"),
+            "drivers": list(t.get("drivers", [])),
+            "rationale_en": (t.get("rationale_bullets_en") or ["—"])[0] if t.get("rationale_bullets_en") else "—",
+        }
+    winners = [map_ticker(w) for w in bundle.get("winners", [])[:25]]
+    losers = [map_ticker(l) for l in bundle.get("losers", [])[:25]]
+    return {
+        "meta": meta(),
+        "data": {"as_of": bundle.get("as_of", ""), "winners": winners, "losers": losers, "methodology_version": "v1.2"},
+        "errors": [],
+    }
+
+
+# -----------------------------------------------------------------------------
 # /v1/universes — List configured universes
 # -----------------------------------------------------------------------------
 @app.get("/v1/universes")

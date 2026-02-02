@@ -1,43 +1,33 @@
 "use client";
 
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Shell } from "../../components/Shell";
-import { apiGet, getDefaultApiKey } from "../../lib/api";
+import { Shell } from "@/components/Shell";
+import { Card } from "@/components/ui/Card";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useImpactMarkets } from "@/lib/api/hooks";
 
 export default function MarketsPage() {
-  const apiKey = getDefaultApiKey();
-
-  const impacts = useQuery({
-    queryKey: ["impactsLatest"],
-    queryFn: () =>
-      apiGet<any>("/v1/impacts/latest?window=6h&limit_sectors=0", apiKey),
-  });
-
-  const top = impacts.data?.data?.markets ?? [];
+  const markets = useImpactMarkets();
 
   return (
     <Shell>
-      <div className="glass p-4">
-        <div className="font-semibold">Markets</div>
-        <div className="text-sm opacity-75">
-          Which market basket is affected most (SP500 vs NASDAQ_COMP) based on latest clusters.
-        </div>
-      </div>
-
-      <div className="glass p-4">
-        <div className="font-semibold mb-2">Top Market Impacts</div>
-        <div className="space-y-2">
-          {top.map((m: any, i: number) => (
-            <div key={m.market_id ?? i} className="flex justify-between">
-              <span>{m.market_id}</span>
-              <span className="opacity-75">
-                {m.direction} • {Math.round(m.impact_score ?? 0)}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <Card title="Markets" subtitle="Cross-market impact: what moves most right now." />
+      {!markets.data ? <Skeleton className="h-[240px]" /> : (
+        <Card title="Top Markets" subtitle={`method ${markets.data.methodology_version}`}>
+          <div className="space-y-2 text-sm">
+            {markets.data.top_markets.map((m: any) => (
+              <div key={m.market_id} className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="font-semibold">{m.label_en}</div>
+                  <div className="text-xs opacity-70">{m.expected_direction} • {m.horizon} • conf {Math.round(m.confidence*100)}%</div>
+                  <div className="text-xs opacity-70 line-clamp-2">{m.rationale_en}</div>
+                </div>
+                <div className="text-xs opacity-80">{Math.round(m.magnitude * 100)}%</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
     </Shell>
   );
 }

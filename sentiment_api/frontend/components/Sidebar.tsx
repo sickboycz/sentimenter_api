@@ -1,5 +1,16 @@
 import Link from "next/link";
-import { BarChart3, Newspaper, Layers, Activity, Shield, Building2, Factory, LineChart, Hash, Settings } from "lucide-react";
+import {
+  BarChart3,
+  Newspaper,
+  LineChart,
+  Factory,
+  Building2,
+  Sparkles,
+  Layers,
+  Shield,
+  Activity,
+  Settings
+} from "lucide-react";
 
 const items = [
   { href: "/", label: "Overview", icon: BarChart3 },
@@ -7,7 +18,7 @@ const items = [
   { href: "/markets", label: "Markets", icon: LineChart },
   { href: "/sectors", label: "Sectors", icon: Factory },
   { href: "/tickers", label: "Tickers", icon: Building2 },
-  { href: "/topics", label: "Topics", icon: Hash },
+  { href: "/topics", label: "Topics", icon: Sparkles },
   { href: "/research", label: "Research", icon: Layers },
   { href: "/ops", label: "Ops", icon: Activity },
   { href: "/sources", label: "Sources", icon: Shield },
@@ -16,13 +27,13 @@ const items = [
 
 export function Sidebar() {
   return (
-    <aside className="w-64 hidden md:flex flex-col p-4 gap-3">
-      <div className="glass p-3 flex items-center gap-2">
-        <div className="w-9 h-9 rounded-xl glass flex items-center justify-center">
+    <aside className="w-72 hidden lg:flex flex-col p-4 gap-3">
+      <div className="glass-strong p-3 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl glass flex items-center justify-center">
           <span className="text-lg font-bold">S</span>
         </div>
         <div>
-          <div className="font-semibold">Sentimeter</div>
+          <div className="font-semibold leading-none">Sentimeter</div>
           <div className="text-xs opacity-70">Market Cognition</div>
         </div>
       </div>

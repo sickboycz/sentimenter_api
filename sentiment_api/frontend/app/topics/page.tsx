@@ -1,96 +1,57 @@
 "use client";
 
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Shell } from "../../components/Shell";
-import { apiGet, getDefaultApiKey } from "../../lib/api";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
+import React, { useMemo } from "react";
+import { Shell } from "@/components/Shell";
+import { Card } from "@/components/ui/Card";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { LineChartCard } from "@/components/charts/LineChartCard";
+import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/Table";
+import { useTopicsIndex } from "@/lib/api/hooks";
 
 export default function TopicsPage() {
-  const apiKey = getDefaultApiKey();
-  const topics = useQuery({
-    queryKey: ["topicsIndex"],
-    queryFn: () =>
-      apiGet<{ data: Array<{ ts: string; topic_id: string; topic_name_en: string; index_value: number; sentiment: string; news_volume: number }> }>(
-        "/v1/topics/index?interval=5m&limit=500",
-        apiKey
-      ),
-  });
+  const topics = useTopicsIndex();
 
-  const rows = topics.data?.data ?? [];
-  const chartData = rows
-    .slice(0, 100)
-    .map((r) => ({
-      ts: r.ts ? new Date(r.ts).toLocaleTimeString() : "",
-      [r.topic_name_en || r.topic_id]: r.index_value,
-    }));
+  const series = useMemo(() => {
+    const pts = topics.data?.points ?? [];
+    // compress: show last 60 points
+    return pts.slice(-60).map((p: any) => ({ t: p.ts.slice(11,16), v: p.index_value }));
+  }, [topics.data]);
 
   return (
     <Shell>
-      <div className="glass p-4">
-        <div className="font-semibold">Topic Index</div>
-        <div className="text-sm opacity-75">
-          Mood/topic contribution timeline — v1.2
-        </div>
-      </div>
+      <Card title="Topics" subtitle="Topic indices (Moodix-style) — what drives the tape." />
 
-      <div className="glass p-4">
-        <div className="font-semibold mb-2">Topic Ranking</div>
-        <div className="text-sm overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="text-left opacity-75">
-                <th className="py-1">Topic</th>
-                <th className="py-1">Index</th>
-                <th className="py-1">Sentiment</th>
-                <th className="py-1">Volume</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.slice(0, 20).map((r: any, i: number) => (
-                <tr key={r.topic_id ?? i}>
-                  <td className="py-1">{r.topic_name_en ?? r.topic_id ?? "—"}</td>
-                  <td className="py-1">{Number(r.index_value ?? 0).toFixed(2)}</td>
-                  <td className="py-1">{r.sentiment ?? "—"}</td>
-                  <td className="py-1">{r.news_volume ?? 0}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {!topics.data ? (
+        <Skeleton className="h-[260px]" />
+      ) : (
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-[var(--grid-gap)]">
+          <Card className="xl:col-span-7" title="Topic Index (last points)" subtitle="Aggregate view (demo line).">
+            <LineChartCard data={series} xKey="t" yKey="v" height={220} />
+          </Card>
 
-      {chartData.length > 0 && Object.keys(chartData[0] ?? {}).filter((k) => k !== "ts").length > 0 && (
-        <div className="glass p-4">
-          <div className="font-semibold mb-2">Topic Index Chart</div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <XAxis dataKey="ts" stroke="rgba(255,255,255,0.6)" fontSize={11} />
-                <YAxis stroke="rgba(255,255,255,0.6)" fontSize={11} />
-                <Tooltip contentStyle={{ background: "rgba(0,0,0,0.8)", border: "1px solid rgba(255,255,255,0.2)" }} />
-                <Legend />
-                {Object.keys(chartData[0] ?? {}).filter((k) => k !== "ts").slice(0, 3).map((k, i) => (
-                  <Line key={k} type="monotone" dataKey={k} stroke={`hsl(${200 + i * 60}, 70%, 60%)`} dot={false} />
+          <Card className="xl:col-span-5" title="Top Topic Points" subtitle="Recent measurements (table).">
+            <Table>
+              <THead>
+                <TR hover={false}>
+                  <TH>Topic</TH>
+                  <TH className="text-right">sentiment</TH>
+                  <TH className="text-right">value</TH>
+                  <TH className="text-right">vol</TH>
+                </TR>
+              </THead>
+              <TBody>
+                {(topics.data?.points ?? []).slice(-15).reverse().map((p: any, i: number) => (
+                  <TR key={i}>
+                    <TD className="font-medium">{p.topic_name_en}</TD>
+                    <TD className="text-right opacity-80">{p.sentiment}</TD>
+                    <TD className="text-right">{Math.round(p.index_value * 100) / 100}</TD>
+                    <TD className="text-right opacity-80">{p.news_volume}</TD>
+                  </TR>
                 ))}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+              </TBody>
+            </Table>
+          </Card>
         </div>
-      )}
-
-      {rows.length === 0 && !topics.isLoading && (
-        <div className="glass p-4 text-sm opacity-75">No topic data yet. Run ingestion to populate.</div>
       )}
     </Shell>
   );
