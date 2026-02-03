@@ -90,7 +90,7 @@ export default function OpsPage() {
               onClick={async () => {
                 setActionMsg(null);
                 try {
-                  const res = await ingestRun.mutateAsync();
+                  const res = await ingestRun.mutateAsync(undefined);
                   setActionMsg(`Force ingest: ${res?.pushed ?? 0} pushed from ${res?.sources_polled ?? 0} sources`);
                   ops.refetch();
                 } catch (err: any) {
@@ -105,7 +105,7 @@ export default function OpsPage() {
               onClick={async () => {
                 setActionMsg(null);
                 try {
-                  const res = await summarizeRun.mutateAsync();
+                  const res = await summarizeRun.mutateAsync(undefined);
                   setActionMsg(`Force summarize: ${res?.queued ?? 0} queued`);
                   ops.refetch();
                 } catch (err: any) {
