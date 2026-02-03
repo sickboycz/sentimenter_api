@@ -1845,26 +1845,28 @@ async def admin_scale_workers(
         import subprocess
         import shutil
         compose_dir = settings.compose_project_dir
-        compose_cmd = shutil.which("docker")
+        compose_file = Path(compose_dir) / "docker-compose.yml"
+        # Prefer docker CLI (docker compose); fallback to /usr/bin/docker when API runs in container
+        compose_cmd = shutil.which("docker") or ("/usr/bin/docker" if Path("/usr/bin/docker").exists() else None)
         if compose_cmd:
             try:
-                compose_file = Path(compose_dir) / "docker-compose.yml"
                 proc = subprocess.run(
                     [compose_cmd, "compose", "-f", str(compose_file), "up", "-d", "--scale", f"worker={n}"],
                     cwd=str(compose_dir),
                     capture_output=True,
                     text=True,
                     timeout=60,
+                    env={**os.environ, "DOCKER_HOST": os.environ.get("DOCKER_HOST", "unix:///var/run/docker.sock")},
                 )
                 if proc.returncode == 0:
                     applied = True
                     msg = f"Workers scaled to {n}."
                 else:
-                    msg = f"Desired workers set to {n}; docker compose scale failed: {proc.stderr or proc.stdout or 'unknown'}."
+                    msg = f"Desired workers set to {n}; docker scale failed: {proc.stderr or proc.stdout or 'unknown'}"
             except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
-                msg = f"Desired workers set to {n}; scale command failed: {e}. Run manually: docker compose up -d --scale worker={n}"
+                msg = f"Desired workers set to {n}; scale failed: {e}. Run: docker compose up -d --scale worker={n}"
         else:
-            msg = f"Desired workers set to {n}. Install docker and set COMPOSE_PROJECT_DIR to apply from API, or run: docker compose up -d --scale worker={n}"
+            msg = f"Desired workers set to {n}. Rebuild API with docker CLI and set COMPOSE_PROJECT_DIR, or run: docker compose up -d --scale worker={n}"
     else:
         msg = f"Desired workers set to {n}. To apply, run: docker compose up -d --scale worker={n}"
 

@@ -112,6 +112,89 @@ class Settings(BaseSettings):
                         pass
             return out if out else default_weights
         return v
+    # Stage caps: max workers allowed on each queue at once (flow; when no work at a level, workers take other work then go back)
+    queue_stage_caps: dict[str, int] = Field(
+        default_factory=lambda: {"ingest": 3, "summarize": 2, "index": 1},
+        description="QUEUE_STAGE_CAPS: stage:cap e.g. ingest:3,summarize:2,index:1; used when QUEUE_STAGE_CAPS_BY_WORKERS is unset",
+        validation_alias=AliasChoices("QUEUE_STAGE_CAPS", "SENTIMENT_API_QUEUE_STAGE_CAPS"),
+    )
+    # Caps by total worker count (when set, overrides queue_stage_caps). Examples: 6→3,2,1 7→4,2,1 8→4,2,2 9→4,3,2 10→5,3,2
+    queue_stage_caps_by_workers: dict[int, dict[str, int]] | None = Field(
+        default_factory=lambda: {
+            6: {"ingest": 3, "summarize": 2, "index": 1},
+            7: {"ingest": 4, "summarize": 2, "index": 1},
+            8: {"ingest": 4, "summarize": 2, "index": 2},
+            9: {"ingest": 4, "summarize": 3, "index": 2},
+            10: {"ingest": 5, "summarize": 3, "index": 2},
+        },
+        description="QUEUE_STAGE_CAPS_BY_WORKERS: space-separated N:ingest:x,summarize:y,index:z; default 6–10 presets",
+        validation_alias=AliasChoices("QUEUE_STAGE_CAPS_BY_WORKERS", "SENTIMENT_API_QUEUE_STAGE_CAPS_BY_WORKERS"),
+    )
+
+    @field_validator("queue_stage_caps", mode="before")
+    @classmethod
+    def parse_queue_stage_caps(cls, v):
+        default_caps = {"ingest": 3, "summarize": 2, "index": 1}
+        if v is None:
+            return default_caps
+        if isinstance(v, dict):
+            return v
+        if isinstance(v, str):
+            out: dict[str, int] = {}
+            for part in v.split(","):
+                part = part.strip()
+                if ":" in part:
+                    k, _, val = part.partition(":")
+                    k, val = k.strip(), val.strip()
+                    try:
+                        out[k] = int(val)
+                    except ValueError:
+                        pass
+            return out if out else default_caps
+        return v
+
+    @field_validator("queue_stage_caps_by_workers", mode="before")
+    @classmethod
+    def parse_queue_stage_caps_by_workers(cls, v):
+        default_presets = {
+            6: {"ingest": 3, "summarize": 2, "index": 1},
+            7: {"ingest": 4, "summarize": 2, "index": 1},
+            8: {"ingest": 4, "summarize": 2, "index": 2},
+            9: {"ingest": 4, "summarize": 3, "index": 2},
+            10: {"ingest": 5, "summarize": 3, "index": 2},
+        }
+        if v is None:
+            return default_presets  # unset = use presets (scaling 6–10 works out of the box)
+        if v == "" or (isinstance(v, str) and not v.strip()):
+            return None  # explicit empty = disable presets, use QUEUE_STAGE_CAPS only
+        if isinstance(v, dict):
+            return v if v else default_presets
+        if isinstance(v, str):
+            # "6:ingest:3,summarize:2,index:1 7:ingest:4,summarize:2,index:1" -> {6: {...}, 7: {...}}
+            out: dict[int, dict[str, int]] = {}
+            for block in v.split():
+                block = block.strip()
+                if ":" not in block:
+                    continue
+                n_str, _, rest = block.partition(":")
+                try:
+                    n = int(n_str.strip())
+                except ValueError:
+                    continue
+                caps: dict[str, int] = {}
+                for part in rest.split(","):
+                    part = part.strip()
+                    if ":" in part:
+                        k, _, val = part.partition(":")
+                        k, val = k.strip(), val.strip()
+                        try:
+                            caps[k] = int(val)
+                        except ValueError:
+                            pass
+                if caps:
+                    out[n] = caps
+            return out if out else default_presets
+        return v
     api_keys: str = Field(default="", description="SENTIMENT_API_API_KEYS, comma-separated")
     # Worker scale from API: set COMPOSE_PROJECT_DIR to path containing docker-compose.yml to allow scale from UI
     compose_project_dir: str | None = Field(

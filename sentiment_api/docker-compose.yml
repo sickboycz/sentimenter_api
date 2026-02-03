@@ -1,6 +1,6 @@
 # sentiment_api — local dev stack
-# Run from sentiment_api/: docker compose up -d
-# Worker count from .env: ./scripts/up-with-scale.sh (uses WORKER_REPLICAS; CLUSTER_SIMILARITY_THRESHOLD passed to worker)
+# Run from sentiment_api/: docker compose up -d (1 worker) | ./scripts/up-with-scale.sh (default 6 workers from WORKER_REPLICAS)
+# Default worker count when composing: use ./scripts/up-with-scale.sh or docker compose up -d --scale worker=6
 
 services:
   postgres:
@@ -59,6 +59,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        INSTALL_DOCKER_CLI: "1"
     environment:
       SENTIMENT_API_ENV: dev
       DATABASE_URL: postgresql://sentiment:sentiment@postgres:5432/sentiment
@@ -73,11 +75,16 @@ services:
       # Optional: use Weaviate for vectors (3072-dim). Default: pgvector
       VECTOR_STORE_BACKEND: ${VECTOR_STORE_BACKEND:-pgvector}
       WEAVIATE_URL: http://weaviate:8080
+      # Scale from UI: API runs docker compose from /workspace (project dir mounted below)
+      COMPOSE_PROJECT_DIR: /workspace
     volumes:
       - ./registry:/etc/sentiment_api:ro
       - artifacts:/data/artifacts
       - logs:/data/logs
       - embedding_cache:/var/lib/sentiment_api
+      # Scale from UI: mount socket + project so API can run: docker compose up -d --scale worker=N
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/workspace:ro
     ports:
       - "8080:8080"
     depends_on:

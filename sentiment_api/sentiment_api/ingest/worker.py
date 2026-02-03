@@ -102,17 +102,67 @@ def _queue_short_name(queue_name: str) -> str:
     return queue_name
 
 
+_WORKERS_ON_QUEUE_AGE_SEC = 90  # treat worker as "on queue" if last_job was within this age
+
+
+async def _get_workers_per_queue(queue_client) -> tuple[dict[str, int], int]:
+    """Return (per-queue count of workers on that queue, total worker count). Workers counted if last_seen within _WORKERS_ON_QUEUE_AGE_SEC."""
+    now = datetime.now(timezone.utc)
+    keys = await queue_client.keys(f"{_WORKER_KEY_PREFIX}*") or []
+    counts: dict[str, int] = {}
+    for key in keys:
+        try:
+            raw = await queue_client.get(key)
+            if not raw:
+                continue
+            payload = json.loads(raw)
+            last_seen_str = payload.get("last_seen")
+            if not last_seen_str:
+                continue
+            last_seen = datetime.fromisoformat(last_seen_str.replace("Z", "+00:00"))
+            if (now - last_seen).total_seconds() > _WORKERS_ON_QUEUE_AGE_SEC:
+                continue
+            q = payload.get("last_job", {}).get("queue")
+            if q:
+                counts[q] = counts.get(q, 0) + 1
+        except (json.JSONDecodeError, TypeError, ValueError):
+            continue
+    return counts
+
+
+def _resolve_caps_for_worker_count(settings, current_workers: int) -> dict[str, int]:
+    """Caps to use: from queue_stage_caps_by_workers for current_workers (nearest <= count), else queue_stage_caps."""
+    by_workers = getattr(settings, "queue_stage_caps_by_workers", None) or {}
+    if not by_workers:
+        return getattr(settings, "queue_stage_caps", None) or {}
+    # Use largest N such that N <= current_workers (e.g. 7 workers -> profile 7; 6 -> 6)
+    best_n = max((n for n in by_workers if n <= current_workers), default=None)
+    if best_n is not None:
+        return by_workers[best_n]
+    # Fewer workers than smallest profile (e.g. 4 workers, profiles start at 6): use smallest profile
+    return by_workers[min(by_workers)]
+
+
 async def _poll_order_by_depth(queue_client, settings) -> list[str]:
-    """Return queue names ordered by weighted depth: (depth * stage_weight) descending.
-    Higher weight = more workers at that stage. Default weights favor earlier stages (ingest > normalize > summarize > score > index) so work assignment matches the E2E funnel (news reduce at each gate)."""
+    """Return queue names ordered by weighted depth, respecting stage caps so we get flow.
+    When there's no work at a level (depth 0), priority is low so workers take other work; when work appears they go back.
+    Only consider queues where current workers on queue < cap; then sort by (depth * stage_weight) descending."""
     lengths = await get_queue_lengths(queue_client, WORKER_QUEUES)
+    workers_on, current_workers = await _get_workers_per_queue(queue_client)
+    caps = _resolve_caps_for_worker_count(settings, current_workers)
     weights = getattr(settings, "queue_stage_weights", None) or {}
+
     def priority(q: str) -> tuple:
         depth = lengths.get(q, 0)
         w = weights.get(_queue_short_name(q), 1)
-        # Prefer queues with higher (depth * weight); then tie-break by fixed order
         return (-(depth * w), WORKER_QUEUES.index(q))
-    return sorted(WORKER_QUEUES, key=priority)
+
+    # Only queues where we're under cap (or no cap set for that stage). Empty queues stay in list so workers can take other work.
+    candidates = [
+        q for q in WORKER_QUEUES
+        if workers_on.get(q, 0) < caps.get(_queue_short_name(q), 999)
+    ]
+    return sorted(candidates, key=priority)
 
 
 async def _record_job(queue_client, queue_name: str) -> None:
