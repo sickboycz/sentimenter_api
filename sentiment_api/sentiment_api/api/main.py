@@ -1614,6 +1614,8 @@ async def admin_ops(
         "heartbeats": {},
         "redis": {"status": "unknown"},
         "db": {"status": "unknown"},
+        "system": None,
+        "desired_workers": None,
     }
 
     def _parse_ts(ts: str | None) -> datetime | None:
@@ -1719,9 +1721,33 @@ async def admin_ops(
             "last_cycle": daemon_last_cycle or {},
         }
         data["redis"] = {"status": "ok"}
+        # Desired worker count (set by scale API; applied by host or script)
+        try:
+            raw = await r.get("sentiment_api:ops:desired_workers")
+            data["desired_workers"] = int(raw) if raw is not None else None
+        except (TypeError, ValueError):
+            data["desired_workers"] = None
         await r.aclose()
     except Exception as e:
         data["redis"] = {"status": "fail", "error": str(e)}
+
+    # System stats (CPU, memory, disk) from this process/container
+    try:
+        import psutil
+        cpu = psutil.cpu_percent(interval=0.1)
+        mem = psutil.virtual_memory()
+        disk = psutil.disk_usage("/")
+        data["system"] = {
+            "cpu_percent": round(cpu, 1),
+            "memory_percent": round(mem.percent, 1),
+            "memory_used_gb": round(mem.used / (1024**3), 2),
+            "memory_total_gb": round(mem.total / (1024**3), 2),
+            "disk_percent": round(disk.percent, 1),
+            "disk_used_gb": round(disk.used / (1024**3), 2),
+            "disk_total_gb": round(disk.total / (1024**3), 2),
+        }
+    except Exception as e:
+        data["system"] = {"error": str(e)}
 
     # DB: counts + recent runs
     try:
@@ -1783,6 +1809,66 @@ async def admin_ops(
         data["db"] = {"status": "fail", "error": str(e)}
 
     return {"meta": meta(), "data": data, "errors": []}
+
+
+# -----------------------------------------------------------------------------
+# POST /v1/admin/scale/workers — Set desired worker count (store in Redis; optionally run docker compose scale)
+# -----------------------------------------------------------------------------
+@app.post("/v1/admin/scale/workers")
+async def admin_scale_workers(
+    _: Annotated[str, Depends(validate_api_key)],
+    body: dict,
+):
+    """Set desired worker count. Writes to Redis; if COMPOSE_PROJECT_DIR is set, runs docker compose up -d --scale worker=N."""
+    count = body.get("count")
+    if count is None:
+        raise HTTPException(status_code=400, detail="Missing 'count' in body")
+    try:
+        n = int(count)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="'count' must be an integer")
+    if n < 0 or n > 64:
+        raise HTTPException(status_code=400, detail="'count' must be between 0 and 64")
+
+    settings = get_settings()
+    try:
+        import redis.asyncio as redis
+        r = redis.from_url(settings.redis_url, decode_responses=True)
+        await r.set("sentiment_api:ops:desired_workers", str(n))
+        await r.aclose()
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Redis unavailable: {e}")
+
+    applied = False
+    msg = f"Desired workers set to {n}."
+    if settings.compose_project_dir:
+        import subprocess
+        import shutil
+        compose_dir = settings.compose_project_dir
+        compose_cmd = shutil.which("docker")
+        if compose_cmd:
+            try:
+                compose_file = Path(compose_dir) / "docker-compose.yml"
+                proc = subprocess.run(
+                    [compose_cmd, "compose", "-f", str(compose_file), "up", "-d", "--scale", f"worker={n}"],
+                    cwd=str(compose_dir),
+                    capture_output=True,
+                    text=True,
+                    timeout=60,
+                )
+                if proc.returncode == 0:
+                    applied = True
+                    msg = f"Workers scaled to {n}."
+                else:
+                    msg = f"Desired workers set to {n}; docker compose scale failed: {proc.stderr or proc.stdout or 'unknown'}."
+            except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
+                msg = f"Desired workers set to {n}; scale command failed: {e}. Run manually: docker compose up -d --scale worker={n}"
+        else:
+            msg = f"Desired workers set to {n}. Install docker and set COMPOSE_PROJECT_DIR to apply from API, or run: docker compose up -d --scale worker={n}"
+    else:
+        msg = f"Desired workers set to {n}. To apply, run: docker compose up -d --scale worker={n}"
+
+    return {"meta": meta(), "data": {"count": n, "applied": applied, "message": msg}, "errors": []}
 
 
 def run():

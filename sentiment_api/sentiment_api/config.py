@@ -81,10 +81,44 @@ class Settings(BaseSettings):
     # Worker: prefer fullest queue when polling (work division by queue depth)
     queue_work_division: bool = Field(
         default=True,
-        description="QUEUE_WORK_DIVISION: when True, workers poll queues in order of descending length so busiest queue is drained first",
+        description="QUEUE_WORK_DIVISION: when True, workers poll queues by weighted depth (earlier stages get more workers)",
         validation_alias=AliasChoices("QUEUE_WORK_DIVISION", "SENTIMENT_API_QUEUE_WORK_DIVISION"),
     )
+    # Stage weights for E2E flow: higher = more workers at that stage. News reduce at each gate (dedupe, cluster), so ingest > normalize > summarize > score > index.
+    queue_stage_weights: dict[str, int] = Field(
+        default_factory=lambda: {"ingest": 4, "normalize": 3, "summarize": 2, "score": 1, "index": 1},
+        description="QUEUE_STAGE_WEIGHTS: comma-separated key:value e.g. ingest:4,normalize:3,summarize:2,score:1,index:1; higher = more workers at that stage",
+        validation_alias=AliasChoices("QUEUE_STAGE_WEIGHTS", "SENTIMENT_API_QUEUE_STAGE_WEIGHTS"),
+    )
+
+    @field_validator("queue_stage_weights", mode="before")
+    @classmethod
+    def parse_queue_stage_weights(cls, v):
+        default_weights = {"ingest": 4, "normalize": 3, "summarize": 2, "score": 1, "index": 1}
+        if v is None:
+            return default_weights
+        if isinstance(v, dict):
+            return v
+        if isinstance(v, str):
+            out: dict[str, int] = {}
+            for part in v.split(","):
+                part = part.strip()
+                if ":" in part:
+                    k, _, val = part.partition(":")
+                    k, val = k.strip(), val.strip()
+                    try:
+                        out[k] = int(val)
+                    except ValueError:
+                        pass
+            return out if out else default_weights
+        return v
     api_keys: str = Field(default="", description="SENTIMENT_API_API_KEYS, comma-separated")
+    # Worker scale from API: set COMPOSE_PROJECT_DIR to path containing docker-compose.yml to allow scale from UI
+    compose_project_dir: str | None = Field(
+        default=None,
+        description="COMPOSE_PROJECT_DIR: path to run docker compose (enables scale from API); leave unset if API runs in container",
+        validation_alias=AliasChoices("COMPOSE_PROJECT_DIR", "SENTIMENT_API_COMPOSE_PROJECT_DIR"),
+    )
     # CORS: comma-separated origins (e.g. http://localhost:3000,http://80.211.210.49:3000)
     cors_origins: str = Field(
         default="http://localhost:3000",

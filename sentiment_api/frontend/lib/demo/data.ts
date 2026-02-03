@@ -40,6 +40,11 @@ export const demo = {
         stats: { article_id: "art_demo_1" }
       }
     },
+    workers: [
+      { id: "worker-1", last_seen: new Date().toISOString(), age_sec: 2.1, last_job: { queue: "sentiment_api:summarize", at: new Date(Date.now() - 8_000).toISOString() }, counts: { "sentiment_api:summarize": 12, "sentiment_api:index": 3 } },
+      { id: "worker-2", last_seen: new Date(Date.now() - 3_000).toISOString(), age_sec: 3.0, last_job: { queue: "sentiment_api:ingest", at: new Date(Date.now() - 5_000).toISOString() }, counts: { "sentiment_api:ingest": 8, "sentiment_api:summarize": 5 } },
+      { id: "worker-3", last_seen: new Date(Date.now() - 1_000).toISOString(), age_sec: 1.2, last_job: { queue: "sentiment_api:summarize", at: new Date(Date.now() - 2_000).toISOString() }, counts: { "sentiment_api:summarize": 9 } }
+    ],
     heartbeats: {
       worker: {
         last_seen: new Date().toISOString(),
@@ -54,7 +59,17 @@ export const demo = {
       }
     },
     redis: { status: "ok" },
-    db: { status: "ok" }
+    db: { status: "ok" },
+    system: {
+      cpu_percent: 24.2,
+      memory_percent: 62.1,
+      memory_used_gb: 9.8,
+      memory_total_gb: 15.7,
+      disk_percent: 58.3,
+      disk_used_gb: 112,
+      disk_total_gb: 192
+    },
+    desired_workers: null
   },
   backfill: {
     pushed: 324,

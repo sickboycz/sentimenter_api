@@ -95,13 +95,24 @@ async def _heartbeat_loop(queue_client) -> None:
         await asyncio.sleep(_HEARTBEAT_INTERVAL_SEC)
 
 
-async def _poll_order_by_depth(queue_client) -> list[str]:
-    """Return queue names ordered by current length descending (fullest first) for work division."""
+def _queue_short_name(queue_name: str) -> str:
+    """Redis queue name to stage key for weights (e.g. sentiment_api:ingest -> ingest)."""
+    if ":" in queue_name:
+        return queue_name.split(":", 1)[1]
+    return queue_name
+
+
+async def _poll_order_by_depth(queue_client, settings) -> list[str]:
+    """Return queue names ordered by weighted depth: (depth * stage_weight) descending.
+    Higher weight = more workers at that stage. Default weights favor earlier stages (ingest > normalize > summarize > score > index) so work assignment matches the E2E funnel (news reduce at each gate)."""
     lengths = await get_queue_lengths(queue_client, WORKER_QUEUES)
-    return sorted(
-        WORKER_QUEUES,
-        key=lambda q: (-lengths.get(q, 0), WORKER_QUEUES.index(q)),
-    )
+    weights = getattr(settings, "queue_stage_weights", None) or {}
+    def priority(q: str) -> tuple:
+        depth = lengths.get(q, 0)
+        w = weights.get(_queue_short_name(q), 1)
+        # Prefer queues with higher (depth * weight); then tie-break by fixed order
+        return (-(depth * w), WORKER_QUEUES.index(q))
+    return sorted(WORKER_QUEUES, key=priority)
 
 
 async def _record_job(queue_client, queue_name: str) -> None:
@@ -128,7 +139,6 @@ def _event_id(cluster_id: str, event_type: str) -> str:
 
 async def process_ingest(payload: dict) -> None:
     """Receive raw item, normalize, dedupe, insert article, push to summarize."""
-    import json
     settings = get_settings()
     run_id = None
     try:
@@ -148,7 +158,6 @@ async def process_ingest(payload: dict) -> None:
     art_id = article_id(norm["source_id"], norm["canonical_url"], pub_str)
     norm["article_id"] = art_id
     norm["fetched_at"] = norm["fetched_at"]
-    import json
     import hashlib
     queue = await get_queue(settings.redis_url)
     async with acquire() as conn:
@@ -294,7 +303,6 @@ async def process_summarize(payload: dict) -> None:
     if run_id:
         async with acquire() as conn:
             await finish_run(conn, run_id, "ok", {"cluster_id": cid, "event_id": ev_id})
-    import json
     queue = await get_queue(settings.redis_url)
     await queue.rpush(QUEUE_INDEX, json.dumps({"cluster_id": cid}))
     logger.info("Summarize: cluster %s created for article %s, pushed to index", cid, art_id)
@@ -341,6 +349,10 @@ async def run_worker() -> None:
     await init_pool(settings.database_url)
     await _verify_db_connection()
     queue_client = await get_queue(settings.redis_url)
+    # Register worker in Redis immediately so ops UI shows worker list before first heartbeat
+    if _worker_id:
+        _worker_state["last_seen"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        await queue_client.set(f"{_WORKER_KEY_PREFIX}{_worker_id}", json.dumps(_worker_state), ex=_WORKER_KEY_TTL_SEC)
     heartbeat_task = asyncio.create_task(_heartbeat_loop(queue_client))
     reg = load_registry(settings.source_registry_path)
     async with acquire() as conn:
@@ -361,13 +373,12 @@ async def run_worker() -> None:
         ]
         await upsert_sources(conn, sources)
     logger.info("Worker started, synced %d sources", len(sources))
-    import json
     try:
         while True:
             try:
-                # Work division: when enabled, poll fullest queue first; else use fixed downstream-first order
+                # Work division: when enabled, poll by weighted depth (more workers at earlier stages); else use fixed order
                 if settings.queue_work_division:
-                    poll_order = await _poll_order_by_depth(queue_client)
+                    poll_order = await _poll_order_by_depth(queue_client, settings)
                 else:
                     poll_order = WORKER_QUEUES
                 result = await queue_client.blpop(poll_order, timeout=5)

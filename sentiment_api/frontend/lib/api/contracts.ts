@@ -43,6 +43,17 @@ export const OpsWorker = z.object({
   counts: z.record(z.number()).optional()
 });
 
+export const OpsSystem = z.object({
+  cpu_percent: z.number().optional(),
+  memory_percent: z.number().optional(),
+  memory_used_gb: z.number().optional(),
+  memory_total_gb: z.number().optional(),
+  disk_percent: z.number().optional(),
+  disk_used_gb: z.number().optional(),
+  disk_total_gb: z.number().optional(),
+  error: z.string().optional()
+});
+
 export const OpsStatus = z.object({
   queues: z.record(z.number()).default({}),
   queues_total: z.number().optional(),
@@ -61,7 +72,15 @@ export const OpsStatus = z.object({
   db: z.object({
     status: z.string(),
     error: z.string().optional().nullable()
-  }).optional()
+  }).optional(),
+  system: OpsSystem.nullable().optional(),
+  desired_workers: z.number().nullable().optional()
+});
+
+export const ScaleWorkersResult = z.object({
+  count: z.number(),
+  applied: z.boolean().optional(),
+  message: z.string().optional()
 });
 
 export const LogsData = z.object({

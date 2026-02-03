@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { useHealth, useOpsStatus, useAdminLogs, useAdminBackfill, useAdminIngestRun, useAdminSummarizeRun } from "@/lib/api/hooks";
+import { useHealth, useOpsStatus, useAdminLogs, useAdminBackfill, useAdminIngestRun, useAdminSummarizeRun, useScaleWorkers } from "@/lib/api/hooks";
 
 function formatAge(ageSec?: number | null) {
   if (ageSec === null || ageSec === undefined) return "—";
@@ -38,6 +38,7 @@ export default function OpsPage() {
   const backfill = useAdminBackfill();
   const ingestRun = useAdminIngestRun();
   const summarizeRun = useAdminSummarizeRun();
+  const scaleWorkers = useScaleWorkers();
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [fromDate, setFromDate] = useState(() => {
     const d = new Date();
@@ -172,6 +173,37 @@ export default function OpsPage() {
         </div>
       </Card>
 
+      <Card title="System monitoring" subtitle="CPU, memory, and disk usage (API/container view).">
+        {!ops.data ? (
+          <Skeleton className="h-[80px]" />
+        ) : ops.data.system == null || ops.data.system === undefined ? (
+          <div className="text-sm opacity-80">System stats unavailable.</div>
+        ) : ops.data.system && "error" in ops.data.system ? (
+          <div className="text-sm opacity-80">{(ops.data.system as { error?: string }).error}</div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 text-sm">
+            <div className="glass p-3">
+              <div className="text-xs opacity-70">CPU</div>
+              <div className="font-semibold">{(ops.data.system as any).cpu_percent ?? "—"}%</div>
+            </div>
+            <div className="glass p-3">
+              <div className="text-xs opacity-70">Memory</div>
+              <div className="font-semibold">{(ops.data.system as any).memory_percent ?? "—"}%</div>
+              {((ops.data.system as any).memory_used_gb != null && (ops.data.system as any).memory_total_gb != null) && (
+                <div className="text-xs opacity-70">{(ops.data.system as any).memory_used_gb} / {(ops.data.system as any).memory_total_gb} GB</div>
+              )}
+            </div>
+            <div className="glass p-3">
+              <div className="text-xs opacity-70">Disk</div>
+              <div className="font-semibold">{(ops.data.system as any).disk_percent ?? "—"}%</div>
+              {((ops.data.system as any).disk_used_gb != null && (ops.data.system as any).disk_total_gb != null) && (
+                <div className="text-xs opacity-70">{(ops.data.system as any).disk_used_gb} / {(ops.data.system as any).disk_total_gb} GB</div>
+              )}
+            </div>
+          </div>
+        )}
+      </Card>
+
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-[var(--grid-gap)]">
         <Card className="xl:col-span-7" title="Queue Activity" subtitle="Live backlog + worker heartbeat.">
           {!ops.data ? (
@@ -219,12 +251,66 @@ export default function OpsPage() {
         </Card>
       </div>
 
-      <Card title="Workers" subtitle="Worker list and work assignment (last job + per-queue counts).">
+      <Card
+        title="Workers"
+        subtitle="Worker list and work assignment (last job + per-queue counts). Scale up after startup to add capacity."
+        right={ops.data && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm opacity-80">Workers:</span>
+            <div className="flex items-center gap-1 rounded-lg border border-white/20 bg-black/20 p-0.5">
+              <Button
+                variant="ghost"
+                className="h-7 w-7 p-0 text-sm font-medium"
+                onClick={async () => {
+                  const current = ops.data?.workers?.length ?? 0;
+                  const next = Math.max(0, current - 1);
+                  setActionMsg(null);
+                  try {
+                    const res = await scaleWorkers.mutateAsync(next);
+                    setActionMsg(res?.message ?? `Scaled to ${next}.`);
+                    ops.refetch();
+                  } catch (err: any) {
+                    setActionMsg(`Scale failed: ${err?.message ?? "Unknown error"}`);
+                  }
+                }}
+                disabled={scaleWorkers.isPending}
+              >
+                −
+              </Button>
+              <span className="min-w-[2rem] text-center text-sm font-semibold">{ops.data?.workers?.length ?? 0}</span>
+              <Button
+                variant="ghost"
+                className="h-7 w-7 p-0 text-sm font-medium"
+                onClick={async () => {
+                  const current = ops.data?.workers?.length ?? 0;
+                  const next = Math.min(64, current + 1);
+                  setActionMsg(null);
+                  try {
+                    const res = await scaleWorkers.mutateAsync(next);
+                    setActionMsg(res?.message ?? `Scaled to ${next}.`);
+                    ops.refetch();
+                  } catch (err: any) {
+                    setActionMsg(`Scale failed: ${err?.message ?? "Unknown error"}`);
+                  }
+                }}
+                disabled={scaleWorkers.isPending}
+              >
+                +
+              </Button>
+            </div>
+            {(ops.data?.desired_workers != null && ops.data.desired_workers !== (ops.data?.workers?.length ?? 0)) && (
+              <span className="text-xs opacity-70">Desired: {ops.data.desired_workers}</span>
+            )}
+          </div>
+        )}
+      >
         {!ops.data ? (
           <Skeleton className="h-[180px]" />
         ) : (ops.data?.workers?.length ?? 0) === 0 ? (
-          <div className="glass p-3 text-sm opacity-80">
-            No workers registered. Workers appear here after they write a heartbeat (per-worker keys).
+          <div className="glass p-3 text-sm opacity-80 space-y-1">
+            <p>No workers registered.</p>
+            <p>Workers appear here after they write to Redis (<code className="text-xs">sentiment_api:ops:worker:*</code>). Ensure workers are running, use the same Redis as the API, and have restarted with the latest code. Turn off demo mode to see live data.</p>
+            <p className="mt-2">Use the + button above to scale to 1 or more workers (then run <code className="text-xs">docker compose up -d --scale worker=N</code> if not applied automatically).</p>
           </div>
         ) : (
           <div className="overflow-x-auto">

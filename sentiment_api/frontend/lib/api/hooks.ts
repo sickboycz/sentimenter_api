@@ -11,6 +11,7 @@ import {
   BackfillResult,
   IngestRunResult,
   SummarizeRunResult,
+  ScaleWorkersResult,
   MoodNowData,
   IntradayPoint,
   MarketImpact,
@@ -99,6 +100,15 @@ export function useAdminSummarizeRun() {
       const q = sp.toString() ? `?${sp}` : "";
       const res = await apiPostData(`/v1/admin/summarize/run${q}`, {}, SummarizeRunResult);
       return res.data as z.infer<typeof SummarizeRunResult>;
+    }
+  });
+}
+
+export function useScaleWorkers() {
+  return useMutation({
+    mutationFn: async (count: number) => {
+      const res = await apiPostData("/v1/admin/scale/workers", { count }, ScaleWorkersResult);
+      return res.data as z.infer<typeof ScaleWorkersResult>;
     }
   });
 }
