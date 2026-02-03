@@ -5,6 +5,8 @@ import hashlib
 import base64
 import json
 import logging
+import os
+import socket
 from datetime import datetime, timezone, date
 
 from sentiment_api.config import get_settings
@@ -43,7 +45,7 @@ from sentiment_api.ingest.cluster import cluster_id, canonical_story_key, find_n
 from sentiment_api.llm.embeddings import embed_text
 from sentiment_api.llm.summaries import summarize_l1, summarize_l2, summarize_l3
 from sentiment_api.llm.impact import score_impact
-from sentiment_api.queue.client import get_queue, QUEUE_INGEST, QUEUE_NORMALIZE, QUEUE_SUMMARIZE, QUEUE_SCORE, QUEUE_INDEX
+from sentiment_api.queue.client import get_queue, get_queue_lengths, QUEUE_INGEST, QUEUE_NORMALIZE, QUEUE_SUMMARIZE, QUEUE_SCORE, QUEUE_INDEX
 from sentiment_api.registry import load_registry
 from sentiment_api.engines.index import compute_intraday_from_clusters, compute_daily_ohlc
 
@@ -58,33 +60,69 @@ except Exception as ex:
 _HEARTBEAT_KEY = "sentiment_api:ops:worker_heartbeat"
 _LAST_JOB_KEY = "sentiment_api:ops:worker_last_job"
 _COUNTS_KEY = "sentiment_api:ops:worker_counts"
+_WORKER_KEY_PREFIX = "sentiment_api:ops:worker:"
 _HEARTBEAT_INTERVAL_SEC = 5
 _HEARTBEAT_TTL_SEC = 30
+_WORKER_KEY_TTL_SEC = 45
+
+# Per-worker state for ops UI (worker list + work assignment). Set in run_worker().
+_worker_id: str | None = None
+_worker_state: dict = {}
+
+# Order used when queue_work_division is False; when True, worker polls by descending queue length
+WORKER_QUEUES = [QUEUE_SUMMARIZE, QUEUE_INDEX, QUEUE_SCORE, QUEUE_INGEST, QUEUE_NORMALIZE]
+
+
+def _get_worker_id() -> str:
+    """Stable worker id for this process (env WORKER_ID or hostname-pid)."""
+    raw = os.environ.get("WORKER_ID") or f"{socket.gethostname()}-{os.getpid()}"
+    return raw.replace(" ", "_").replace(":", "_")
 
 
 async def _heartbeat_loop(queue_client) -> None:
-    """Keep a short-lived heartbeat in Redis so ops UI can detect liveness."""
+    """Keep a short-lived heartbeat in Redis so ops UI can detect liveness; also write per-worker key for worker list."""
+    global _worker_id, _worker_state
     while True:
         try:
             now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             await queue_client.set(_HEARTBEAT_KEY, now, ex=_HEARTBEAT_TTL_SEC)
+            if _worker_id:
+                _worker_state["last_seen"] = now
+                key = f"{_WORKER_KEY_PREFIX}{_worker_id}"
+                await queue_client.set(key, json.dumps(_worker_state), ex=_WORKER_KEY_TTL_SEC)
         except Exception as ex:
             logger.debug("Worker heartbeat update failed: %s", ex)
         await asyncio.sleep(_HEARTBEAT_INTERVAL_SEC)
 
 
+async def _poll_order_by_depth(queue_client) -> list[str]:
+    """Return queue names ordered by current length descending (fullest first) for work division."""
+    lengths = await get_queue_lengths(queue_client, WORKER_QUEUES)
+    return sorted(
+        WORKER_QUEUES,
+        key=lambda q: (-lengths.get(q, 0), WORKER_QUEUES.index(q)),
+    )
+
+
 async def _record_job(queue_client, queue_name: str) -> None:
-    """Record last job metadata + per-queue counters for ops UI."""
+    """Record last job metadata + per-queue counters for ops UI (legacy keys + per-worker key)."""
+    global _worker_id, _worker_state
     try:
         now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         await queue_client.hset(_LAST_JOB_KEY, mapping={"queue": queue_name, "at": now})
         await queue_client.hincrby(_COUNTS_KEY, queue_name, 1)
+        if _worker_id:
+            _worker_state["last_job"] = {"queue": queue_name, "at": now}
+            _worker_state["counts"] = _worker_state.get("counts") or {}
+            _worker_state["counts"][queue_name] = _worker_state["counts"].get(queue_name, 0) + 1
+            key = f"{_WORKER_KEY_PREFIX}{_worker_id}"
+            await queue_client.set(key, json.dumps(_worker_state), ex=_WORKER_KEY_TTL_SEC)
     except Exception as ex:
         logger.debug("Worker job record failed: %s", ex)
 
 
 def _event_id(cluster_id: str, event_type: str) -> str:
-    h = hashlib.sha256(f"{cluster_id}|{event_type}|{datetime.utcnow().isoformat()[:10]}".encode()).digest()[:12]
+    h = hashlib.sha256(f"{cluster_id}|{event_type}|{datetime.now(timezone.utc).isoformat()[:10]}".encode()).digest()[:12]
     return f"evt_{base64.urlsafe_b64encode(h).decode().rstrip('=').lower()}"
 
 
@@ -185,9 +223,12 @@ async def process_summarize(payload: dict) -> None:
         embedding = embed_text(text_for_embed, settings.model_embedding_id)
         async with acquire() as conn:
             await insert_embedding(conn, "article", art_id, settings.model_embedding_id, embedding)
-            clusters_data = await get_clusters_for_embedding(conn, limit=500, model_id=settings.model_embedding_id)
-        nearest = find_nearest_cluster(embedding, clusters_data, threshold=0.82)
-        logger.info("Summarize: article %s embed done, clusters=%d nearest=%s", art_id, len(clusters_data), nearest or "new")
+            clusters_data = await get_clusters_for_embedding(conn, limit=200, model_id=settings.model_embedding_id)
+        nearest, best_sim = find_nearest_cluster(embedding, clusters_data, threshold=settings.cluster_similarity_threshold)
+        if nearest:
+            logger.info("Summarize: article %s embed done, clusters=%d merged into %s (sim=%.3f)", art_id, len(clusters_data), nearest, best_sim)
+        else:
+            logger.info("Summarize: article %s embed done, clusters=%d new cluster (best_sim=%.3f)", art_id, len(clusters_data), best_sim)
         headline = l2.get("headline_en", title) or title[:200]
         topics = l2.get("topics", []) or ["general"]
         ckey = canonical_story_key(headline, topics)
@@ -291,6 +332,11 @@ async def _verify_db_connection() -> None:
 
 async def run_worker() -> None:
     """Main worker loop."""
+    global _worker_id, _worker_state
+    _worker_id = _get_worker_id()
+    _worker_state = {"last_seen": None, "last_job": {}, "counts": {}}
+    from sentiment_api.debug_bootstrap import run as _debug_bootstrap_run
+    _debug_bootstrap_run()
     settings = get_settings()
     await init_pool(settings.database_url)
     await _verify_db_connection()
@@ -319,8 +365,12 @@ async def run_worker() -> None:
     try:
         while True:
             try:
-                # Prefer downstream queues so summarize/cluster/embed run; otherwise ingest starves them
-                result = await queue_client.blpop([QUEUE_SUMMARIZE, QUEUE_INDEX, QUEUE_SCORE, QUEUE_INGEST, QUEUE_NORMALIZE], timeout=5)
+                # Work division: when enabled, poll fullest queue first; else use fixed downstream-first order
+                if settings.queue_work_division:
+                    poll_order = await _poll_order_by_depth(queue_client)
+                else:
+                    poll_order = WORKER_QUEUES
+                result = await queue_client.blpop(poll_order, timeout=5)
                 if not result:
                     continue
                 queue_name, data = result

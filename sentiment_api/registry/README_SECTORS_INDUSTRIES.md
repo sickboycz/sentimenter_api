@@ -31,8 +31,9 @@ docker compose -f docker-compose.yml -f docker-compose.production.yml exec -T po
 
 ## Seeding
 
-- **sectors**: Loaded from `registry/sectors.csv` if present; else hardcoded GICS_11
-- **industries**: Loaded from `registry/industries.csv` if present and `industries` table exists
+- **sectors**: Loaded from `registry/sectors.csv` or `artifacts/sectors.csv` if present; else hardcoded GICS_11
+- **industries**: Loaded from `registry/industries.csv` or `artifacts/industries.csv` if present and `industries` table exists
+- **S&P 500 / Nasdaq-100**: Loaded from `registry/sp500.csv`, `registry/nasdaq100.csv`, or `artifacts/` (artifacts are in git so they are always available)
 
 Seeding runs automatically on:
 - API startup (lifespan)

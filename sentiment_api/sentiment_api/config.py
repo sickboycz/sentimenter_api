@@ -40,13 +40,21 @@ class Settings(BaseSettings):
         description="OPENAI_API_KEY for LLM/embeddings",
         validation_alias=AliasChoices("OPENAI_API_KEY", "SENTIMENT_API_OPENAI_API_KEY"),
     )
+    # Cost-effective defaults: 384-dim embeddings (cheaper), single-model (no escalation)
+    cost_effective: bool = Field(
+        default=True,
+        description="COST_EFFECTIVE: use 384-dim embeddings, mini-only LLM, skip LLM asset targeting; set False for best quality",
+        validation_alias=AliasChoices("COST_EFFECTIVE", "SENTIMENT_API_COST_EFFECTIVE"),
+    )
     model_summarizer_id: str = "gpt-5-mini"
-    model_embedding_id: str = "openai:text-embedding-3-large"
-    # Escalation chain for LLM: try mini → 5.2 → 5.2-pro on failure
-    # Override via SENTIMENT_API_MODEL_ESCALATION="gpt-5.2-mini,gpt-5.2,gpt-5.2-pro"
+    model_embedding_id: str = Field(
+        default="openai:text-embedding-3-small:384",
+        description="MODEL_EMBEDDING_ID: 384=cheaper, 768=higher quality",
+    )
+    # Escalation: cost_effective uses only mini; otherwise mini → 5.2 → 5.2-pro
     model_escalation: list[str] = Field(
-        default=["gpt-5-mini", "gpt-5.2", "gpt-5.2-pro"],
-        description="LLM model escalation chain (GPT-5.2 family)",
+        default=["gpt-5-mini"],
+        description="MODEL_ESCALATION: LLM chain (comma-separated); cost_effective keeps mini only",
     )
 
     @field_validator("model_escalation", mode="before")
@@ -61,6 +69,21 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8080
     retention_days: int = 90  # tombstone articles older than N days (AC-M7.3)
+    # Clustering: cosine similarity threshold to merge article into existing cluster.
+    # Use ~0.86–0.92 for "same story across outlets"; 0.95+ is near-duplicate only (dedup).
+    cluster_similarity_threshold: float = Field(
+        default=0.88,
+        ge=0.0,
+        le=1.0,
+        description="CLUSTER_SIMILARITY_THRESHOLD: merge if similarity > this (0.88=topic clustering, 0.95=dedup only)",
+        validation_alias=AliasChoices("CLUSTER_SIMILARITY_THRESHOLD", "SENTIMENT_API_CLUSTER_SIMILARITY_THRESHOLD"),
+    )
+    # Worker: prefer fullest queue when polling (work division by queue depth)
+    queue_work_division: bool = Field(
+        default=True,
+        description="QUEUE_WORK_DIVISION: when True, workers poll queues in order of descending length so busiest queue is drained first",
+        validation_alias=AliasChoices("QUEUE_WORK_DIVISION", "SENTIMENT_API_QUEUE_WORK_DIVISION"),
+    )
     api_keys: str = Field(default="", description="SENTIMENT_API_API_KEYS, comma-separated")
     # CORS: comma-separated origins (e.g. http://localhost:3000,http://80.211.210.49:3000)
     cors_origins: str = Field(
@@ -89,12 +112,12 @@ class Settings(BaseSettings):
 
     # 2-tier retrieval (see docs/RETRIEVAL_TWOTIER.md)
     retrieval_tiera_model_id: str = Field(
-        default="openai:text-embedding-3-small",
-        description="RETRIEVAL_TIERA_MODEL_ID: cheap tier-A embedding (384/768 dim)",
+        default="openai:text-embedding-3-small:384",
+        description="RETRIEVAL_TIERA_MODEL_ID: tier-A embedding (384 dim)",
     )
     retrieval_tierb_model_id: str = Field(
-        default="openai:text-embedding-3-large",
-        description="RETRIEVAL_TIERB_MODEL_ID: expensive tier-B rerank (3072 dim)",
+        default="openai:text-embedding-3-small:768",
+        description="RETRIEVAL_TIERB_MODEL_ID: tier-B rerank (768 dim)",
     )
     retrieval_topn: int = Field(default=200, description="RETRIEVAL_TOPN: candidate count from hybrid search")
     retrieval_rerankn: int = Field(default=80, description="RETRIEVAL_RERANKN: top-N after tierB rerank")

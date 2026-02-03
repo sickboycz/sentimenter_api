@@ -147,6 +147,15 @@ async def poll_source(source, queue, rss: RSSCollector, gdelt: GDELTCollector, s
             for item in scrape.collect(source, source.page_url, respect_robots=respect_robots):
                 await queue.rpush(QUEUE_INGEST, json.dumps(_serialize_item(item)))
                 count += 1
+        elif source.type == "api":
+            # No API collector implemented: use webpage alternative when set
+            fallback = getattr(source, "fallback_page_url", None) or (source.config or {}).get("fallback_page_url")
+            if fallback:
+                for item in scrape.collect(source, fallback, respect_robots=respect_robots):
+                    await queue.rpush(QUEUE_INGEST, json.dumps(_serialize_item(item)))
+                    count += 1
+            else:
+                logger.debug("Source %s type=api has no fallback_page_url, skipping", source.source_id)
     except Exception as e:
         record_failure(source.source_id)
         ingestion_errors_total(source.source_id)

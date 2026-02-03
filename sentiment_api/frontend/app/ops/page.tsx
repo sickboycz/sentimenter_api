@@ -73,9 +73,9 @@ export default function OpsPage() {
   return (
     <Shell>
       {ops.isError && (
-        <Card title="Ops data unavailable" subtitle="Check API key and backend admin endpoints.">
+        <Card title="Ops data unavailable" subtitle="Check backend admin endpoints and API health.">
           <div className="text-sm opacity-80">
-            Set <code className="kbd">SENTIMETER_API_KEY</code> in Settings or the top bar, then refresh.
+            Ensure the API is running and reachable at the configured base URL.
           </div>
         </Card>
       )}
@@ -218,6 +218,57 @@ export default function OpsPage() {
           )}
         </Card>
       </div>
+
+      <Card title="Workers" subtitle="Worker list and work assignment (last job + per-queue counts).">
+        {!ops.data ? (
+          <Skeleton className="h-[180px]" />
+        ) : (ops.data?.workers?.length ?? 0) === 0 ? (
+          <div className="glass p-3 text-sm opacity-80">
+            No workers registered. Workers appear here after they write a heartbeat (per-worker keys).
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10 text-left">
+                  <th className="pb-2 pr-3 opacity-70">Worker</th>
+                  <th className="pb-2 pr-3 opacity-70">Last seen</th>
+                  <th className="pb-2 pr-3 opacity-70">Assigned work (last job)</th>
+                  <th className="pb-2 pr-3 opacity-70">Counts</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(ops.data?.workers ?? []).map((w: { id?: string; last_seen?: string | null; age_sec?: number | null; last_job?: { queue?: string; at?: string }; counts?: Record<string, number> }) => (
+                  <tr key={w.id ?? ""} className="border-b border-white/5">
+                    <td className="py-2 pr-3 font-mono text-xs">{w.id ?? "—"}</td>
+                    <td className="py-2 pr-3">
+                      {w.last_seen ? formatTs(w.last_seen) : "—"}
+                      {w.age_sec != null && (
+                        <span className="ml-1 opacity-70">({formatAge(w.age_sec)})</span>
+                      )}
+                    </td>
+                    <td className="py-2 pr-3">
+                      {w.last_job?.queue ? (
+                        <>
+                          <span className="font-medium">{w.last_job.queue.replace("sentiment_api:", "")}</span>
+                          {w.last_job.at && <span className="ml-1 opacity-70">{formatTs(w.last_job.at)}</span>}
+                        </>
+                      ) : "—"}
+                    </td>
+                    <td className="py-2 pr-3">
+                      {w.counts && Object.keys(w.counts).length > 0
+                        ? Object.entries(w.counts)
+                            .map(([q, n]) => `${q.replace("sentiment_api:", "")}: ${n}`)
+                            .join(", ")
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
 
       <Card id="backfill" title="Backfill" subtitle="Queue historical ingest by date range.">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">

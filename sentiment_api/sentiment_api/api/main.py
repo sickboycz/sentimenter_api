@@ -1,6 +1,8 @@
 """FastAPI application — M9 API Service."""
 
 import json
+import os
+import re
 import uuid
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
@@ -20,8 +22,24 @@ from sentiment_api.db.pool import close_pool, init_pool
 from sentiment_api.registry import load_registry, RegistryError
 
 
+def _ensure_dict(val: dict | str | None) -> dict:
+    """Normalize DB JSON/JSONB (can be dict or string) to dict."""
+    if val is None:
+        return {}
+    if isinstance(val, dict):
+        return val
+    if isinstance(val, str):
+        try:
+            return json.loads(val) if val.strip() else {}
+        except (json.JSONDecodeError, TypeError):
+            return {}
+    return {}
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from sentiment_api.debug_bootstrap import run as debug_bootstrap_run
+    debug_bootstrap_run()
     from sentiment_api.logging_file import add_file_handler
     add_file_handler("api")
     settings = get_settings()
@@ -65,8 +83,12 @@ app = FastAPI(
 )
 
 # CORS: allow frontend origin(s) from config; regex allows any host:3000 (same-host UI by IP)
-# [^:/]+ = host (no colon/slash) so :3000 is matched; [^/]+ would greedily consume the port
+# Ensure localhost:3000 is always allowed so UI works when CORS_ORIGINS is unset or empty (e.g. in Docker)
 _cors_origins = [o.strip() for o in get_settings().cors_origins.split(",") if o.strip()]
+if not _cors_origins:
+    _cors_origins = ["http://localhost:3000"]
+elif "http://localhost:3000" not in _cors_origins:
+    _cors_origins = list(_cors_origins) + ["http://localhost:3000"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
@@ -74,9 +96,24 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 app.add_middleware(RateLimitMiddleware)
+
+# Enable request logging (method/path/status/duration) when debugging
+_DEBUG_LOG = os.environ.get("DEBUG_ATTACH") == "1" or os.environ.get("DEBUG_LOG") == "1"
+
+@app.middleware("http")
+async def cors_fix_middleware(request: Request, call_next):
+    """Ensure every response has CORS headers when Origin is allowed (fixes 401/429/etc from middleware or deps)."""
+    response = await call_next(request)
+    if "access-control-allow-origin" not in (h.lower() for h in response.headers.keys()):
+        cors = _cors_headers_for_request(request)
+        for k, v in cors.items():
+            response.headers[k] = v
+    return response
+
 
 @app.middleware("http")
 async def request_id_middleware(request, call_next):
@@ -88,9 +125,40 @@ async def request_id_middleware(request, call_next):
     return response
 
 
+@app.middleware("http")
+async def debug_request_log_middleware(request, call_next):
+    """Log method/path/status/duration at INFO when DEBUG_ATTACH or DEBUG_LOG is set."""
+    import time
+    import logging
+    start = time.perf_counter()
+    response = await call_next(request)
+    if _DEBUG_LOG:
+        ms = (time.perf_counter() - start) * 1000
+        logging.getLogger("sentiment_api").info(
+            "%s %s %s %.1fms",
+            request.method,
+            request.url.path or "/",
+            response.status_code,
+            ms,
+        )
+    return response
+
+
+def _cors_headers_for_request(request: Request) -> dict:
+    """Add CORS headers so exception/error responses allow the requesting origin (avoids CORS block on 401/404/500)."""
+    origin = request.headers.get("origin")
+    if not origin:
+        return {}
+    if origin in _cors_origins:
+        return {"Access-Control-Allow-Origin": origin, "Access-Control-Allow-Credentials": "true"}
+    if re.match(r"^https?://[^:/]+:3000$", origin):
+        return {"Access-Control-Allow-Origin": origin, "Access-Control-Allow-Credentials": "true"}
+    return {}
+
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc: HTTPException):
-    """Return v1.2 envelope for HTTP errors on /v1/*."""
+    """Return v1.2 envelope for HTTP errors on /v1/*. Include CORS headers so 401/404/500 don't block the UI."""
     rid = getattr(request.state, "request_id", f"req_{uuid.uuid4().hex[:12]}")
     detail = exc.detail
     if isinstance(detail, dict) and "code" in detail and "message" in detail:
@@ -104,14 +172,14 @@ async def http_exception_handler(request, exc: HTTPException):
             "data": {},
             "errors": [err_obj],
         }
-        return JSONResponse(status_code=exc.status_code, content=body)
+        return JSONResponse(status_code=exc.status_code, content=body, headers=_cors_headers_for_request(request))
     # Fallback for legacy string detail
     body = {
         "meta": {"request_id": rid, "as_of": datetime.now(UTC).isoformat().replace("+00:00", "Z")},
         "data": {},
         "errors": [{"code": "http_error", "message": str(detail)}],
     }
-    return JSONResponse(status_code=exc.status_code, content=body)
+    return JSONResponse(status_code=exc.status_code, content=body, headers=_cors_headers_for_request(request))
 
 
 @app.middleware("http")
@@ -181,15 +249,18 @@ async def metrics():
 async def ready():
     """Readiness: 200 when DB is ready to serve. No auth."""
     try:
-        from sentiment_api.db.pool import get_pool
+        from sentiment_api.db.pool import get_pool, ensure_pool
         pool = get_pool()
         if pool is None:
-            return Response(status_code=503, content="Pool not initialized")
+            try:
+                pool = await ensure_pool(get_settings().database_url)
+            except Exception as e:
+                return Response(status_code=503, content=f"DB not ready: {e!s}")
         async with pool.acquire() as conn:
             await conn.fetchval("SELECT 1")
         return Response(status_code=200, content="ok")
-    except Exception:
-        return Response(status_code=503, content="DB not ready")
+    except Exception as e:
+        return Response(status_code=503, content=f"DB not ready: {e!s}")
 
 
 # -----------------------------------------------------------------------------
@@ -201,10 +272,10 @@ async def health():
     checks = []
     settings = get_settings()
 
-    # DB check
+    # DB check (lazy-init pool if lifespan init failed, e.g. Postgres not ready at startup)
     try:
         from sentiment_api.db.pool import ensure_pool
-        pool = await ensure_pool()
+        pool = await ensure_pool(settings.database_url)
         async with pool.acquire() as conn:
             await conn.fetchval("SELECT 1")
         checks.append({"name": "postgres", "status": "ok", "details": {}})
@@ -256,7 +327,8 @@ async def health():
         else:
             from openai import OpenAI
             client = OpenAI(api_key=key)
-            client.models.list(limit=1)
+            # Validate key: list() has no limit in current client; consume one item
+            next(iter(client.models.list()), None)
             checks.append({"name": "openai", "status": "ok", "details": {}})
     except Exception as e:
         err_str = str(e)
@@ -303,13 +375,19 @@ async def get_status():
                 )
                 if row:
                     ingestion_status = "ok" if row["status"] == "ok" else "degraded"
-                # Allocation: recent summarize run in last 30 min
-                row = await conn.fetchrow(
+                # Allocation: any successful summarize in last 30 min = ok; else if any failed = degraded
+                ok_row = await conn.fetchrow(
+                    """SELECT 1 FROM runs WHERE run_type = 'summarize' AND status = 'ok'
+                       AND started_at > now() - interval '30 minutes' LIMIT 1"""
+                )
+                any_row = await conn.fetchrow(
                     """SELECT status FROM runs WHERE run_type = 'summarize' AND started_at > now() - interval '30 minutes'
                        ORDER BY started_at DESC LIMIT 1"""
                 )
-                if row:
-                    allocation_status = "ok" if row["status"] == "ok" else "degraded"
+                if ok_row:
+                    allocation_status = "ok"
+                elif any_row:
+                    allocation_status = "degraded"
     except Exception as ex:
         import logging as _log
         _log.getLogger("sentiment_api").debug("Status runs query failed: %s", ex)
@@ -613,8 +691,8 @@ async def list_clusters(
         rows = []
     data = []
     for r in rows:
-        imp = r["impact"] or {}
-        tone = r["tone"] or {}
+        imp = _ensure_dict(r.get("impact"))
+        tone = _ensure_dict(r.get("tone"))
         data.append({
             "cluster_id": r["cluster_id"],
             "first_seen": r["first_seen"].isoformat().replace("+00:00", "Z") if r["first_seen"] else None,
@@ -670,8 +748,8 @@ async def get_cluster_by_id(
         row = None
     if not row:
         raise HTTPException(status_code=404, detail="Cluster not found")
-    imp = row["impact"] or {}
-    tone = row["tone"] or {}
+    imp = _ensure_dict(row.get("impact"))
+    tone = _ensure_dict(row.get("tone"))
     cluster_obj = {
         "cluster_id": row["cluster_id"],
         "first_seen": row["first_seen"].isoformat().replace("+00:00", "Z") if row["first_seen"] else None,
@@ -1312,7 +1390,7 @@ async def list_sources(
             status_code=503,
             content={
                 "meta": meta(),
-                "data": [],
+                "data": {"sources": []},
                 "errors": [error_detail("REGISTRY_UNAVAILABLE", "Source registry could not be loaded")],
             },
         )
@@ -1321,7 +1399,7 @@ async def list_sources(
         sources = [s for s in sources if s.type in types]
     cred_map = {"official": "official", "reputable_media": "reputable_media", "local_media": "local_media", "dataset": "dataset", "user_added": "user_added"}
     lic_map = {"open": "open", "key_required": "key_required", "paid": "paid", "restricted": "restricted"}
-    data = [
+    items = [
         {
             "source_id": s.source_id,
             "name": s.name,
@@ -1333,7 +1411,7 @@ async def list_sources(
     ]
     return {
         "meta": meta(),
-        "data": data,
+        "data": {"sources": items},
         "errors": [],
     }
 
@@ -1577,26 +1655,64 @@ async def admin_ops(
                 data["queues"][name] = 0
         data["queues_total"] = sum(int(v or 0) for v in data["queues"].values())
 
-        worker_hb = _parse_ts(await r.get("sentiment_api:ops:worker_heartbeat"))
         daemon_hb = _parse_ts(await r.get("sentiment_api:ops:daemon_heartbeat"))
-        worker_last_job = await r.hgetall("sentiment_api:ops:worker_last_job")
-        worker_counts_raw = await r.hgetall("sentiment_api:ops:worker_counts")
         daemon_last_cycle_raw = await r.get("sentiment_api:ops:daemon_last_cycle")
 
-        worker_counts = {k: int(v) for k, v in (worker_counts_raw or {}).items() if v is not None}
+        # Per-worker keys (sentiment_api:ops:worker:{id}) for worker list + work assignment
+        worker_keys = await r.keys("sentiment_api:ops:worker:*") or []
+        workers_list: list[dict] = []
+        for key in worker_keys:
+            try:
+                raw = await r.get(key)
+                if not raw:
+                    continue
+                payload = json.loads(raw)
+                wid = key.replace("sentiment_api:ops:worker:", "")
+                last_seen = _parse_ts(payload.get("last_seen"))
+                workers_list.append({
+                    "id": wid,
+                    "last_seen": _to_iso(last_seen),
+                    "age_sec": _age_sec(last_seen),
+                    "last_job": payload.get("last_job") or {},
+                    "counts": {k: int(v) for k, v in (payload.get("counts") or {}).items()},
+                })
+            except (json.JSONDecodeError, TypeError):
+                continue
+        data["workers"] = workers_list
+        # Aggregate heartbeat for backward compatibility (from workers or legacy single key)
+        worker_hb = None
+        worker_last_job = {}
+        worker_counts = {}
+        if workers_list:
+            worker_hb = max(
+                (_parse_ts(w.get("last_seen")) for w in workers_list if w.get("last_seen")),
+                default=None,
+            )
+            # Most recent last_job by "at"
+            by_at = [(w.get("last_job") or {}, w.get("last_job", {}).get("at") or "") for w in workers_list]
+            worker_last_job = max(by_at, key=lambda x: x[1])[0] if by_at else {}
+            for w in workers_list:
+                for k, v in (w.get("counts") or {}).items():
+                    worker_counts[k] = worker_counts.get(k, 0) + v
+        else:
+            worker_hb = _parse_ts(await r.get("sentiment_api:ops:worker_heartbeat"))
+            worker_last_job = await r.hgetall("sentiment_api:ops:worker_last_job") or {}
+            worker_counts_raw = await r.hgetall("sentiment_api:ops:worker_counts") or {}
+            worker_counts = {k: int(v) for k, v in worker_counts_raw.items() if v is not None}
+
+        data["heartbeats"]["worker"] = {
+            "last_seen": _to_iso(worker_hb),
+            "age_sec": _age_sec(worker_hb),
+            "last_job": worker_last_job,
+            "counts": worker_counts,
+        }
+
         daemon_last_cycle = None
         if daemon_last_cycle_raw:
             try:
                 daemon_last_cycle = json.loads(daemon_last_cycle_raw)
             except json.JSONDecodeError:
                 daemon_last_cycle = None
-
-        data["heartbeats"]["worker"] = {
-            "last_seen": _to_iso(worker_hb),
-            "age_sec": _age_sec(worker_hb),
-            "last_job": worker_last_job or {},
-            "counts": worker_counts,
-        }
         data["heartbeats"]["daemon"] = {
             "last_seen": _to_iso(daemon_hb),
             "age_sec": _age_sec(daemon_hb),

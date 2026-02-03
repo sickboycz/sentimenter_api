@@ -5,8 +5,8 @@ This document describes the **2-tier retrieval** design: cheap Tier A (hybrid ve
 ## Why 2-Tier
 
 - **Tier A (384/768 dim)**: Store all chunks with a small embedding + BM25 text. Cheap, scalable hybrid retrieval returns top-N candidates (e.g. 200).
-- **Tier B (3072 dim)**: Re-embed only the query and those candidates with a large model at query time. Expensive but over a small set; cache candidate vectors by `(model_id, text_hash)` so repeated candidates don’t re-embed.
-- **Result**: No 3072-dim vectors in Weaviate; “big-model” semantic precision only where it matters (top candidates).
+- **Tier B (768 dim)**: Re-embed only the query and those candidates with a large model at query time. Expensive but over a small set; cache candidate vectors by `(model_id, text_hash)` so repeated candidates don’t re-embed.
+- **Result**: Tier B 768-dim; “big-model” semantic precision only where it matters (top candidates).
 
 ## Design Overview
 
@@ -19,7 +19,7 @@ This document describes the **2-tier retrieval** design: cheap Tier A (hybrid ve
    - **Q1 – Candidate retrieval (cheap)**  
      Hybrid in Weaviate: vector search (Tier A query embedding) + BM25 on text, filters (time, tickers, source, language). Return top-N (e.g. 200).
    - **Q2 – Tier B rerank (expensive, small set)**  
-     Re-embed query with Tier B (3072). For each candidate: get Tier B vector from cache (`model_id`, `text_hash`) or embed and cache. Cosine similarity with query Tier B vector. Combine with configurable weights (tierA, bm25, tierB, cross). Return top rerank_n (e.g. 80).
+     Re-embed query with Tier B (768). For each candidate: get Tier B vector from cache (`model_id`, `text_hash`) or embed and cache. Cosine similarity with query Tier B vector. Combine with configurable weights (tierA, bm25, tierB, cross). Return top rerank_n (e.g. 80).
    - **Q3 (optional)**  
      Cross-encoder rerank on final M (e.g. 20) – not implemented in initial version.
 
@@ -32,7 +32,7 @@ This document describes the **2-tier retrieval** design: cheap Tier A (hybrid ve
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `RETRIEVAL_TIERA_MODEL_ID` | `openai:text-embedding-3-small` | Tier A embedding (384/768 dim). |
-| `RETRIEVAL_TIERB_MODEL_ID` | `openai:text-embedding-3-large` | Tier B rerank (3072 dim). |
+| `RETRIEVAL_TIERB_MODEL_ID` | `openai:text-embedding-3-small:768` | Tier B rerank (768 dim). |
 | `RETRIEVAL_TOPN` | 200 | Candidate count from hybrid search. |
 | `RETRIEVAL_RERANKN` | 80 | Top-N after Tier B rerank. |
 | `RETRIEVAL_ALPHA` | 0.5 | Hybrid weight: 0 = BM25 only, 1 = vector only. |

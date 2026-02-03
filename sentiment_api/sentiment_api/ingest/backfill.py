@@ -78,6 +78,17 @@ async def run_backfill(from_date: date, to_date: date, source_id: str | None = N
                     elif not pub:
                         await queue.rpush(QUEUE_INGEST, json.dumps(_serialize_item(item)))
                         count += 1
+            elif src.type == "api":
+                fallback = getattr(src, "fallback_page_url", None) or (src.config or {}).get("fallback_page_url")
+                if fallback:
+                    for item in scrape.collect(src, fallback, respect_robots=respect_robots):
+                        pub = item.published_at
+                        if pub and from_date <= pub.date() <= to_date:
+                            await queue.rpush(QUEUE_INGEST, json.dumps(_serialize_item(item)))
+                            count += 1
+                        elif not pub:
+                            await queue.rpush(QUEUE_INGEST, json.dumps(_serialize_item(item)))
+                            count += 1
         except Exception as e:
             logger.warning("Backfill %s failed: %s", src.source_id, e)
         total += count

@@ -19,7 +19,7 @@ def call_chat(
     temperature: float = 0.1,
 ) -> str:
     """Call OpenAI Chat Completions with escalation: try models in order until success."""
-    key = os.environ.get("OPENAI_API_KEY")
+    key = get_settings().openai_api_key or os.environ.get("OPENAI_API_KEY")
     if not key:
         return ""
     models = models or getattr(get_settings(), "model_escalation", None) or DEFAULT_ESCALATION
@@ -28,14 +28,23 @@ def call_chat(
         try:
             from openai import OpenAI
             client = OpenAI(api_key=key)
-            resp = client.chat.completions.create(
-                model=model,
-                messages=[
+            kwargs = {
+                "model": model,
+                "messages": [
                     {"role": "system", "content": system},
                     {"role": "user", "content": user},
                 ],
-                temperature=temperature,
-            )
+                "temperature": temperature,
+            }
+            try:
+                resp = client.chat.completions.create(**kwargs)
+            except Exception as temp_err:
+                err_str = str(temp_err).lower()
+                if "temperature" in err_str and "unsupported" in err_str:
+                    kwargs["temperature"] = 1.0
+                    resp = client.chat.completions.create(**kwargs)
+                else:
+                    raise
             choices = getattr(resp, "choices", None) or []
             out = (choices[0].message.content or "").strip() if choices else ""
             if out:

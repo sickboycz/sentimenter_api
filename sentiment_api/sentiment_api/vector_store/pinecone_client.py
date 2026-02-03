@@ -4,7 +4,7 @@ from sentiment_api.config import get_settings
 
 
 class PineconeVectorStore:
-    """Pinecone-backed vector store. Requires PINECONE_API_KEY, PINECONE_INDEX, dimension 3072, metric cosine."""
+    """Pinecone-backed vector store. Requires PINECONE_API_KEY, PINECONE_INDEX, dimension 768 (Tier B), metric cosine."""
 
     def __init__(self):
         settings = get_settings()

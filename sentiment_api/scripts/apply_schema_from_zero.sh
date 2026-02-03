@@ -6,7 +6,7 @@
 #   Or: docker compose -f docker-compose.yml -f docker-compose.production.yml exec -T postgres \
 #         psql -U sentiment -d sentiment -f - < migrations/00_base_schema.sql
 #
-# Order: 00_base_schema.sql → v1.1_add_universes.sql → v1.1_add_industries.sql → v1.1_asset_targeting_audit.sql → v1.1_retention_tombstone.sql
+# Order: 00_base_schema.sql → v1.1_add_universes.sql → v1.1_add_industries.sql → v1.1_asset_targeting_audit.sql → v1.1_retention_tombstone.sql → v1.2_embedding_dim_768.sql
 # Safe to re-run (IF NOT EXISTS / ON CONFLICT). Requires: postgres container running.
 
 set -e
@@ -17,9 +17,9 @@ MIGRATIONS_DIR="$COMPOSE_DIR/migrations"
 
 cd "$COMPOSE_DIR"
 
-# Detect compose files (default: base + production if present)
+# Detect compose files (base; add production only when production env exists)
 COMPOSE_FILES="-f docker-compose.yml"
-[[ -f docker-compose.production.yml ]] && COMPOSE_FILES="$COMPOSE_FILES -f docker-compose.production.yml"
+[[ -f docker-compose.production.yml ]] && [[ -f /etc/sentimenter/env ]] && COMPOSE_FILES="$COMPOSE_FILES -f docker-compose.production.yml"
 
 run_psql() {
   docker compose $COMPOSE_FILES exec -T postgres psql -U sentiment -d sentiment "$@"
@@ -40,5 +40,9 @@ for f in \
     echo "[!] Missing: $f"; exit 1
   fi
 done
+if [[ -f "$MIGRATIONS_DIR/v1.2_embedding_dim_768.sql" ]]; then
+  echo "[*] Applying v1.2_embedding_dim_768.sql..."
+  run_psql -f - < "$MIGRATIONS_DIR/v1.2_embedding_dim_768.sql" || { echo "[!] Failed: v1.2_embedding_dim_768.sql"; exit 1; }
+fi
 
 echo "[+] Schema from zero applied successfully."

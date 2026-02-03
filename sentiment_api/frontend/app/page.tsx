@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import { Shell } from "@/components/Shell";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Gauge } from "@/components/charts/Gauge";
@@ -16,6 +17,34 @@ import { useMoodNow, useIntradayIndex, useImpactMarkets, useImpactSectors, useIm
 
 function fmtPct(x: number) {
   return `${Math.round(x * 100)}%`;
+}
+
+function CardContent({
+  isLoading,
+  isError,
+  error,
+  onRetry,
+  children,
+  loadingFallback,
+}: {
+  isLoading: boolean;
+  isError: boolean;
+  error: unknown;
+  onRetry: () => void;
+  children: React.ReactNode;
+  loadingFallback: React.ReactNode;
+}) {
+  if (isError) {
+    const msg = error instanceof Error ? error.message : "Request failed";
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-6 text-center">
+        <p className="text-sm opacity-80">{msg}</p>
+        <Button variant="ghost" onClick={onRetry}>Retry</Button>
+      </div>
+    );
+  }
+  if (isLoading) return <>{loadingFallback}</>;
+  return <>{children}</>;
 }
 
 export default function OverviewPage() {
@@ -65,9 +94,13 @@ export default function OverviewPage() {
             {mood.data?.sentiment ?? "—"}
           </Badge>
         }>
-          {!mood.data ? (
-            <Skeleton className="h-[210px]" />
-          ) : (
+          <CardContent
+            isLoading={mood.isLoading}
+            isError={mood.isError}
+            error={mood.error}
+            onRetry={() => mood.refetch()}
+            loadingFallback={<Skeleton className="h-[210px]" />}
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Gauge value={gaugeValue} label="Mood" sublabel={`confidence ${fmtPct(mood.data?.confidence ?? 0)}`} />
               <div className="space-y-2">
@@ -84,15 +117,33 @@ export default function OverviewPage() {
                 </div>
               </div>
             </div>
-          )}
+          </CardContent>
         </Card>
 
         <Card className="xl:col-span-5" title="Intraday Sentiment Index" subtitle="Index vs volatility pressure.">
-          {lineData.length ? <LineChartCard data={lineData} xKey="t" yKey="idx" y2Key="vol" height={210} /> : <Skeleton className="h-[210px]" />}
+          <CardContent
+            isLoading={intraday.isLoading}
+            isError={intraday.isError}
+            error={intraday.error}
+            onRetry={() => intraday.refetch()}
+            loadingFallback={<Skeleton className="h-[210px]" />}
+          >
+            {lineData.length ? (
+              <LineChartCard data={lineData} xKey="t" yKey="idx" y2Key="vol" height={210} />
+            ) : (
+              <div className="flex items-center justify-center h-[210px] text-sm opacity-60">No index data yet</div>
+            )}
+          </CardContent>
         </Card>
 
         <Card className="xl:col-span-3" title="Market Impacts" subtitle="Where the shock concentrates.">
-          {!markets.data ? <Skeleton className="h-[210px]" /> : (
+          <CardContent
+            isLoading={markets.isLoading}
+            isError={markets.isError}
+            error={markets.error}
+            onRetry={() => markets.refetch()}
+            loadingFallback={<Skeleton className="h-[210px]" />}
+          >
             <div className="space-y-2 text-sm">
               {(markets.data?.top_markets ?? []).slice(0, 6).map((m: any) => (
                 <div key={m.market_id} className="flex items-start justify-between gap-3">
@@ -105,18 +156,36 @@ export default function OverviewPage() {
               ))}
               <div className="text-xs opacity-60 mt-2">method {markets.data?.methodology_version}</div>
             </div>
-          )}
+          </CardContent>
         </Card>
       </div>
 
       {/* Row 2 */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-[var(--grid-gap)]">
         <Card className="xl:col-span-4" title="Top News Events" subtitle="Volume proxy (last ~24m).">
-          {bars.length ? <BarChartCard data={bars} xKey="t" yKey="v" height={180} /> : <Skeleton className="h-[180px]" />}
+          <CardContent
+            isLoading={intraday.isLoading}
+            isError={intraday.isError}
+            error={intraday.error}
+            onRetry={() => intraday.refetch()}
+            loadingFallback={<Skeleton className="h-[180px]" />}
+          >
+            {bars.length ? (
+              <BarChartCard data={bars} xKey="t" yKey="v" height={180} />
+            ) : (
+              <div className="flex items-center justify-center h-[180px] text-sm opacity-60">No volume data yet</div>
+            )}
+          </CardContent>
         </Card>
 
         <Card className="xl:col-span-4" title="Sector Sentiment Performance" subtitle="Ranked heat (top).">
-          {!sectors.data ? <Skeleton className="h-[180px]" /> : (
+          <CardContent
+            isLoading={sectors.isLoading}
+            isError={sectors.isError}
+            error={sectors.error}
+            onRetry={() => sectors.refetch()}
+            loadingFallback={<Skeleton className="h-[180px]" />}
+          >
             <Table>
               <THead>
                 <TR hover={false}>
@@ -137,29 +206,55 @@ export default function OverviewPage() {
                 ))}
               </TBody>
             </Table>
-          )}
+          </CardContent>
         </Card>
 
         <Card className="xl:col-span-4" title="Sector Heatmap" subtitle="At-a-glance concentration.">
-          {!sectors.data ? <Skeleton className="h-[180px]" /> : <SectorHeatmap sectors={sectors.data.sectors} />}
+          <CardContent
+            isLoading={sectors.isLoading}
+            isError={sectors.isError}
+            error={sectors.error}
+            onRetry={() => sectors.refetch()}
+            loadingFallback={<Skeleton className="h-[180px]" />}
+          >
+            <SectorHeatmap sectors={sectors.data?.sectors ?? []} />
+          </CardContent>
         </Card>
       </div>
 
       {/* Row 3 */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-[var(--grid-gap)]">
         <Card className="xl:col-span-7" title="Sector Impact Trend" subtitle="Impact pressure (demo series).">
-          {lineData.length ? <AreaChartCard data={lineData} xKey="t" yKey="idx" height={220} /> : <Skeleton className="h-[220px]" />}
+          <CardContent
+            isLoading={intraday.isLoading}
+            isError={intraday.isError}
+            error={intraday.error}
+            onRetry={() => intraday.refetch()}
+            loadingFallback={<Skeleton className="h-[220px]" />}
+          >
+            {lineData.length ? (
+              <AreaChartCard data={lineData} xKey="t" yKey="idx" height={220} />
+            ) : (
+              <div className="flex items-center justify-center h-[220px] text-sm opacity-60">No trend data yet</div>
+            )}
+          </CardContent>
         </Card>
 
         <Card className="xl:col-span-5" title="Top Gainers & Losers" subtitle="Ticker impacts (latest).">
-          {!tickers.data ? <Skeleton className="h-[220px]" /> : (
+          <CardContent
+            isLoading={tickers.isLoading}
+            isError={tickers.isError}
+            error={tickers.error}
+            onRetry={() => tickers.refetch()}
+            loadingFallback={<Skeleton className="h-[220px]" />}
+          >
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <div className="text-xs opacity-70 mb-2">Winners</div>
                 {(tickers.data?.winners ?? []).slice(0, 10).map((t: any) => (
                   <div key={t.symbol} className="flex justify-between">
                     <span className="font-medium">{t.symbol}</span>
-                    <span className="opacity-80">+{Math.round(t.expected_return_bps)}</span>
+                    <span className="opacity-80">+{Math.round(t.expected_return_bps ?? 0)}</span>
                   </div>
                 ))}
               </div>
@@ -168,41 +263,51 @@ export default function OverviewPage() {
                 {(tickers.data?.losers ?? []).slice(0, 10).map((t: any) => (
                   <div key={t.symbol} className="flex justify-between">
                     <span className="font-medium">{t.symbol}</span>
-                    <span className="opacity-80">{Math.round(t.expected_return_bps)}</span>
+                    <span className="opacity-80">{Math.round(t.expected_return_bps ?? 0)}</span>
                   </div>
                 ))}
               </div>
               <div className="col-span-2 text-xs opacity-60 mt-2">method {tickers.data?.methodology_version}</div>
             </div>
-          )}
+          </CardContent>
         </Card>
       </div>
 
       {/* Row 4 */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-[var(--grid-gap)]">
         <Card className="xl:col-span-12" title="Latest High-Impact Clusters" subtitle="Evidence-first, drilldown on click.">
-          {!clusters.data ? <Skeleton className="h-[180px]" /> : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-              {(clusters.data ?? []).slice(0, 6).map((c: any) => (
-                <a key={c.cluster_id} href={`/clusters/${c.cluster_id}`} className="glass glass-hover p-4 block">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="font-semibold leading-snug">{c.headline_en}</div>
-                    <Badge tone={c.impact?.expected_direction === "RiskOff" ? "bad" : c.impact?.expected_direction === "RiskOn" ? "good" : "neutral"}>
-                      {c.impact?.impact_level} • {c.impact?.expected_direction}
-                    </Badge>
-                  </div>
-                  <div className="text-sm opacity-85 mt-2">
-                    {(c.summary_bullets_en ?? []).slice(0, 3).map((b: string, i: number) => (
-                      <div key={i}>• {b}</div>
-                    ))}
-                  </div>
-                  <div className="text-xs opacity-70 mt-2">
-                    {c.source_count} sources • conf {fmtPct(c.impact?.confidence ?? 0)}
-                  </div>
-                </a>
-              ))}
-            </div>
-          )}
+          <CardContent
+            isLoading={clusters.isLoading}
+            isError={clusters.isError}
+            error={clusters.error}
+            onRetry={() => clusters.refetch()}
+            loadingFallback={<Skeleton className="h-[180px]" />}
+          >
+            {(clusters.data ?? []).length === 0 ? (
+              <div className="flex items-center justify-center h-[180px] text-sm opacity-60">No clusters yet</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {(clusters.data ?? []).slice(0, 6).map((c: any) => (
+                  <a key={c.cluster_id} href={`/clusters/${c.cluster_id}`} className="glass glass-hover p-4 block">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="font-semibold leading-snug">{c.headline_en}</div>
+                      <Badge tone={c.impact?.expected_direction === "RiskOff" ? "bad" : c.impact?.expected_direction === "RiskOn" ? "good" : "neutral"}>
+                        {c.impact?.impact_level} • {c.impact?.expected_direction}
+                      </Badge>
+                    </div>
+                    <div className="text-sm opacity-85 mt-2">
+                      {(c.summary_bullets_en ?? []).slice(0, 3).map((b: string, i: number) => (
+                        <div key={i}>• {b}</div>
+                      ))}
+                    </div>
+                    <div className="text-xs opacity-70 mt-2">
+                      {c.source_count} sources • conf {fmtPct(c.impact?.confidence ?? 0)}
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+          </CardContent>
         </Card>
       </div>
     </Shell>

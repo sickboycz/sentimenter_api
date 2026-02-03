@@ -1,4 +1,4 @@
-"""Weaviate vector store — local self-hosted, 3072-dim (OpenAI text-embedding-3-large)."""
+"""Weaviate vector store — local self-hosted, 768-dim (Tier B: text-embedding-3-small:768)."""
 
 import asyncio
 import logging
@@ -8,12 +8,12 @@ from sentiment_api.config import get_settings
 
 logger = logging.getLogger("sentiment_api.vector_store.weaviate")
 
-# OpenAI text-embedding-3-large dimension
-VECTOR_DIMENSION = 3072
+# Tier B dimension (text-embedding-3-small:768)
+VECTOR_DIMENSION = 768
 
 
 class WeaviateVectorStore:
-    """Weaviate-backed vector store (local). Collection: self-provided vectors, dim 3072."""
+    """Weaviate-backed vector store (local). Collection: self-provided vectors, dim 768."""
 
     def __init__(self):
         settings = get_settings()
@@ -60,7 +60,7 @@ class WeaviateVectorStore:
         return self._client
 
     def _ensure_collection(self):
-        """Create collection if not exists: self-provided vectors (3072 dim from first insert)."""
+        """Create collection if not exists: self-provided vectors (768 dim from first insert)."""
         client = self._get_client()
         if self._collection is not None:
             return
@@ -69,7 +69,7 @@ class WeaviateVectorStore:
             if client.collections.exists(self._class):
                 self._collection = client.collections.get(self._class)
                 return
-            # Self-provided vectors (OpenAI text-embedding-3-large = 3072 dim); Weaviate infers dim from first insert
+            # Self-provided vectors (Tier B = 768 dim); Weaviate infers dim from first insert
             client.collections.create(
                 name=self._class,
                 vector_config=Configure.Vectors.self_provided(),

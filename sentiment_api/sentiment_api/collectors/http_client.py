@@ -27,6 +27,17 @@ def _is_private_or_reserved(ip: str) -> bool:
         return True
 
 
+def _looks_like_ip_literal(host: str) -> bool:
+    """True if host looks like an IPv4 or IPv6 literal (so ip_address() won't raise)."""
+    if not host:
+        return False
+    # IPv4: digits and dots only; IPv6: hex digits, colons, possibly brackets
+    stripped = host.strip("[]")
+    if ":" in stripped:
+        return all(c in "0123456789abcdefABCDEF:" for c in stripped)
+    return all(c in "0123456789." for c in stripped)
+
+
 def _block_ssrf_host(host: str) -> None:
     """Raise ValueError if host is private/reserved or resolves to such (SSRF block)."""
     if not host or host.startswith("."):
@@ -36,17 +47,17 @@ def _block_ssrf_host(host: str) -> None:
         raise ValueError("SSRF: localhost not allowed")
     if host_lower == "::1":
         raise ValueError("SSRF: loopback not allowed")
-    # Host as IP literal
-    try:
-        addr = ipaddress.ip_address(host)
-        if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved:
-            raise ValueError(f"SSRF: private/reserved IP not allowed: {host}")
-        return
-    except ValueError as e:
-        if "SSRF:" in str(e):
-            raise
-    # Not an IP; resolve hostname
-    # Resolve hostname
+    # If host is an IP literal, check it directly
+    if _looks_like_ip_literal(host):
+        try:
+            addr = ipaddress.ip_address(host)
+            if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved:
+                raise ValueError(f"SSRF: private/reserved IP not allowed: {host}")
+            return
+        except ValueError as e:
+            if "SSRF:" in str(e):
+                raise
+    # Hostname: resolve and check each resolved IP
     try:
         addrinfos = socket.getaddrinfo(host, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
     except socket.gaierror as exc:

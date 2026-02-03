@@ -24,6 +24,14 @@ async def get_queue(redis_url: str) -> redis.Redis:
     return _default_client
 
 
+async def close_queue() -> None:
+    """Close the default Redis client. Call from tests/teardown to avoid ResourceWarnings."""
+    global _default_client
+    if _default_client is not None:
+        await _default_client.aclose()
+        _default_client = None
+
+
 class JobQueue:
     """Simple FIFO job queue over Redis list."""
 
@@ -43,3 +51,14 @@ class JobQueue:
 
     async def length(self) -> int:
         return await self.client.llen(self.queue_name)
+
+
+async def get_queue_lengths(client: redis.Redis, queue_names: list[str]) -> dict[str, int]:
+    """Return current length for each queue (one Redis round-trip). Used for queue-depth work division."""
+    if not queue_names:
+        return {}
+    pipe = client.pipeline()
+    for name in queue_names:
+        pipe.llen(name)
+    values = await pipe.execute()
+    return dict(zip(queue_names, (int(v) for v in values)))

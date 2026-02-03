@@ -119,7 +119,14 @@ fi
 check_dir "${VOLUMES_DIR}/postgres/data" "postgres" "700" "postgres/data"
 check_dir "${VOLUMES_DIR}/redis" "sentimenter" "" "redis"
 check_dir "${VOLUMES_DIR}/weaviate" "sentimenter" "" "weaviate"
-check_dir "${VOLUMES_DIR}/artifacts" "sentimenter" "" "artifacts"
+check_dir "${VOLUMES_DIR}/artifacts" "sentimenter" "755" "artifacts"
+# Ensure universe CSV files in artifacts are readable (644)
+for f in sp500.csv nasdaq100.csv sectors.csv industries.csv; do
+  p="${VOLUMES_DIR}/artifacts/$f"
+  if [ -f "$p" ]; then
+    check_file "$p" "644" "artifacts/$f"
+  fi
+done
 check_dir "${VOLUMES_DIR}/logs" "sentimenter" "" "logs"
 check_dir "${VOLUMES_DIR}/reports" "sentimenter" "" "reports"
 check_dir "${VOLUMES_DIR}/embedding_cache" "sentimenter" "" "embedding_cache"

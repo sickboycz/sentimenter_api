@@ -12,12 +12,7 @@ _api_key_query = APIKeyQuery(name="api_key", auto_error=False)
 async def get_api_key(
     header_key: Annotated[str | None, Depends(_api_key_header)],
     query_key: Annotated[str | None, Depends(_api_key_query)],
-) -> str:
-    """Extract API key from header or query param (Moodix-compatible)."""
-    key = header_key or query_key
-    if not key or len(key) < 16:
-        raise HTTPException(
-            status_code=401,
-            detail={"code": "auth_missing_api_key", "message": "Missing API key. Provide X-API-Key header or api_key query param."},
-        )
-    return key
+) -> str | None:
+    """Extract API key from header or query param if provided. None when no key (auth optional)."""
+    key = (header_key or query_key or "").strip()
+    return key if len(key) >= 16 else None

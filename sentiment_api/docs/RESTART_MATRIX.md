@@ -67,3 +67,20 @@ postgres (healthy) ──┬──> redis (healthy)
 - **`/v1/health`** — Full dependency check (postgres, redis, registry, etc.). Used by API healthcheck.
 - **`/ready`** — Minimal readiness (DB pool). Used for Kubernetes-style readiness probes.
 - **Healthchecks** — Docker uses these to mark container healthy; `depends_on: condition: service_healthy` blocks until pass.
+
+---
+
+## 5) Scaling workers
+
+Workers consume jobs from Redis with **BLPOP** (each job is delivered to exactly one worker). Running multiple workers is safe and increases throughput.
+
+**Normal mode (no debug overlay):**
+
+```bash
+cd sentiment_api
+docker compose up -d --scale worker=3
+```
+
+Use any number (e.g. `worker=2`, `worker=4`). Each worker shares the same queues; Redis distributes jobs.
+
+**With debug overlay:** By default the worker debug port is not published so you can scale workers. To attach to one worker in Cursor, run with the worker-attach override and no scale: `docker compose -f docker-compose.yml -f docker-compose.debug.yml -f docker-compose.debug-worker-attach.yml up -d` (then attach to 127.0.0.1:5679).

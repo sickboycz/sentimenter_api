@@ -21,7 +21,7 @@ packs:
   sanctions:       { enabled: true }
   conflict_humanitarian: { enabled: true }
   energy_nuclear:  { enabled: true }
-  optional_media_rss: { enabled: false }
+  optional_media_rss: { enabled: true }
 
 sources:
   - source_id: gdelt_doc_v2
@@ -40,11 +40,11 @@ sources:
     topics: ["macro", "geopolitics", "politics", "economy", "energy", "trade", "conflict", "sanctions"]
     query_profiles:
       - profile_id: "macro_global"
-        query: "inflation OR CPI OR central bank OR interest rates OR recession OR GDP OR PMI"
+        query: "(inflation OR CPI OR central bank OR interest rates OR recession OR GDP OR PMI)"
       - profile_id: "geopolitics_global"
-        query: "sanctions OR ceasefire OR missile OR invasion OR election OR coup OR border OR NATO OR UN Security Council"
+        query: "(sanctions OR ceasefire OR missile OR invasion OR election OR coup OR border OR NATO OR UN Security Council)"
       - profile_id: "energy_global"
-        query: "oil OR gas OR OPEC OR refinery OR pipeline OR tanker OR LNG OR nuclear"
+        query: "(oil OR gas OR OPEC OR refinery OR pipeline OR tanker OR LNG OR nuclear)"
 
   - source_id: us_fed_rss
     name: "Federal Reserve Board RSS"
@@ -65,6 +65,7 @@ sources:
     enabled: true
     respect_robots_txt: false
     feed_url: "https://www.bls.gov/feed/"
+    fallback_page_url: "https://www.bls.gov/bls/newsrels.htm"
     credibility_tier: official
     license_class: open
     regions: ["US"]
@@ -160,6 +161,7 @@ sources:
     enabled: true
     respect_robots_txt: false
     feed_url: "https://www.consilium.europa.eu/en/about-site/rss/"
+    fallback_page_url: "https://www.consilium.europa.eu/en/press/"
     credibility_tier: official
     license_class: open
     regions: ["EU"]
@@ -192,8 +194,9 @@ sources:
     name: "World Bank News API"
     pack: official_macro
     type: api
-    enabled: false
+    enabled: true
     base_url: "https://www.worldbank.org/en/news"
+    fallback_page_url: "https://www.worldbank.org/en/news"
     credibility_tier: official
     license_class: open
     regions: ["GLOBAL"]
@@ -231,6 +234,7 @@ sources:
     enabled: true
     respect_robots_txt: false
     feed_url: "https://www.un.org/en/ga/rss/index.shtml"
+    fallback_page_url: "https://www.un.org/en/ga/"
     credibility_tier: official
     license_class: open
     regions: ["GLOBAL"]
@@ -324,8 +328,9 @@ sources:
     name: "ACLED API"
     pack: conflict_humanitarian
     type: api
-    enabled: false
+    enabled: true
     base_url: "https://api.acleddata.com"
+    fallback_page_url: "https://acleddata.com/"
     credibility_tier: dataset
     license_class: key_required
     regions: ["GLOBAL"]
@@ -338,6 +343,7 @@ sources:
     type: api
     enabled: true
     base_url: "https://ucdp.uu.se/api"
+    fallback_page_url: "https://ucdp.uu.se/"
     credibility_tier: dataset
     license_class: open
     regions: ["GLOBAL"]
@@ -347,8 +353,9 @@ sources:
     name: "ReliefWeb API"
     pack: conflict_humanitarian
     type: api
-    enabled: false
+    enabled: true
     base_url: "https://api.reliefweb.int/v1"
+    fallback_page_url: "https://reliefweb.int/"
     credibility_tier: official
     license_class: key_required
     regions: ["GLOBAL"]
@@ -418,7 +425,7 @@ sources:
     name: "BBC World RSS"
     pack: optional_media_rss
     type: rss
-    enabled: false
+    enabled: true
     feed_url: "https://feeds.bbci.co.uk/news/world/rss.xml"
     credibility_tier: reputable_media
     license_class: open
@@ -429,7 +436,7 @@ sources:
     name: "Al Jazeera RSS"
     pack: optional_media_rss
     type: rss
-    enabled: false
+    enabled: true
     feed_url: "https://www.aljazeera.com/xml/rss/all.xml"
     credibility_tier: reputable_media
     license_class: open
@@ -440,9 +447,403 @@ sources:
     name: "DW RSS"
     pack: optional_media_rss
     type: rss
-    enabled: false
+    enabled: true
     feed_url: "https://rss.dw.com/rdf/rss-en-all"
     credibility_tier: reputable_media
     license_class: open
     regions: ["GLOBAL"]
     topics: ["geopolitics", "politics", "economy"]
+
+  - source_id: ft_rss_world
+    name: "Financial Times World RSS"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    respect_robots_txt: false
+    feed_url: "https://www.ft.com/world?format=rss"
+    fallback_page_url: "https://www.ft.com/world"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["geopolitics", "politics", "economy", "markets"]
+
+  # --- From Docs/news_feeds_master.csv (verified fetch + fallback where set) ---
+  - source_id: european_central_bank_fx_reference_rates_czk
+    name: "European Central Bank - FX reference rates CZK"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.ecb.europa.eu/rss/fxref-czk.html"
+    fallback_page_url: "https://www.ecb.europa.eu/"
+    credibility_tier: official
+    license_class: open
+    regions: ["EU"]
+    topics: ["macro", "rates"]
+
+  - source_id: european_central_bank_press_releases_speeches
+    name: "European Central Bank - Press releases, speeches, interviews"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.ecb.europa.eu/rss/press.html"
+    fallback_page_url: "https://www.ecb.europa.eu/"
+    credibility_tier: official
+    license_class: open
+    regions: ["EU"]
+    topics: ["macro", "rates", "policy"]
+
+  - source_id: federal_reserve_board_all_press_releases
+    name: "Federal Reserve Board - All Press Releases"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.federalreserve.gov/feeds/press_all.xml"
+    fallback_page_url: "https://www.federalreserve.gov/"
+    credibility_tier: official
+    license_class: open
+    regions: ["US"]
+    topics: ["rates", "policy", "macro"]
+
+  - source_id: federal_reserve_board_speeches
+    name: "Federal Reserve Board - Speeches"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.federalreserve.gov/feeds/speeches.xml"
+    fallback_page_url: "https://www.federalreserve.gov/"
+    credibility_tier: official
+    license_class: open
+    regions: ["US"]
+    topics: ["rates", "policy", "macro"]
+
+  - source_id: ministry_for_europe_and_foreign_affairs_actualit
+    name: "Ministry for Europe and Foreign Affairs - Actualités"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.diplomatie.gouv.fr/spip.php?page=backend-fd&lang=en"
+    credibility_tier: official
+    license_class: open
+    regions: ["EU"]
+    topics: ["geopolitics", "diplomacy"]
+
+  - source_id: nasa_breaking_news
+    name: "NASA Breaking News"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.nasa.gov/rss/dyn/breaking_news.rss"
+    credibility_tier: official
+    license_class: open
+    regions: ["US"]
+    topics: ["science", "space"]
+
+  - source_id: sebi_rss_feed
+    name: "SEBI RSS Feed"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.sebi.gov.in/sebirss.xml"
+    credibility_tier: official
+    license_class: open
+    regions: ["IN"]
+    topics: ["markets", "regulation"]
+
+  - source_id: sec_press_releases
+    name: "SEC - Press Releases"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.sec.gov/news/pressreleases.rss"
+    fallback_page_url: "https://www.sec.gov/news/pressreleases"
+    credibility_tier: official
+    license_class: open
+    regions: ["US"]
+    topics: ["markets", "regulation"]
+
+  - source_id: sec_speeches_and_statements
+    name: "SEC - Speeches and Statements"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.sec.gov/news/speeches-statements.rss"
+    fallback_page_url: "https://www.sec.gov/news/speeches-statements"
+    credibility_tier: official
+    license_class: open
+    regions: ["US"]
+    topics: ["markets", "regulation"]
+
+  - source_id: axios
+    name: "Axios"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://api.axios.com/feed/"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["geopolitics", "politics", "economy"]
+
+  - source_id: bbc_news_home
+    name: "BBC News - Home"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "http://feeds.bbci.co.uk/news/rss.xml"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GB"]
+    topics: ["geopolitics", "politics", "economy"]
+
+  - source_id: bbc_news_india
+    name: "BBC News - India"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "http://feeds.bbci.co.uk/news/world/asia/india/rss.xml"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["IN"]
+    topics: ["geopolitics", "politics", "economy"]
+
+  - source_id: bbc_news_science_environment
+    name: "BBC News - Science & Environment"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "http://feeds.bbci.co.uk/news/science_and_environment/rss.xml"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["science", "economy"]
+
+  - source_id: bbc_sport_cricket
+    name: "BBC Sport - Cricket"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "http://feeds.bbci.co.uk/sport/cricket/rss.xml"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GB"]
+    topics: ["sports"]
+
+  - source_id: cnn_com_rss_channel_app_international_edition
+    name: "CNN International Edition"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "http://rss.cnn.com/rss/edition.rss"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["geopolitics", "politics", "economy"]
+
+  - source_id: cnn_com_rss_channel_world
+    name: "CNN World"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "http://rss.cnn.com/rss/edition_world.rss"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["geopolitics", "politics", "economy"]
+
+  - source_id: fox_news
+    name: "FOX News"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "http://feeds.foxnews.com/foxnews/latest"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["US"]
+    topics: ["geopolitics", "politics", "economy"]
+
+  - source_id: france24_com
+    name: "France 24"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.france24.com/en/rss"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["geopolitics", "politics", "economy"]
+
+  - source_id: globalnews_ca
+    name: "Global News Canada"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://globalnews.ca/feed/"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["CA"]
+    topics: ["geopolitics", "politics", "economy"]
+
+  - source_id: world_news_breaking_news_top_stories
+    name: "HuffPost World News"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.huffpost.com/section/world-news/feed"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["US"]
+    topics: ["geopolitics", "politics", "economy"]
+
+  - source_id: world_nation
+    name: "LA Times World & Nation"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.latimes.com/world-nation/rss2.0.xml"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["US"]
+    topics: ["geopolitics", "politics", "economy"]
+
+  - source_id: nyt_top_stories
+    name: "NYT Top Stories"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["US"]
+    topics: ["geopolitics", "politics", "economy"]
+
+  - source_id: nyt_world_news
+    name: "NYT World News"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://rss.nytimes.com/services/xml/rss/nyt/World.xml"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["geopolitics", "politics", "economy"]
+
+  - source_id: nyt_science
+    name: "NYT Science"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://rss.nytimes.com/services/xml/rss/nyt/Science.xml"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["science"]
+
+  - source_id: playbook
+    name: "Politico Playbook"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://rss.politico.com/playbook.xml"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["US"]
+    topics: ["politics", "economy"]
+
+  - source_id: sydney_morning_herald_latest_news
+    name: "Sydney Morning Herald - Latest News"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.smh.com.au/rss/feed.xml"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["AU"]
+    topics: ["geopolitics", "politics", "economy"]
+
+  - source_id: world_news_the_guardian
+    name: "The Guardian World"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.theguardian.com/world/rss"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["geopolitics", "politics", "economy"]
+
+  - source_id: india_the_guardian
+    name: "The Guardian India"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.theguardian.com/world/india/rss"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["IN"]
+    topics: ["geopolitics", "politics", "economy"]
+
+  - source_id: washingtonpost_world
+    name: "Washington Post World"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "http://feeds.washingtonpost.com/rss/world"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["US"]
+    topics: ["geopolitics", "politics", "economy"]
+
+  - source_id: abc_news
+    name: "ABC News Australia"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.abc.net.au/news/feed/1948/rss.xml"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["AU"]
+    topics: ["geopolitics", "politics", "economy"]
+
+  - source_id: cnbc_international
+    name: "CNBC International - Top News"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.cnbc.com/id/100727362/device/rss/rss.html"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets"]
+
+  - source_id: cnbc_us
+    name: "CNBC US Top News"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.cnbc.com/id/100003114/device/rss/rss.html"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["US"]
+    topics: ["economy", "markets"]
+
+  - source_id: investing_com_all_news
+    name: "Investing.com All News"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.investing.com/rss/news.rss"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets"]
+
+  - source_id: breaking_news_on_seeking_alpha
+    name: "Seeking Alpha Breaking News"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://seekingalpha.com/market_currents.xml"
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets"]

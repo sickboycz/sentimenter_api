@@ -1,0 +1,52 @@
+source_id,name,feed_url,fallback_page_url,root_domain,source_type,credibility_tier,status
+european_central_bank_fx_reference_rates_czk,European Central Bank - FX reference rates CZK,https://www.ecb.europa.eu/rss/fxref-czk.html,https://www.ecb.europa.eu/,europa.eu,government,A+,ok
+european_central_bank_press_releases_speeches,"European Central Bank - Press releases, speeches, interviews",https://www.ecb.europa.eu/rss/press.html,https://www.ecb.europa.eu/,europa.eu,government,A+,ok
+federal_reserve_board_all_press_releases,Federal Reserve Board - All Press Releases,https://www.federalreserve.gov/feeds/press_all.xml,https://www.federalreserve.gov/,federalreserve.gov,government,A+,ok
+federal_reserve_board_speeches,Federal Reserve Board - Speeches,https://www.federalreserve.gov/feeds/speeches.xml,https://www.federalreserve.gov/,federalreserve.gov,government,A+,ok
+ministry_for_europe_and_foreign_affairs_actualit,Ministry for Europe and Foreign Affairs - Actualités,https://www.diplomatie.gouv.fr/spip.php?page=backend-fd&lang=en,,gouv.fr,government,A+,ok
+nasa_breaking_news,NASA Breaking News,https://www.nasa.gov/rss/dyn/breaking_news.rss,,nasa.gov,government,A+,ok
+sebi_rss_feed,SEBI RSS Feed,https://www.sebi.gov.in/sebirss.xml,,sebi.gov.in,government,A+,ok
+sec_press_releases,SEC - Press Releases,https://www.sec.gov/news/pressreleases.rss,https://www.sec.gov/news/pressreleases,sec.gov,government,A+,ok
+sec_speeches_and_statements,SEC - Speeches and Statements,https://www.sec.gov/news/speeches-statements.rss,https://www.sec.gov/news/speeches-statements,sec.gov,government,A+,ok
+axios,Axios,https://api.axios.com/feed/,,axios.com,major_news,A,ok
+bbc_news_home,BBC News - Home,http://feeds.bbci.co.uk/news/rss.xml,,bbci.co.uk,major_news,A,ok
+bbc_news_india,BBC News - India,http://feeds.bbci.co.uk/news/world/asia/india/rss.xml,,bbci.co.uk,major_news,A,ok
+bbc_news_science_environment,BBC News - Science & Environment,http://feeds.bbci.co.uk/news/science_and_environment/rss.xml,,bbci.co.uk,major_news,A,ok
+bbc_news_world,BBC News - World,http://feeds.bbci.co.uk/news/world/rss.xml,,bbci.co.uk,major_news,A,ok
+bbc_sport_cricket,BBC Sport - Cricket,http://feeds.bbci.co.uk/sport/cricket/rss.xml,,bbci.co.uk,major_news,A,ok
+discovery,Discovery,https://podcasts.files.bbci.co.uk/p002w557.rss,,bbci.co.uk,major_news,A,ok
+stumped,Stumped,https://podcasts.files.bbci.co.uk/p02gsrmh.rss,,bbci.co.uk,major_news,A,ok
+tailenders,Tailenders,https://podcasts.files.bbci.co.uk/p02pcb4w.rss,,bbci.co.uk,major_news,A,ok
+test_match_special,Test Match Special,https://podcasts.files.bbci.co.uk/p02nrsl2.rss,,bbci.co.uk,major_news,A,ok
+the_infinite_monkey_cage,The Infinite Monkey Cage,https://podcasts.files.bbci.co.uk/b00snr0w.rss,,bbci.co.uk,major_news,A,ok
+cnn_com_rss_channel_app_international_edition,CNN.com - RSS Channel - App International Edition,http://rss.cnn.com/rss/edition.rss,,cnn.com,major_news,A,ok
+cnn_com_rss_channel_world,CNN.com - RSS Channel - World,http://rss.cnn.com/rss/edition_world.rss,,cnn.com,major_news,A,ok
+fox_news,FOX News,http://feeds.foxnews.com/foxnews/latest,,foxnews.com,major_news,A,ok
+france24_com,france24.com,https://www.france24.com/en/rss,,france24.com,major_news,A,ok
+unknown,Unknown,https://globalnews.ca/feed/,,globalnews.ca,major_news,A,ok
+world_news_breaking_news_top_stories,"World News - Breaking News, Top Stories",https://www.huffpost.com/section/world-news/feed,,huffpost.com,major_news,A,ok
+world_nation,World & Nation,https://www.latimes.com/world-nation/rss2.0.xml,,latimes.com,major_news,A,ok
+nyt_food,NYT > Food,https://rss.nytimes.com/services/xml/rss/nyt/DiningandWine.xml,,nytimes.com,major_news,A,ok
+nyt_japan,NYT > Japan,https://www.nytimes.com/svc/collections/v1/publish/http://www.nytimes.com/topic/destination/japan/rss.xml,,nytimes.com,major_news,A,ok
+nyt_science,NYT > Science,https://rss.nytimes.com/services/xml/rss/nyt/Science.xml,,nytimes.com,major_news,A,ok
+nyt_style,NYT > Style,https://rss.nytimes.com/services/xml/rss/nyt/FashionandStyle.xml,,nytimes.com,major_news,A,ok
+nyt_top_stories,NYT > Top Stories,https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml,,nytimes.com,major_news,A,ok
+nyt_world_news,NYT > World News,https://rss.nytimes.com/services/xml/rss/nyt/World.xml,,nytimes.com,major_news,A,ok
+playbook,Playbook,https://rss.politico.com/playbook.xml,,politico.com,major_news,A,ok
+sydney_morning_herald_latest_news,Sydney Morning Herald - Latest News,https://www.smh.com.au/rss/feed.xml,,smh.com.au,major_news,A,ok
+cricket_the_guardian,Cricket | The Guardian,https://www.theguardian.com/sport/cricket/rss,,theguardian.com,major_news,A,ok
+fashion_the_guardian,Fashion | The Guardian,https://www.theguardian.com/fashion/rss,,theguardian.com,major_news,A,ok
+india_the_guardian,India | The Guardian,https://www.theguardian.com/world/india/rss,,theguardian.com,major_news,A,ok
+italy_the_guardian,Italy | The Guardian,https://www.theguardian.com/world/italy/rss,,theguardian.com,major_news,A,ok
+mexico_the_guardian,Mexico | The Guardian,https://www.theguardian.com/world/mexico/rss,,theguardian.com,major_news,A,ok
+space_the_guardian,Space | The Guardian,https://www.theguardian.com/science/space/rss,,theguardian.com,major_news,A,ok
+world_news_the_guardian,World news | The Guardian,https://www.theguardian.com/world/rss,,theguardian.com,major_news,A,ok
+world,World,http://feeds.washingtonpost.com/rss/world,,washingtonpost.com,major_news,A,ok
+abc_news,ABC News,https://www.abc.net.au/news/feed/1948/rss.xml,,abc.net.au,public_broadcaster,A,ok
+international_top_news_and_analysis,International: Top News And Analysis,https://www.cnbc.com/id/100727362/device/rss/rss.html,,cnbc.com,finance_press,A,ok
+us_top_news_and_analysis,US Top News and Analysis,https://www.cnbc.com/id/100003114/device/rss/rss.html,,cnbc.com,finance_press,A,ok
+all_news,All News,https://www.investing.com/rss/news.rss,,investing.com,finance_press,A,ok
+hidden_brain,Hidden Brain,https://feeds.npr.org/510308/podcast.xml,,npr.org,public_broadcaster,A,ok
+invisibilia,Invisibilia,https://feeds.npr.org/510307/podcast.xml,,npr.org,public_broadcaster,A,ok
+throughline,Throughline,https://feeds.npr.org/510333/podcast.xml,,npr.org,public_broadcaster,A,ok
+breaking_news_on_seeking_alpha,Breaking News on Seeking Alpha,https://seekingalpha.com/market_currents.xml,,seekingalpha.com,finance_press,A,ok

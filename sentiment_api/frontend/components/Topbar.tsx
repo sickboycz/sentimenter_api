@@ -1,29 +1,17 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { StatusPill } from "./ui/StatusPill";
-import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
-import { useHealth, useStatus, useSources, useImpactTickers, useOpsStatus } from "@/lib/api/hooks";
-
-function getApiKey(): string {
-  if (typeof window === "undefined") return "";
-  return localStorage.getItem("SENTIMETER_API_KEY") || "";
-}
+import { useHealth, useStatus, useOpsStatus } from "@/lib/api/hooks";
 
 export function Topbar() {
   const health = useHealth();
   const status = useStatus();
+  const ops = useOpsStatus(true);
 
-  const [key, setKey] = useState("");
-  const hasKey = key.trim().length >= 16;
-  const ops = useOpsStatus(hasKey);
-  const sourcesWithKey = useSources(hasKey);
-  const tickersWithKey = useImpactTickers(hasKey);
   const [tf, setTf] = useState<"1h" | "6h" | "24h">("24h");
   const [q, setQ] = useState("");
-
-  useEffect(() => setKey(getApiKey()), []);
 
   const apiStatus = health.data?.status ?? "unknown";
   const ingestionStatus = status.data?.ingestion ?? "unknown";
@@ -31,12 +19,9 @@ export function Topbar() {
   const researchStatus = status.data?.research ?? "unknown";
 
   const authStatus = useMemo(() => {
-    if (!hasKey) return "down";
-    const err = (ops as any)?.error || (sourcesWithKey as any)?.error || (tickersWithKey as any)?.error;
-    const status = (err as any)?.status;
-    if (status === 401) return "down";
-    return "ok";
-  }, [hasKey, ops, sourcesWithKey, tickersWithKey]);
+    if (ops.isError && (ops.error as any)?.status === 401) return "down";
+    return apiStatus === "ok" ? "ok" : "unknown";
+  }, [apiStatus, ops.isError, ops.error]);
 
   const pills = useMemo(() => {
     return [
@@ -71,11 +56,6 @@ export function Topbar() {
       ? "bg-[var(--bad)]"
       : "bg-white/40";
   const dotPulse = activityTone === "good" ? "animate-pulse" : "";
-
-  const saveKey = () => {
-    localStorage.setItem("SENTIMETER_API_KEY", key.trim());
-    window.location.reload();
-  };
 
   return (
     <div className="glass-strong p-2 sm:p-3 flex flex-col gap-2">
@@ -129,25 +109,6 @@ export function Topbar() {
             autoComplete="off"
           />
         </div>
-
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            saveKey();
-          }}
-          className="flex flex-wrap items-center gap-2"
-        >
-          <div className="text-xs opacity-70">API Key</div>
-          <input
-            value={key}
-            onChange={(e) => setKey(e.target.value)}
-            placeholder="paste key"
-            className="min-w-[160px] max-w-[240px] w-[200px] px-3 py-2 rounded-xl bg-black/20 border border-white/10 outline-none text-sm"
-            type="password"
-            autoComplete="off"
-          />
-          <Button type="submit" className="px-3">Apply</Button>
-        </form>
       </div>
     </div>
   );

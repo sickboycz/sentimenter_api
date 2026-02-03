@@ -1,4 +1,4 @@
-"""RSS feed collector."""
+"""RSS/Atom feed collector. Fallback: scrape webpage when feed returns 403 or fails."""
 
 import logging
 from datetime import datetime, timezone
@@ -15,7 +15,7 @@ logger = logging.getLogger("sentiment_api.collectors.rss")
 
 
 class RSSCollector:
-    """Collect items from RSS feeds."""
+    """Collect items from RSS or Atom feeds (feedparser handles both). On 403/failure, optionally scrape fallback_page_url."""
 
     def __init__(self, timeout_sec: int = 20):
         self.timeout = timeout_sec
@@ -25,11 +25,17 @@ class RSSCollector:
         return feedparser.parse(resp.content, response_headers=dict(resp.headers))
 
     def collect(self, source: Source, feed_url: str, *, respect_robots: bool = True) -> Iterator[RawItem]:
-        """Yield raw items from RSS feed."""
+        """Yield raw items from RSS/Atom feed. On failure, fall back to scraping fallback_page_url if set."""
         try:
             feed = self.fetch_feed(feed_url, respect_robots=respect_robots)
         except Exception as e:
-            logger.warning("RSS fetch failed %s: %s", feed_url, e)
+            logger.warning("RSS/Atom fetch failed %s: %s", feed_url, e)
+            fallback = getattr(source, "fallback_page_url", None) or (source.config or {}).get("fallback_page_url")
+            if fallback:
+                logger.info("RSS fallback: scraping %s for %s", fallback, source.source_id)
+                from sentiment_api.collectors.scrape import ScrapeCollector
+                scrape = ScrapeCollector(timeout_sec=self.timeout)
+                yield from scrape.collect(source, fallback, respect_robots=respect_robots)
             return
         now = datetime.now(timezone.utc)
         for entry in feed.entries:

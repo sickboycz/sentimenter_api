@@ -21,6 +21,8 @@ Step-by-step trace of how news flows from collection to sentiment, with data typ
 
 **Input:** Registry sources (enabled, with feed_url / base_url / page_url)
 
+**RSS/Atom and webpage fallback:** We prefer RSS/Atom when a source exposes a feed; only sources that “refuse to play nice” (e.g. 403, timeouts, malformed XML) fall back to scraping. For type `rss` sources you can set `fallback_page_url` in the registry. If fetching the feed fails for any reason, the collector then uses `ScrapeCollector` on that URL and normalizes the scraped items to `RawItem`s (same shape as RSS). This keeps CPU low by not crawling sources that already ship clean RSS/Atom; fallback is used only when the feed fails.
+
 **Output:** `RawItem` (dataclass)
 
 | Field | Type | Source |
@@ -34,6 +36,10 @@ Step-by-step trace of how news flows from collection to sentiment, with data typ
 | content_raw | str | content/summary/description |
 | content_html | str | raw HTML (scrape) or "" |
 | metadata | dict | e.g. {"feed_url": ...} |
+
+**Registry (RSS fallback):** For a source with `type: rss`, optional `fallback_page_url: "https://..."` is used only when the feed request fails (e.g. 403, timeout, parse error). Then we scrape that page and yield `RawItem`s from it; no need to crawl sites that already expose RSS/Atom.
+
+**Registry (API → webpage alternative):** For `type: api` sources there is no API collector implemented. If `fallback_page_url` is set, the daemon uses `ScrapeCollector` on that URL as a webpage alternative (e.g. World Bank news page, ACLED/ReliefWeb/UCDP home or reports pages). API sources without `fallback_page_url` are skipped.
 
 **Parsing checks:**
 - RSS: `published_parsed` / `updated_parsed` → `datetime(*ts[:6], tzinfo=timezone.utc)` — `ts` may have fewer than 6 elements; `ValueError`/`TypeError` caught.
@@ -124,10 +130,10 @@ Uses `_DateTimeEncoder` — datetimes become ISO strings in JSON.
 5. **summarize_l1(...)** → L1 dict
 6. **summarize_l2(...)** → L2 dict
 7. **insert_summary** (L1, L2)
-8. **embed_text(title + content)** → list[float] (3072 dims)
+8. **embed_text(title + content)** → list[float] (768 dims, Tier B)
 9. **insert_embedding** (article, art_id, model, embedding)
 10. **get_clusters_for_embedding(conn, 500, model_id)** → `list[(cluster_id, embedding, last_seen)]`
-11. **find_nearest_cluster(embedding, clusters_data, 0.82)** → cluster_id or None
+11. **find_nearest_cluster(embedding, clusters_data, 0.82)** → (cluster_id or None, best_sim)
 12. **canonical_story_key(headline, topics)** → ckey
 13. If no nearest: **cluster_id(ckey, first_seen)** → new cid
 14. **summarize_l3(...)** → L3 dict
@@ -151,7 +157,7 @@ Uses `_DateTimeEncoder` — datetimes become ISO strings in JSON.
 ### 3.2 Embedding
 
 **Input:** `text = (title + content)[:4000]`
-**Output:** 3072-dim list[float] (OpenAI or sentence-transformers or random fallback)
+**Output:** 768-dim list[float] (OpenAI text-embedding-3-small:768 or sentence-transformers/random fallback)
 
 **⚠️** `embed_text` uses `resp.data[0].embedding` — if `data` is empty, `IndexError`.
 
@@ -192,7 +198,7 @@ Uses `_DateTimeEncoder` — datetimes become ISO strings in JSON.
 | Queue summarize | norm | JSON; dates as ISO strings |
 | process_summarize norm | published_at, fetched_at | **str** (from JSON) |
 | L1, L2, L3 | dict | from LLM or fallback |
-| embedding | list[float] | 3072 dims |
+| embedding | list[float] | 768 dims |
 
 ---
 

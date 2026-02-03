@@ -26,7 +26,7 @@ def test_fake_provider_deterministic():
     v1 = prov.embed_query("tierB_large", "hello")
     v2 = prov.embed_query("tierB_large", "hello")
     assert v1 == v2
-    assert len(v1) == 3072
+    assert len(v1) == 768
 
 
 def test_fake_provider_different_text_different_vector():

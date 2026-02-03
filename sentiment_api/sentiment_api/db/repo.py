@@ -2,7 +2,7 @@
 
 import json
 import logging
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from typing import Any
 
 import asyncpg
@@ -152,7 +152,7 @@ async def insert_cluster(
     risk_vector: dict,
 ) -> None:
     """Insert or update cluster."""
-    first_seen = datetime.utcnow()
+    first_seen = datetime.now(timezone.utc)
     await conn.execute(
         """
         INSERT INTO clusters (cluster_id, first_seen, last_seen, headline_en, canonical_story_key,
@@ -479,8 +479,8 @@ async def get_clusters_by_ids(
 
 async def get_clusters_for_embedding(conn: asyncpg.Connection, limit: int = 500, model_id: str | None = None) -> list[tuple[str, list[float], datetime]]:
     """Get cluster_ids and embeddings for similarity search. Uses pgvector or external store per VECTOR_STORE_BACKEND."""
-    model_id = model_id or "openai:text-embedding-3-large"
     settings = get_settings()
+    model_id = model_id or settings.model_embedding_id or "openai:text-embedding-3-small:384"
     backend = (settings.vector_store_backend or "pgvector").strip().lower()
     if backend == "pgvector":
         rows = await conn.fetch(
@@ -500,8 +500,18 @@ async def get_clusters_for_embedding(conn: asyncpg.Connection, limit: int = 500,
             emb = r["embedding"]
             if hasattr(emb, "tolist"):
                 emb = emb.tolist()
+            elif isinstance(emb, str):
+                try:
+                    emb = json.loads(emb)
+                except (json.JSONDecodeError, TypeError):
+                    emb = []
             elif not isinstance(emb, list):
                 emb = list(emb) if emb else []
+            if isinstance(emb, list) and emb:
+                try:
+                    emb = [float(x) for x in emb]
+                except (TypeError, ValueError):
+                    emb = []
             result.append((r["object_id"], emb, r["last_seen"]))
         return result
     from sentiment_api.vector_store import get_vector_store

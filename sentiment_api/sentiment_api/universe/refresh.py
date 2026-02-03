@@ -64,10 +64,13 @@ async def refresh_universes() -> str:
     settings = get_settings()
     await init_pool(settings.database_url)
 
-    # Resolve registry dir (sentiment_api/registry or project root)
+    # Resolve dir for universe CSVs: registry (parent of source_registry_path), then artifacts, then registry/
+    root = Path(__file__).resolve().parent.parent.parent
     base = Path(settings.source_registry_path).parent
     if not (base / "sp500.csv").exists() and not (base / "nasdaq100.csv").exists():
-        base = Path(__file__).resolve().parent.parent.parent / "registry"
+        base = root / "artifacts"
+    if not (base / "sp500.csv").exists() and not (base / "nasdaq100.csv").exists():
+        base = root / "registry"
 
     sp500_rows = _load_sp500(base)
     nasdaq100_rows = _load_nasdaq100(base)

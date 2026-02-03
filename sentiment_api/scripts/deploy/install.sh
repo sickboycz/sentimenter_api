@@ -61,6 +61,18 @@ if ! $SKIP_USER; then
   chown -R "$USER:$USER" "$HOME_DIR"
   chown -R "$POSTGRES_UID:$POSTGRES_UID" "${HOME_DIR}/volumes/postgres/data" 2>/dev/null || true
   chmod 700 "${HOME_DIR}/volumes/postgres/data"
+  # Copy universe CSVs from repo artifacts into volume if missing (so containers can seed from them)
+  ARTIFACTS_SRC="${COMPOSE_DIR}/artifacts"
+  ARTIFACTS_VOL="${HOME_DIR}/volumes/artifacts"
+  for f in sp500.csv nasdaq100.csv sectors.csv industries.csv; do
+    if [[ -f "$ARTIFACTS_SRC/$f" ]] && [[ ! -f "$ARTIFACTS_VOL/$f" ]]; then
+      cp "$ARTIFACTS_SRC/$f" "$ARTIFACTS_VOL/$f"
+      chown "$USER:$USER" "$ARTIFACTS_VOL/$f"
+      chmod 644 "$ARTIFACTS_VOL/$f"
+    fi
+  done
+  chown "$USER:$USER" "$ARTIFACTS_VOL" 2>/dev/null || true
+  chmod 755 "$ARTIFACTS_VOL"
   # Grafana and Loki run as non-root in container; host dirs must match
   chown -R 472:472 "${HOME_DIR}/volumes/grafana_data" 2>/dev/null || true
   chmod 700 "${HOME_DIR}/volumes/grafana_data"
@@ -173,11 +185,17 @@ systemctl daemon-reload
 echo "[+] Systemd unit: $UNIT_FILE (enable with: systemctl enable sentimenter-docker)"
 
 # -----------------------------------------------------------------------------
-# 8. Verification
+# 8. Permissions and verification
 # -----------------------------------------------------------------------------
+SCRIPT_PARENT="$(cd "$SCRIPT_DIR/.." && pwd)"
+if [[ -x "$SCRIPT_PARENT/check-permissions.sh" ]]; then
+  echo "[*] Checking permissions (run with --fix to repair)..."
+  "$SCRIPT_PARENT/check-permissions.sh" 2>/dev/null || true
+fi
 echo ""
 echo "[*] Verification:"
 echo "    docker compose ps"
 echo "    curl -s http://127.0.0.1:8080/v1/health | head"
+echo "    sudo $SCRIPT_PARENT/check-permissions.sh --fix   # fix permissions if needed"
 echo ""
 echo "[+] Done. Edit $ENV_FILE with secrets, then: sudo systemctl restart sentimenter-docker"

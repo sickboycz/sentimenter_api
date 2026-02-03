@@ -10,19 +10,30 @@ from sentiment_api.db.repo import insert_sentiment_tick, upsert_sentiment_daily
 logger = logging.getLogger("sentiment_api.engines.index")
 
 
+def _date_trunc_precision(interval: str) -> str:
+    """Map interval label to PostgreSQL date_trunc precision."""
+    if interval in ("1m", "5m", "15m"):
+        return "minute"
+    if interval == "1h":
+        return "hour"
+    return "minute"
+
+
 async def compute_intraday_from_clusters(interval: str = "5m") -> None:
     """Compute intraday index from recent clusters (AC-M6.1)."""
+    precision = _date_trunc_precision(interval)
     async with acquire() as conn:
         rows = await conn.fetch(
             """
             SELECT
-                date_trunc($1, last_seen) as bucket,
+                date_trunc($1::text, last_seen) as bucket,
                 (impact->>'impact_score')::float as score,
                 impact->>'expected_direction' as direction
             FROM clusters
             WHERE last_seen >= now() - interval '24 hours'
               AND (impact->>'impact_level') NOT IN ('L0')
-            """
+            """,
+            precision,
         )
     if not rows:
         return

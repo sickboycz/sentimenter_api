@@ -37,6 +37,8 @@ docker compose -f docker-compose.yml -f docker-compose.production.yml exec api g
 - Production mount: `./registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro`. So from the compose dir, `registry/source_registry.yaml` must exist and be the full registry (not an empty override).
 - If you use a custom registry path, set `SOURCE_REGISTRY_PATH` in the API (and worker/daemon) env to that path and mount the file there.
 
+**RSS 403 or feed failures:** For sources that return 403 or fail on the feed URL, you can add a **webpage fallback** so we only scrape when the feed fails. In the registry, set `fallback_page_url` on the source (e.g. the homepage or a listing page). The collector will try RSS/Atom first; on any failure it scrapes that URL and normalizes items to the same `RawItem` shape. See `NEWS_TO_SENTIMENT_DATA_FLOW.md` (Step 1 – RSS/Atom and webpage fallback).
+
 ---
 
 ## 2. Why 0 clusters with articles and some summaries?
@@ -80,7 +82,7 @@ docker compose -f docker-compose.yml -f docker-compose.production.yml exec postg
 - **"Clustering DB error" or traceback in cluster step:**  
   - Run migrations so `clusters` and `embeddings` exist and match the app (including pgvector extension and `embedding` column type).  
   - If you added `_verify_db_connection()` and the worker now crashes at startup with "Clustering tables missing", run the same migrations.
-- **pgvector:** Ensure the DB has the pgvector extension and that `embeddings.embedding` is `vector(N)` with the expected dimension (e.g. 3072 for `text-embedding-3-large`).
+- **pgvector:** Ensure the DB has the pgvector extension and that `embeddings.embedding` is `vector(768)` (Tier B).
 
 ---
 

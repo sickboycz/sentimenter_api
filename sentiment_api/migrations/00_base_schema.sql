@@ -324,14 +324,14 @@ CREATE TABLE IF NOT EXISTS outcomes (
 );
 
 -- -----------------------------------------------------------------------------
--- Embeddings (pgvector). IVFFlat index skipped: max 2000 dimensions (see README).
+-- Embeddings (pgvector). Tier B = 768 dim (text-embedding-3-small:768). IVFFlat/HNSW possible at 768.
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS embeddings (
   object_type      object_type NOT NULL,
   object_id        text NOT NULL,
   model            text NOT NULL,
-  dims             integer NOT NULL DEFAULT 3072,
-  embedding        vector(3072) NOT NULL,
+  dims             integer NOT NULL DEFAULT 768,
+  embedding        vector(768) NOT NULL,
   metadata         jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at       timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (object_type, object_id, model)

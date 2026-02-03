@@ -91,7 +91,7 @@ def _slug(name: str) -> str:
 
 
 async def seed_sectors(conn: asyncpg.Connection, registry_dir: Path | None = None) -> int:
-    """Ensure GICS-like sectors exist. Load from registry/sectors.csv if present, else use GICS_11."""
+    """Ensure GICS-like sectors exist. Load from registry/sectors.csv or artifacts/sectors.csv if present, else use GICS_11."""
     count = 0
     # Always ensure "unknown" exists
     await conn.execute(
@@ -140,7 +140,7 @@ async def seed_sectors(conn: asyncpg.Connection, registry_dir: Path | None = Non
 
 
 async def seed_industries(conn: asyncpg.Connection, registry_dir: Path) -> int:
-    """Load industries from registry/industries.csv. Requires industries table (migration v1.1_add_industries)."""
+    """Load industries from registry/industries.csv or artifacts/industries.csv. Requires industries table (migration v1.1_add_industries)."""
     path = registry_dir / "industries.csv"
     if not path.exists():
         return 0

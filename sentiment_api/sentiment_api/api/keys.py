@@ -30,8 +30,10 @@ def _verify_key(stored_hash: str, key: str) -> bool:
     return hashlib.sha256(key.encode()).hexdigest() == stored_hash
 
 
-async def validate_api_key(key: Annotated[str, Depends(get_api_key)]) -> str:
-    """Validate API key against api_keys table or SENTIMENT_API_API_KEYS. Returns key on success."""
+async def validate_api_key(key: Annotated[str | None, Depends(get_api_key)]) -> str:
+    """Validate API key if provided; allow unauthenticated access when no key (returns 'anonymous')."""
+    if not key:
+        return "anonymous"
     env_whitelist = _env_keys()
     if env_whitelist and key in env_whitelist:
         return key

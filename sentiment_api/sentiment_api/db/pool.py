@@ -41,6 +41,8 @@ async def ensure_pool(database_url: str | None = None) -> asyncpg.Pool:
         if database_url is None:
             from sentiment_api.config import get_settings
             database_url = get_settings().database_url
+        if not database_url or not database_url.strip():
+            raise ValueError("DATABASE_URL not set")
         try:
             _pool = await asyncpg.create_pool(
                 database_url,

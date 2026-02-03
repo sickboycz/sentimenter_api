@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sentiment_api.config import get_settings
 
@@ -12,7 +12,7 @@ logger = logging.getLogger("sentiment_api.ingest.artifacts")
 def artifact_path(source_id: str, article_id: str, ext: str, root: Path | None = None) -> Path:
     """Path: {root}/news/{source_id}/{yyyy}/{mm}/{dd}/{article_id}.{ext}"""
     root = root or get_settings().artifact_root
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     p = root / "news" / source_id / str(now.year) / f"{now.month:02d}" / f"{now.day:02d}"
     return p / f"{article_id}.{ext}"
 

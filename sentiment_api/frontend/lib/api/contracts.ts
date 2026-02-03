@@ -35,12 +35,21 @@ export const OpsHeartbeat = z.object({
   counts: z.record(z.number()).optional()
 });
 
+export const OpsWorker = z.object({
+  id: z.string(),
+  last_seen: z.string().nullable().optional(),
+  age_sec: z.number().nullable().optional(),
+  last_job: z.object({ queue: z.string().optional(), at: z.string().optional() }).optional(),
+  counts: z.record(z.number()).optional()
+});
+
 export const OpsStatus = z.object({
   queues: z.record(z.number()).default({}),
   queues_total: z.number().optional(),
   counts: z.record(z.number()).default({}),
   latest: z.record(z.string().nullable()).default({}),
   runs: z.record(OpsRun).default({}),
+  workers: z.array(OpsWorker).optional().default([]),
   heartbeats: z.object({
     worker: OpsHeartbeat.optional(),
     daemon: OpsHeartbeat.optional()

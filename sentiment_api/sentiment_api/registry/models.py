@@ -56,6 +56,7 @@ class Source(BaseModel):
     topics: list[str] = Field(default_factory=list, max_length=50)
     feed_url: str | None = None
     page_url: str | None = None
+    fallback_page_url: str | None = None  # rss: when feed 403/fails, scrape this URL; api: when no API collector, scrape this URL as webpage alternative
     base_url: str | None = None
     language_hint: str | None = None
     parser_profile: str | None = None

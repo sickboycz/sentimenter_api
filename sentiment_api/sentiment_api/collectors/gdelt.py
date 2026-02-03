@@ -14,6 +14,16 @@ from sentiment_api.registry.models import Source, QueryProfile
 logger = logging.getLogger("sentiment_api.collectors.gdelt")
 
 
+def _gdelt_query_normalize(query: str) -> str:
+    """GDELT API requires OR'd terms to be surrounded by (). Wrap if needed."""
+    if not query or " OR " not in query:
+        return (query or "").strip()
+    q = query.strip()
+    if q.startswith("(") and q.rstrip().endswith(")"):
+        return q
+    return f"({q})"
+
+
 class GDELTCollector:
     """Collect from GDELT DOC 2.0 API."""
 
@@ -31,17 +41,25 @@ class GDELTCollector:
         *,
         respect_robots: bool = True,
     ) -> list[dict]:
-        params = {"query": query, "mode": mode, "maxrecords": max_records, "format": "json"}
+        params = {"query": _gdelt_query_normalize(query), "mode": mode, "maxrecords": max_records, "format": "json"}
         if start_date:
             params["startdatetime"] = start_date.replace("-", "") + "000000" if len(start_date) == 10 else start_date
         if end_date:
             params["enddatetime"] = end_date.replace("-", "") + "235959" if len(end_date) == 10 else end_date
         resp = fetch_with_retry(base_url, params=params, timeout=float(self.timeout), respect_robots=respect_robots)
+        text = ""
         try:
-            data = resp.json()
-        except json.JSONDecodeError as e:
-            text = (resp.text or "")[:200]
-            logger.warning("GDELT API returned non-JSON (status=%s, preview=%r): %s", resp.status_code, text, e)
+            raw = getattr(resp, "text", None) or getattr(resp, "content", b"") or b""
+            if isinstance(raw, bytes):
+                raw = raw.decode("utf-8", errors="replace")
+            text = (raw or "").strip()
+            if not text:
+                logger.warning("GDELT API returned empty body (status=%s)", resp.status_code)
+                return []
+            data = json.loads(text)
+        except (json.JSONDecodeError, ValueError, TypeError, StopIteration) as e:
+            preview = (text[:200] if text else "(empty or unreadable body)")
+            logger.warning("GDELT API returned non-JSON (status=%s, preview=%r): %s", resp.status_code, preview, e)
             return []
         articles = data.get("articles", []) if isinstance(data, dict) else []
         return articles if isinstance(articles, list) else []

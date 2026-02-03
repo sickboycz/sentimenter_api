@@ -11,8 +11,19 @@ Apply in this order on an **empty** database:
 | 2b | `v1.1_add_industries.sql` | Industries table (GICS industries under sectors; idempotent) |
 | 3 | `v1.1_asset_targeting_audit.sql` | cluster_asset_targeting_audit table (idempotent) |
 | 4 | `v1.1_retention_tombstone.sql` | deleted_at on articles for retention (idempotent) |
+| 5 | `v1.2_embedding_dim_768.sql` | Drops and recreates embeddings with vector(768) (for DBs created with 3072) |
 
-All scripts are **safe to re-run** (CREATE IF NOT EXISTS, ADD VALUE IF NOT EXISTS, etc.).
+All scripts are **safe to re-run** (CREATE IF NOT EXISTS, etc.). After changing to 768 dim, **restart DB** (e.g. `./scripts/reset_db_fresh.sh`) then run seeding so embeddings are 768-dim.
+
+## Full fresh start (no debugging)
+
+To remove the current Docker build, rebuild without the debug overlay, migrate DB, and seed:
+
+```bash
+./scripts/fresh_start_production.sh
+```
+
+This runs: `down --volumes`, `build --no-cache`, `up postgres redis api`, then `reset_db_fresh.sh` (migrate + seed), then `up` (all services). Use `--keep-data` to keep postgres/redis volumes; use `--production` to add `docker-compose.production.yml`.
 
 ## Apply from zero (one command)
 
@@ -20,6 +31,16 @@ From `sentiment_api/` with Postgres running (Docker or local):
 
 ```bash
 ./scripts/apply_schema_from_zero.sh
+```
+
+## Reset DB to fresh install (keep sources, nasdaq, sectors)
+
+Drops all tables, reapplies migrations, then re-seeds universes (sectors, industries, S&P 500, Nasdaq-100) from `artifacts/*.csv` or `registry/*.csv` (artifacts are in git and used when registry has no CSVs). Does **not** change `source_registry.yaml` or registry files.
+
+From `sentiment_api/` with Postgres and API containers up:
+
+```bash
+./scripts/reset_db_fresh.sh
 ```
 
 Or manually with Docker Compose:
@@ -32,29 +53,9 @@ for f in migrations/00_base_schema.sql migrations/v1.1_add_universes.sql migrati
 done
 ```
 
-## Why we can't use 3072 dimensions with IVFFlat
+## Embedding dimensions (Tier A 384, Tier B 768)
 
-We use **OpenAI text-embedding-3-large**, which produces **3072-dimensional** vectors. The `embeddings` table stores these in a `vector(3072)` column (pgvector).
-
-**pgvector's IVFFlat index has a hard limit of 2000 dimensions.** This limit is defined in the pgvector source (`IVFFLAT_MAX_DIM`). If you create an IVFFlat index on a column with more than 2000 dimensions, Postgres raises:
-
-```text
-ERROR: column cannot have more than 2000 dimensions for ivfflat index
-```
-
-So we **do not create** an IVFFlat index on `embeddings.embedding`. Implications:
-
-- **Similarity search** (e.g. cosine distance over embeddings) uses a **sequential scan** over the table. For small or medium-sized tables (thousands to low hundreds of thousands of rows) this is acceptable. For very large tables, latency will grow.
-- **Lookups by (object_type, object_id)** use the existing btree index `idx_embeddings_object`, so they remain fast.
-
-**Options if you need faster similarity search at scale:**
-
-1. **Use a smaller embedding model** that outputs ≤2000 dimensions (e.g. 1536 or 1024), then you can create an IVFFlat (or HNSW) index on that column.
-2. **Wait for pgvector** to support higher dimensions for IVFFlat/HNSW (or use a fork that raises the limit).
-3. **Dimensionality reduction** (e.g. PCA) to reduce 3072 → 2000 before storing and indexing (with a trade-off in recall).
-4. **External vector store** (e.g. Pinecone, Weaviate) that supports >2000 dimensions for indexed search. See `docs/PINECONE_WEAVIATE_INTEGRATION.md`. When using Weaviate, the 2-tier retrieval pipeline (see `docs/RETRIEVAL_TWOTIER.md`) uses a **SQLite embedding cache** for tier-B vectors; no PostgreSQL migration is required for that cache.
-
-Until then, we keep `vector(3072)` and rely on sequential scan for similarity queries and on `idx_embeddings_object` for direct lookups.
+We use **OpenAI text-embedding-3-small** with **Tier A = 384 dim** and **Tier B = 768 dim**. The `embeddings` table stores **768-dimensional** vectors (`vector(768)`). Clustering and DB use Tier B (768). With 768 dimensions, pgvector **can** use IVFFlat/HNSW indexes if you add them later (768 &lt; 2000).
 
 ## Reserved keywords
 

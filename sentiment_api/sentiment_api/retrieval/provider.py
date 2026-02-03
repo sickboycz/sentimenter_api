@@ -42,13 +42,16 @@ class RealEmbeddingProvider:
         return vec
 
     def embed_docs(self, model_id: str, texts: list[str]) -> list[list[float]]:
-        from sentiment_api.llm.embeddings import embed_text
-        out = []
-        for t in texts:
-            vec = embed_text((t or "")[:8000], model_id)
+        from sentiment_api.llm.embeddings import embed_texts
+        if not texts:
+            return []
+        truncated = [(t or "")[:8000] for t in texts]
+        out = embed_texts(truncated, model_id)
+        if len(out) != len(truncated):
+            raise ValueError(f"embed_docs returned {len(out)} vectors for {len(truncated)} texts")
+        for vec in out:
             if not vec:
                 raise ValueError(f"embed_docs returned empty vector for model_id={model_id!r}")
-            out.append(vec)
         return out
 
 
@@ -62,13 +65,13 @@ class FakeEmbeddingProvider:
         return [self._vector(model_id, t) for t in texts]
 
     def _vector(self, model_id: str, text: str) -> list[float]:
-        # Deterministic: dim from model_id, values from hash(text + model_id)
-        if "3072" in model_id or "large" in model_id.lower():
-            dim = 3072
-        elif "768" in model_id:
+        # Deterministic: dim from model_id, values from hash(text + model_id). Tier A=384, Tier B=768.
+        if "768" in model_id or "tierb" in model_id.lower():
             dim = 768
-        else:
+        elif "384" in model_id or "tiera" in model_id.lower():
             dim = 384
+        else:
+            dim = 768
         h = hash((model_id, _normalize_text_for_hash(text))) % (2**31)
         seed = h
         out = []

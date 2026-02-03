@@ -87,8 +87,9 @@ async def get_asset_impacts_for_cluster(
     direction = DIRECTION_MAP.get(imp.get("expected_direction", "Unknown"), "Unknown")
     score = float(imp.get("impact_score", 0) or 0)
     source_urls = list(row["source_urls"] or [])[:10]
-    # Optional: try LLM-based targeting when API key set (fallback to rule-based)
-    if score >= 20:
+    # Optional: try LLM-based targeting when API key set and not cost_effective (fallback to rule-based)
+    from sentiment_api.config import get_settings
+    if score >= 20 and not get_settings().cost_effective:
         try:
             from sentiment_api.llm.asset_targeting import try_llm_asset_targeting
             async with acquire() as conn2:
