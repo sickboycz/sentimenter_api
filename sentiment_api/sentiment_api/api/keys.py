@@ -31,9 +31,12 @@ def _verify_key(stored_hash: str, key: str) -> bool:
 
 
 async def validate_api_key(key: Annotated[str | None, Depends(get_api_key)]) -> str:
-    """Validate API key if provided; allow unauthenticated access when no key (returns 'anonymous')."""
+    """Validate API key; require key for protected routes (401 when missing)."""
     if not key:
-        return "anonymous"
+        raise HTTPException(
+            status_code=401,
+            detail={"code": "auth_missing_api_key", "message": "Missing API key."},
+        )
     env_whitelist = _env_keys()
     if env_whitelist and key in env_whitelist:
         return key

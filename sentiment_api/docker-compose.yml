@@ -1,6 +1,6 @@
 # sentiment_api — local dev stack
-# Run from sentiment_api/: docker compose up -d (1 worker) | ./scripts/up-with-scale.sh (default 6 workers from WORKER_REPLICAS)
-# Default worker count when composing: use ./scripts/up-with-scale.sh or docker compose up -d --scale worker=6
+# Run from sentiment_api/: docker compose up -d (1 worker) | ./scripts/up-with-scale.sh (default 8 workers from WORKER_REPLICAS)
+# Default worker count when composing: use ./scripts/up-with-scale.sh or docker compose up -d --scale worker=8
 
 services:
   postgres:

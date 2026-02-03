@@ -113,7 +113,8 @@ async def test_ingest_summarize_creates_cluster(db_url, redis_url, tmp_path):
             "summary_bullets_en": [], "what_changed_en": "", "why_it_matters_en": "", "what_to_watch_en": "",
             "topics": ["rates"], "regions": ["US"], "channels": [], "evidence": [], "uncertainty_flags": [],
         }
-        fake_embedding = [0.1] * 768
+        # DB schema (00_base_schema) uses vector(384); default model is openai:text-embedding-3-small:384
+        fake_embedding = [0.1] * 384
 
         with patch("sentiment_api.ingest.worker.summarize_l1", return_value=fake_l1), \
              patch("sentiment_api.ingest.worker.summarize_l2", return_value=fake_l2), \

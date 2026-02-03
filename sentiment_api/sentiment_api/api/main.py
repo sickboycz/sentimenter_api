@@ -733,9 +733,12 @@ async def get_cluster_by_id(
     include_analogs: bool = Query(False),
     include_asset_impacts: bool = Query(False),
 ):
-    """Cluster drilldown (articles + evidence + analogs)."""
+    """Cluster drilldown (articles + evidence + narrative from L3 summary)."""
     import asyncpg
+    import logging as _log
     from sentiment_api.db.pool import acquire
+    from sentiment_api.db.repo import get_cluster_l3_summary
+    _api_log = _log.getLogger("sentiment_api.api")
     if not cluster_id.startswith("clu_") or len(cluster_id) < 14:
         raise HTTPException(status_code=400, detail="Invalid cluster_id format")
     try:
@@ -750,12 +753,28 @@ async def get_cluster_by_id(
         raise HTTPException(status_code=404, detail="Cluster not found")
     imp = _ensure_dict(row.get("impact"))
     tone = _ensure_dict(row.get("tone"))
+    what_changed_en: str | None = None
+    why_it_matters_en: str | None = None
+    what_to_watch_en: str | None = None
+    impact_explanation_en: str | None = None
+    summary_bullets: list[str] = []
+    try:
+        async with acquire() as conn:
+            l3 = await get_cluster_l3_summary(conn, cluster_id)
+        if l3:
+            what_changed_en = (l3.get("what_changed_en") or "").strip() or None
+            why_it_matters_en = (l3.get("why_it_matters_en") or "").strip() or None
+            what_to_watch_en = (l3.get("what_to_watch_en") or "").strip() or None
+            impact_explanation_en = (l3.get("why_it_matters_en") or "").strip()[:500] or None
+            summary_bullets = l3.get("summary_bullets_en") if isinstance(l3.get("summary_bullets_en"), list) else []
+    except Exception as e:
+        _api_log.debug("Cluster L3 summary fetch failed for %s: %s", cluster_id, e)
     cluster_obj = {
         "cluster_id": row["cluster_id"],
         "first_seen": row["first_seen"].isoformat().replace("+00:00", "Z") if row["first_seen"] else None,
         "last_seen": row["last_seen"].isoformat().replace("+00:00", "Z") if row["last_seen"] else None,
         "headline_en": row["headline_en"] or "",
-        "summary_bullets_en": [],
+        "summary_bullets_en": summary_bullets,
         "topics": list(row["topics"] or []),
         "regions": list(row["regions"] or []),
         "tone": {"polarity": tone.get("polarity", 0), "subjectivity": tone.get("subjectivity", 0)},
@@ -784,7 +803,8 @@ async def get_cluster_by_id(
                     """,
                     cluster_id,
                 )
-            except Exception:
+            except Exception as e:
+                _api_log.debug("Cluster articles (with deleted_at) failed: %s", e)
                 art_rows = await conn.fetch(
                     """
                     SELECT a.article_id, a.source_id, a.url, a.published_at, a.title_en, a.lang_original
@@ -815,8 +835,8 @@ async def get_cluster_by_id(
         try:
             from sentiment_api.engines.asset_targeting import get_asset_impacts_for_cluster
             asset_impacts = await get_asset_impacts_for_cluster(cluster_id)
-        except Exception:
-            pass
+        except Exception as e:
+            _api_log.warning("Asset impacts for cluster %s failed: %s", cluster_id, e)
     return {
         "meta": meta(),
         "data": {
@@ -824,10 +844,10 @@ async def get_cluster_by_id(
             "articles": articles,
             "evidence": evidence,
             "asset_impacts": asset_impacts,
-            "what_changed_en": None,
-            "why_it_matters_en": None,
-            "what_to_watch_en": None,
-            "impact_explanation_en": None,
+            "what_changed_en": what_changed_en,
+            "why_it_matters_en": why_it_matters_en,
+            "what_to_watch_en": what_to_watch_en,
+            "impact_explanation_en": impact_explanation_en,
             "historical_analogs": [] if include_analogs else None,
         },
         "errors": [],
@@ -906,8 +926,13 @@ async def get_latest_asset_impacts(
         )
         return {"meta": meta(), "data": data, "errors": []}
     except Exception as e:
+        from datetime import datetime as dt, timezone
         from sentiment_api.api.responses import error_detail
-        return {"meta": meta(), "data": {}, "errors": [error_detail("IMPACTS_LATEST_ERROR", str(e))]}
+        from sentiment_api.engines.asset_targeting import _empty_bundle
+        now = dt.now(timezone.utc)
+        iso = now.isoformat().replace("+00:00", "Z")
+        scope = {"since": iso, "until": iso, "min_impact_level": min_impact_level, "universes": universes or ["sp500", "nasdaq100"]}
+        return {"meta": meta(), "data": _empty_bundle(now, scope), "errors": [error_detail("IMPACTS_LATEST_ERROR", str(e))]}
 
 
 # -----------------------------------------------------------------------------
@@ -1175,7 +1200,11 @@ async def get_topics_index(
 # /v1/stream/events — SSE (v1.2)
 # -----------------------------------------------------------------------------
 @app.get("/v1/stream/events")
-async def stream_events(request: Request, _: Annotated[str, Depends(validate_api_key)]):
+async def stream_events(
+    request: Request,
+    _: Annotated[str, Depends(validate_api_key)],
+    max_events: int | None = Query(None, description="Optional: stop after N events (for tests)"),
+):
     """SSE stream: heartbeat, cluster_updated, mood_updated, impacts_updated, topics_updated. v1.2"""
     import asyncio
     from fastapi.responses import StreamingResponse
@@ -1183,13 +1212,19 @@ async def stream_events(request: Request, _: Annotated[str, Depends(validate_api
     key = _client_key(request)
 
     async def gen():
+        import logging
         from sentiment_api.db.pool import get_pool, acquire
+        _sse_log = logging.getLogger("sentiment_api.api")
+        events_yielded = 0
         try:
             tick = 0
-            while True:
+            while max_events is None or events_yielded < max_events:
                 ts = datetime.now(UTC).isoformat().replace("+00:00", "Z")
                 yield f"event: heartbeat\ndata: {json.dumps({'type':'heartbeat','ts':ts,'payload':{},'request_id':rid}, separators=(',', ':'))}\n\n"
+                events_yielded += 1
                 tick += 1
+                if max_events is not None and events_yielded >= max_events:
+                    break
                 if tick % 4 == 0:
                     payload: dict = {}
                     try:
@@ -1199,18 +1234,26 @@ async def stream_events(request: Request, _: Annotated[str, Depends(validate_api
                                 r = await conn.fetchrow("SELECT ts, index_value FROM sentiment_timeseries WHERE interval='5m' ORDER BY ts DESC LIMIT 1")
                                 if r:
                                     payload = {"as_of": (r["ts"] or datetime.now(UTC)).isoformat().replace("+00:00", "Z"), "index_value": float(r["index_value"] or 0)}
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        _sse_log.debug("SSE mood_updated fetch failed: %s", e)
                     evt = {"type": "mood_updated", "ts": ts, "payload": payload, "request_id": rid}
                     yield f"event: mood_updated\ndata: {json.dumps(evt, separators=(',', ':'))}\n\n"
+                    events_yielded += 1
+                    if max_events is not None and events_yielded >= max_events:
+                        break
                     try:
                         from sentiment_api.engines.asset_targeting import get_latest_asset_impacts
                         imp = await get_latest_asset_impacts(window="6h", limit_tickers=5, limit_sectors=5)
                         evt = {"type": "impacts_updated", "ts": ts, "payload": imp, "request_id": rid}
                         yield f"event: impacts_updated\ndata: {json.dumps(evt, separators=(',', ':'))}\n\n"
-                    except Exception:
+                        events_yielded += 1
+                    except Exception as e:
+                        _sse_log.debug("SSE impacts_updated failed: %s", e)
                         evt = {"type": "impacts_updated", "ts": ts, "payload": {}, "request_id": rid}
                         yield f"event: impacts_updated\ndata: {json.dumps(evt, separators=(',', ':'))}\n\n"
+                    events_yielded += 1
+                    if max_events is not None and events_yielded >= max_events:
+                        break
                     try:
                         pool = get_pool()
                         if pool:
@@ -1225,6 +1268,9 @@ async def stream_events(request: Request, _: Annotated[str, Depends(validate_api
                     except Exception:
                         evt = {"type": "topics_updated", "ts": ts, "payload": {}, "request_id": rid}
                         yield f"event: topics_updated\ndata: {json.dumps(evt, separators=(',', ':'))}\n\n"
+                    events_yielded += 1
+                    if max_events is not None and events_yielded >= max_events:
+                        break
                 await asyncio.sleep(15)
         finally:
             _dec_sse(key)
@@ -1302,6 +1348,59 @@ async def ask_rag(
     except Exception as e:
         import logging
         logging.getLogger("sentiment_api").exception("RAG failed: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# -----------------------------------------------------------------------------
+# POST /v1/retrieval/ingest — chunk documents and ingest into Weaviate (Tier A)
+# -----------------------------------------------------------------------------
+@app.post("/v1/retrieval/ingest")
+async def retrieval_ingest(
+    _: Annotated[str, Depends(validate_api_key)],
+    body: dict = Body(default=None),
+):
+    """
+    Chunk documents and ingest into Weaviate RetrievalChunk (Tier A vectors + text for BM25).
+    Body: { "documents": [ { "text", "doc_id", "source?", "url?", "published_at?", "tickers?", "sector?", "language?" } ], "max_chars?", "overlap_chars?" }.
+    """
+    from sentiment_api.retrieval.chunk_ingest import ChunkDoc, ingest_chunks_to_weaviate
+
+    payload = body or {}
+    docs_raw = payload.get("documents") or []
+    if not docs_raw:
+        raise HTTPException(status_code=400, detail="documents required (non-empty array)")
+    max_chars = payload.get("max_chars", 512)
+    overlap_chars = payload.get("overlap_chars", 64)
+    docs = []
+    for d in docs_raw:
+        if not isinstance(d, dict) or not d.get("text") or not d.get("doc_id"):
+            raise HTTPException(status_code=400, detail="Each document must have text and doc_id")
+        docs.append(
+            ChunkDoc(
+                text=str(d["text"]),
+                doc_id=str(d["doc_id"]),
+                source=str(d.get("source") or ""),
+                url=str(d["url"]) if d.get("url") is not None else None,
+                published_at=str(d["published_at"]) if d.get("published_at") is not None else None,
+                tickers=list(d["tickers"]) if isinstance(d.get("tickers"), list) else None,
+                sector=str(d["sector"]) if d.get("sector") is not None else None,
+                language=str(d["language"]) if d.get("language") is not None else None,
+            )
+        )
+    try:
+        count = await ingest_chunks_to_weaviate(
+            docs=docs,
+            max_chars=max_chars,
+            overlap_chars=overlap_chars,
+        )
+        return {
+            "meta": meta(),
+            "data": {"chunks_upserted": count, "documents_count": len(docs)},
+            "errors": [],
+        }
+    except Exception as e:
+        import logging
+        logging.getLogger("sentiment_api").exception("Retrieval ingest failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1751,34 +1850,36 @@ async def admin_ops(
 
     # DB: counts + recent runs
     try:
+        import logging
         from sentiment_api.db.pool import ensure_pool
         await ensure_pool()
         async with acquire() as conn:
             counts = data["counts"]
             latest = data["latest"]
+            _ops_log = logging.getLogger("sentiment_api.api.ops")
             try:
                 counts["articles"] = int(await conn.fetchval("SELECT count(*) FROM articles"))
                 latest["article_at"] = _to_iso(await conn.fetchval("SELECT max(published_at) FROM articles"))
-            except Exception:
-                pass
+            except Exception as e:
+                _ops_log.debug("Ops articles count failed: %s", e)
             try:
                 counts["clusters"] = int(await conn.fetchval("SELECT count(*) FROM clusters"))
                 latest["cluster_at"] = _to_iso(await conn.fetchval("SELECT max(last_seen) FROM clusters"))
-            except Exception:
-                pass
+            except Exception as e:
+                _ops_log.debug("Ops clusters count failed: %s", e)
             try:
                 counts["events"] = int(await conn.fetchval("SELECT count(*) FROM events"))
                 latest["event_at"] = _to_iso(await conn.fetchval("SELECT max(created_at) FROM events"))
-            except Exception:
-                pass
+            except Exception as e:
+                _ops_log.debug("Ops events count failed: %s", e)
             try:
                 counts["summaries"] = int(await conn.fetchval("SELECT count(*) FROM summaries"))
-            except Exception:
-                pass
+            except Exception as e:
+                _ops_log.debug("Ops summaries count failed: %s", e)
             try:
                 counts["runs"] = int(await conn.fetchval("SELECT count(*) FROM runs"))
-            except Exception:
-                pass
+            except Exception as e:
+                _ops_log.debug("Ops runs count failed: %s", e)
 
             try:
                 run_rows = await conn.fetch(
@@ -1802,8 +1903,8 @@ async def admin_ops(
                         "error": r["error"],
                     }
                 data["runs"] = runs
-            except Exception:
-                pass
+            except Exception as e:
+                _ops_log.debug("Ops runs fetch failed: %s", e)
         data["db"] = {"status": "ok"}
     except Exception as e:
         data["db"] = {"status": "fail", "error": str(e)}

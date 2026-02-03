@@ -20,12 +20,17 @@ os.environ.setdefault(
 )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def client():
+    """Function scope so each test gets a fresh event loop (avoids 'Event loop is closed' after SSE/DB tests)."""
     from sentiment_api.api.main import app
-    return TestClient(app)
+    c = TestClient(app)
+    yield c
+    # Clear global DB pool so next test's loop creates a fresh pool (avoids "Event loop is closed").
+    import sentiment_api.db.pool as _pool_mod
+    _pool_mod._pool = None
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def api_key():
     return "test_key_1234567890abcdef"
