@@ -162,7 +162,12 @@ async def insert_embedding(
     if backend == "pgvector":
         # pgvector expects string format: "[1.0, 2.0, ...]"
         import json
-        embedding_str = json.dumps(embedding)
+        if hasattr(embedding, "tolist"):
+            embedding = embedding.tolist()
+        if isinstance(embedding, str):
+            embedding_str = embedding
+        else:
+            embedding_str = json.dumps(list(embedding))
         await conn.execute(
             """
             INSERT INTO embeddings (object_type, object_id, model, dims, embedding, metadata)
