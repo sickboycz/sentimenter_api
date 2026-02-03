@@ -2,10 +2,19 @@ import { z } from "zod";
 import { unwrapEnvelope } from "./contracts";
 import { demo } from "../demo/data";
 
-export const API_BASE =
-  (typeof window !== "undefined" && !process.env.NEXT_PUBLIC_API_BASE_URL)
-    ? `${window.location.protocol}//${window.location.hostname}:8080`
-    : (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080");
+function getApiBase(): string {
+  const configured = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+  if (typeof window === "undefined") return configured;
+  // When page is on a non-localhost host but API is configured as localhost, use same host (fixes CORS/loopback when accessing by IP)
+  const isLocalhost = /^localhost$|^127\.\d+\.\d+\.\d+$/.test(window.location.hostname);
+  const apiIsLocalhost = /^https?:\/\/(localhost|127\.\d+\.\d+\.\d+)(:\d+)?(\/|$)/.test(configured);
+  if (!isLocalhost && apiIsLocalhost) {
+    return `${window.location.protocol}//${window.location.hostname}:8080`;
+  }
+  return configured;
+}
+
+export const API_BASE = getApiBase();
 
 function getDemoMode(): boolean {
   if (process.env.NEXT_PUBLIC_DEMO_MODE === "1") return true;

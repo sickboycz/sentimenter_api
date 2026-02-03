@@ -233,6 +233,7 @@ export default function OpsPage() {
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
               className="w-full px-3 py-2 rounded-xl bg-black/20 border border-white/10 outline-none text-sm"
+              autoComplete="off"
             />
           </div>
           <div>
@@ -242,6 +243,7 @@ export default function OpsPage() {
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
               className="w-full px-3 py-2 rounded-xl bg-black/20 border border-white/10 outline-none text-sm"
+              autoComplete="off"
             />
           </div>
           <div className="md:col-span-2 flex items-center gap-2">

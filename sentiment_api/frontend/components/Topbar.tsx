@@ -136,6 +136,7 @@ export function Topbar() {
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search clusters, tickers…"
             className="w-full px-3 py-2 rounded-xl bg-black/20 border border-white/10 outline-none focus:border-white/25"
+            autoComplete="off"
           />
         </div>
 
@@ -153,6 +154,7 @@ export function Topbar() {
             placeholder="paste key"
             className="min-w-[160px] max-w-[240px] w-[200px] px-3 py-2 rounded-xl bg-black/20 border border-white/10 outline-none text-sm"
             type="password"
+            autoComplete="off"
           />
           <Button type="submit" className="px-3">Apply</Button>
         </form>

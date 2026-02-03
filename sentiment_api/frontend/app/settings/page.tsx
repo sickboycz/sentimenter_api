@@ -38,6 +38,7 @@ export default function SettingsPage() {
             onChange={(e) => setApiKey(e.target.value)}
             placeholder="Paste your api_key"
             type="password"
+            autoComplete="off"
           />
 
           <label className="flex items-center gap-2 text-sm opacity-80 mt-2">
