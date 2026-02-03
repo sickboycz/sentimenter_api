@@ -4,6 +4,10 @@
 # User: sentimenter
 # See docs/INSTALLATION_MANUAL.md
 
+x-env-file: &env_file
+  env_file:
+    - /etc/sentimenter/env
+
 services:
   postgres:
     volumes:
@@ -18,6 +22,7 @@ services:
       - /srv/sentimenter/volumes/weaviate:/var/lib/weaviate
 
   api:
+    <<: *env_file
     volumes:
       - ./registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
       - /srv/sentimenter/volumes/artifacts:/data/artifacts
@@ -25,6 +30,7 @@ services:
       - /srv/sentimenter/volumes/embedding_cache:/var/lib/sentiment_api
 
   worker:
+    <<: *env_file
     volumes:
       - ./registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
       - /srv/sentimenter/volumes/artifacts:/data/artifacts
@@ -32,9 +38,13 @@ services:
       - /srv/sentimenter/volumes/embedding_cache:/var/lib/sentiment_api
 
   daemon:
+    <<: *env_file
     volumes:
       - ./registry/source_registry.yaml:/etc/sentiment_api/source_registry.yaml:ro
       - /srv/sentimenter/volumes/logs:/data/logs
+
+  frontend:
+    <<: *env_file
 
   grafana:
     volumes:
