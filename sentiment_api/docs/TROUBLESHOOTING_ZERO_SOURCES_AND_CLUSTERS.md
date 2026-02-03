@@ -131,7 +131,22 @@ Without options it only runs diagnostics. Full one-shot deploy: `--production --
 
 ---
 
-## 6. Ingestion / Allocation "unknown"
+## 6. Worker only processing ingest (0 clusters, 0 embeddings)
+
+If worker logs show only **daemon polling** and **ingest** activity (no `process_summarize`, clustering, or embedding logs), the worker was likely **never taking from the summarize queue** because it checked ingest first and the daemon kept ingest non-empty.
+
+**Fix (in code):** The worker’s `blpop` queue order was changed to prefer **summarize → index → score → ingest → normalize**, so downstream queues (summarize, cluster, embed) are drained before more ingest work. Rebuild and restart the worker after pulling this change:
+
+```bash
+cd /srv/sentimenter/repo/sentiment_api
+sudo ./scripts/fix-everything.sh --production --pull --rebuild-worker --restart
+```
+
+After deploy, new articles will flow: ingest → summarize → clusters/embeddings. Existing articles that were never summarized need a backfill or will be summarized only when they are re-ingested.
+
+---
+
+## 7. Ingestion / Allocation "unknown"
 
 Topbar status pills often derive from:
 

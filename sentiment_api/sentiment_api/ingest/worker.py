@@ -296,7 +296,8 @@ async def run_worker() -> None:
     try:
         while True:
             try:
-                result = await queue_client.blpop([QUEUE_INGEST, QUEUE_NORMALIZE, QUEUE_SUMMARIZE, QUEUE_SCORE, QUEUE_INDEX], timeout=5)
+                # Prefer downstream queues so summarize/cluster/embed run; otherwise ingest starves them
+                result = await queue_client.blpop([QUEUE_SUMMARIZE, QUEUE_INDEX, QUEUE_SCORE, QUEUE_INGEST, QUEUE_NORMALIZE], timeout=5)
                 if not result:
                     continue
                 queue_name, data = result
