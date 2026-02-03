@@ -11,7 +11,7 @@ from sentiment_api.db.pool import init_pool, close_pool, acquire
 from sentiment_api.collectors.rss import RSSCollector
 from sentiment_api.collectors.gdelt import GDELTCollector
 from sentiment_api.collectors.scrape import ScrapeCollector
-from sentiment_api.queue.client import get_queue, QUEUE_INGEST
+from sentiment_api.queue.client import get_queue, QUEUE_INGEST, QUEUE_SUMMARIZE
 from sentiment_api.registry import load_registry
 from sentiment_api.collectors.circuit_breaker import is_open, record_success, record_failure
 from sentiment_api.metrics import ingestion_errors_total, ingestion_lag_seconds, fetch_duration_seconds
@@ -68,6 +68,51 @@ def _serialize_item(item) -> dict:
         "content_html": item.content_html,
         "metadata": item.metadata,
     }
+
+
+_BACKFILL_SUMMARIZE_LIMIT = 30
+_BACKFILL_SUMMARIZE_INTERVAL_CYCLES = 3
+
+
+async def _backfill_summarize_queue(queue_client) -> int:
+    """Push articles without L2 summary to QUEUE_SUMMARIZE. Returns count pushed."""
+    try:
+        async with acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT a.article_id, a.source_id, a.url, a.canonical_url, a.published_at, a.fetched_at,
+                       a.title_en, a.content_en, a.metadata
+                FROM articles a
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM summaries s
+                    WHERE s.object_type = 'article' AND s.object_id = a.article_id AND s.level = 'L2'
+                )
+                ORDER BY a.fetched_at DESC NULLS LAST
+                LIMIT $1
+                """,
+                _BACKFILL_SUMMARIZE_LIMIT,
+            )
+        pushed = 0
+        for r in (rows or []):
+            norm = {
+                "source_id": r["source_id"],
+                "url": r["url"],
+                "canonical_url": r["canonical_url"],
+                "title_en": r["title_en"] or "",
+                "content_en": r["content_en"] or "",
+                "published_at": r["published_at"].isoformat() if r["published_at"] else "",
+                "fetched_at": r["fetched_at"].isoformat() if r["fetched_at"] else "",
+                "metadata": r["metadata"] or {},
+            }
+            payload = {"article_id": r["article_id"], "source_id": r["source_id"], "norm": norm}
+            await queue_client.rpush(QUEUE_SUMMARIZE, json.dumps(payload, default=str))
+            pushed += 1
+        if pushed > 0:
+            logger.info("Daemon backfill: pushed %d articles without L2 to summarize", pushed)
+        return pushed
+    except Exception as ex:
+        logger.debug("Daemon backfill summarize skipped: %s", ex)
+        return 0
 
 
 async def _record_run(pool, run_type: str, source_id: str | None, status: str, stats: dict | None = None, error: dict | None = None) -> None:
@@ -178,6 +223,11 @@ async def run_daemon() -> None:
                         logger.debug("Source %s: %d items", src.source_id, n)
                 if total > 0:
                     logger.info("Poll cycle: %d items queued", total)
+                # Auto-backfill: push articles without L2 to summarize every N cycles
+                if cycle % _BACKFILL_SUMMARIZE_INTERVAL_CYCLES == 0:
+                    backfill_n = await _backfill_summarize_queue(queue)
+                    if backfill_n > 0:
+                        total += backfill_n
                 await _record_cycle(queue, sources=len(sources), queued=total, interval_sec=interval)
             except asyncio.CancelledError:
                 break

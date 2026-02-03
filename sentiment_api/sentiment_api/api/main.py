@@ -245,7 +245,12 @@ async def health():
     # OpenAI check: validate key by calling API; fail clearly if invalid
     try:
         import os
-        key = settings.openai_api_key or os.environ.get("OPENAI_API_KEY", "")
+        key = (
+            settings.openai_api_key
+            or os.environ.get("OPENAI_API_KEY")
+            or os.environ.get("SENTIMENT_API_OPENAI_API_KEY")
+            or ""
+        )
         if not key:
             checks.append({"name": "openai", "status": "fail", "details": {"message": "No API key; set OPENAI_API_KEY"}})
         else:
@@ -1365,17 +1370,19 @@ async def admin_ingest_run(
     from sentiment_api.ingest.daemon import _serialize_item
     rss, gdelt, scrape = RSSCollector(), GDELTCollector(), ScrapeCollector()
     total = 0
+    defaults = reg.defaults
     for src in sources:
+        respect_robots = src.effective_respect_robots_txt(defaults)
         if src.type == "rss" and src.feed_url:
-            for item in rss.collect(src, src.feed_url):
+            for item in rss.collect(src, src.feed_url, respect_robots=respect_robots):
                 await queue.rpush(QUEUE_INGEST, json.dumps(_serialize_item(item)))
                 total += 1
         elif src.type == "gdelt" and src.base_url:
-            for item in gdelt.collect(src, src.base_url, getattr(src, "query_profiles", None)):
+            for item in gdelt.collect(src, src.base_url, getattr(src, "query_profiles", None), respect_robots=respect_robots):
                 await queue.rpush(QUEUE_INGEST, json.dumps(_serialize_item(item)))
                 total += 1
         elif src.type == "scrape" and src.page_url:
-            for item in scrape.collect(src, src.page_url):
+            for item in scrape.collect(src, src.page_url, respect_robots=respect_robots):
                 await queue.rpush(QUEUE_INGEST, json.dumps(_serialize_item(item)))
                 total += 1
     out = {"meta": meta(), "data": {"pushed": total, "sources_polled": len(sources)}, "errors": []}

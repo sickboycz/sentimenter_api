@@ -61,6 +61,7 @@ export async function apiGetData<T>(
     // Demo mode: map endpoints to demo payloads.
     const d: any = demo;
     if (path.startsWith("/v1/health")) return { data: dataSchema.parse(d.health) };
+    if (path.startsWith("/v1/status")) return { data: dataSchema.parse(d.status) };
     if (path.startsWith("/v1/admin/ops")) return { data: dataSchema.parse(d.ops) };
     if (path.startsWith("/v1/admin/logs")) return { data: dataSchema.parse(d.logs) };
     if (path.startsWith("/v1/mood/now")) return { data: dataSchema.parse(d.mood) };

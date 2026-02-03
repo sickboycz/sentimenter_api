@@ -8,6 +8,13 @@ export const demo = {
       { name: "redis", status: "ok" }
     ]
   },
+  status: {
+    api: "ok",
+    ingestion: "ok",
+    allocation: "ok",
+    research: "unknown",
+    as_of: new Date().toISOString(),
+  },
   ops: {
     queues: { ingest: 28, summarize: 6, index: 2, normalize: 0, score: 0 },
     queues_total: 36,

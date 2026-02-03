@@ -65,8 +65,13 @@ MAX_BACKOFF = 60.0
 
 _robots_cache: dict[str, tuple[RobotFileParser, float]] = {}
 _ROBOTS_CACHE_TTL = 3600
-# Polite, identifiable User-Agent so sites that allow named bots may permit access
-_USER_AGENT = "SentimentAPI/1.2 (research data aggregation; +https://sentiment-api.local)"
+# Polite, identifiable User-Agent; format matches common crawler conventions to reduce 403 blocks
+_DEFAULT_USER_AGENT = "Mozilla/5.0 (compatible; SentimentAPI/1.2; research data aggregation; +https://github.com/sickboycz/sentimenter_api)"
+
+
+def _get_user_agent() -> str:
+    import os
+    return os.environ.get("SENTIMENT_API_USER_AGENT") or os.environ.get("USER_AGENT") or _DEFAULT_USER_AGENT
 
 
 def _check_robots(url: str) -> bool:
@@ -79,16 +84,16 @@ def _check_robots(url: str) -> bool:
     if robots_url in _robots_cache:
         rp, ts = _robots_cache[robots_url]
         if now - ts < _ROBOTS_CACHE_TTL:
-            return rp.can_fetch(_USER_AGENT, url)
+            return rp.can_fetch(_get_user_agent(), url)
     try:
         rp = RobotFileParser()
         rp.set_url(robots_url)
-        with httpx.Client(timeout=5.0, headers={"User-Agent": _USER_AGENT}) as c:
+        with httpx.Client(timeout=5.0, headers={"User-Agent": _get_user_agent()}) as c:
             resp = c.get(robots_url)
             if resp.status_code == 200:
                 rp.parse(resp.text.splitlines())
         _robots_cache[robots_url] = (rp, now)
-        return rp.can_fetch(_USER_AGENT, url)
+        return rp.can_fetch(_get_user_agent(), url)
     except Exception:
         return True  # allow on parse error
 
@@ -112,7 +117,7 @@ def fetch_with_retry(
         raise PermissionError("robots.txt disallows this URL")
     last_exc: Exception | None = None
     backoff = INITIAL_BACKOFF
-    headers = {"User-Agent": _USER_AGENT}
+    headers = {"User-Agent": _get_user_agent()}
     with httpx.Client(timeout=timeout, follow_redirects=follow_redirects, headers=headers) as client:
         for attempt in range(MAX_RETRIES):
             try:

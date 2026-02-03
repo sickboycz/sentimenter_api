@@ -1,5 +1,6 @@
 """GDELT DOC 2.0 API collector."""
 
+import json
 import logging
 from datetime import datetime, timezone
 from typing import Iterator
@@ -36,7 +37,12 @@ class GDELTCollector:
         if end_date:
             params["enddatetime"] = end_date.replace("-", "") + "235959" if len(end_date) == 10 else end_date
         resp = fetch_with_retry(base_url, params=params, timeout=float(self.timeout), respect_robots=respect_robots)
-        data = resp.json()
+        try:
+            data = resp.json()
+        except json.JSONDecodeError as e:
+            text = (resp.text or "")[:200]
+            logger.warning("GDELT API returned non-JSON (status=%s, preview=%r): %s", resp.status_code, text, e)
+            return []
         articles = data.get("articles", []) if isinstance(data, dict) else []
         return articles if isinstance(articles, list) else []
 

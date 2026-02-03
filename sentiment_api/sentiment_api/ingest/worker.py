@@ -23,6 +23,7 @@ from sentiment_api.db.pool import init_pool, close_pool, acquire
 from sentiment_api.db.repo import (
     upsert_sources,
     insert_article,
+    get_article_needing_summarize,
     insert_article_body,
     insert_cluster,
     add_cluster_member,
@@ -130,7 +131,14 @@ async def process_ingest(payload: dict) -> None:
         await queue.rpush(QUEUE_SUMMARIZE, json.dumps({"article_id": art_id, "source_id": norm["source_id"], "norm": norm}, cls=_DateTimeEncoder))
         logger.info("Ingest: article %s inserted, pushed to summarize", art_id)
     else:
-        logger.debug("Ingest: article %s duplicate, skipped summarize", art_id)
+        # Duplicate: auto-push to summarize if article exists but has no L2 (fixes backlog)
+        async with acquire() as conn:
+            payload = await get_article_needing_summarize(conn, art_id, norm["canonical_url"])
+        if payload:
+            await queue.rpush(QUEUE_SUMMARIZE, json.dumps(payload, cls=_DateTimeEncoder))
+            logger.info("Ingest: article %s duplicate but missing L2, pushed to summarize", payload["article_id"])
+        else:
+            logger.debug("Ingest: article %s duplicate, skipped summarize", art_id)
 
 
 def _dedupe_key(obj_id: str, text_hash: str, schema_ver: str, model: str) -> str:
@@ -146,6 +154,14 @@ async def process_summarize(payload: dict) -> None:
     norm = payload.get("norm", {})
     if not art_id or not norm:
         logger.warning("Summarize: skipping job (missing article_id or norm): art_id=%s has_norm=%s", art_id, bool(norm))
+        return
+    async with acquire() as conn:
+        has_l2 = await conn.fetchval(
+            "SELECT 1 FROM summaries WHERE object_type = 'article' AND object_id = $1 AND level = 'L2' LIMIT 1",
+            art_id,
+        )
+    if has_l2:
+        logger.debug("Summarize: article %s already has L2, skipping", art_id)
         return
     title = norm.get("title_en", "")
     content = norm.get("content_en", "")

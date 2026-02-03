@@ -178,3 +178,17 @@ Topbar status pills often derive from:
 - **Allocation:** e.g. tickers/impacts data
 
 If registry has 0 sources, "Ingestion: unknown" is consistent. Fixing the registry (so sources > 0) and ensuring the worker and daemon run with the same registry will improve ingestion visibility. Allocation depends on clusters/impacts; fixing 0 clusters as above should help.
+
+---
+
+## 9. Collector failures (403 Forbidden, robots.txt, GDELT JSON)
+
+Logs may show:
+- **GDELT**: `Expecting value: line 1 column 1 (char 0)` — GDELT API returned empty or non-JSON (rate limit, downtime). Now handled gracefully; returns empty list.
+- **403 Forbidden** — Sites (OECD, UN, OPEC, Consilium, etc.) block requests from datacenter IPs or unknown User-Agents.
+- **robots.txt disallows this URL** — Site forbids crawling. Sources with `respect_robots_txt: false` in the registry bypass this (e.g. gdelt_doc_v2, us_fed_rss).
+
+**Mitigation:**
+1. **User-Agent override** — Set `SENTIMENT_API_USER_AGENT` or `USER_AGENT` in `/etc/sentimenter/env` to a custom string; some sites allow named bots.
+2. **Disable robots for a source** — In `registry/source_registry.yaml`, add `respect_robots_txt: false` to the source (only if permitted by the site).
+3. **403 from datacenter** — Many government/official sites block cloud/server IPs. Using a residential proxy is out of scope; rely on sources that permit server access (GDELT, Fed, Treasury when reachable).

@@ -69,33 +69,73 @@ async def insert_article_body(
 
 
 async def insert_article(conn: asyncpg.Connection, art: dict) -> str | None:
-    """Insert article; return article_id if inserted, None if duplicate."""
+    """Insert article; return article_id if inserted, None if duplicate (article_id or canonical_url)."""
+    try:
+        row = await conn.fetchrow(
+            """
+            INSERT INTO articles (article_id, source_id, url, canonical_url, published_at, fetched_at,
+                lang_original, title_raw, title_en, content_en, translation_status, translation_provider,
+                translation_confidence, content_hash, metadata)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            ON CONFLICT (article_id) DO NOTHING
+            RETURNING article_id
+            """,
+            art["article_id"],
+            art["source_id"],
+            art["url"],
+            art["canonical_url"],
+            art.get("published_at"),
+            art["fetched_at"],
+            art.get("lang_original"),
+            art.get("title_raw"),
+            art["title_en"],
+            art.get("content_en"),
+            art.get("translation_status", "ok"),
+            art.get("translation_provider"),
+            art.get("translation_confidence"),
+            art.get("content_hash"),
+            json.dumps(art.get("metadata", {})),
+        )
+        return row["article_id"] if row else None
+    except asyncpg.UniqueViolationError as e:
+        logger.debug("Article duplicate (article_id or canonical_url): %s", e)
+        return None
+
+
+async def get_article_needing_summarize(
+    conn: asyncpg.Connection,
+    article_id_hint: str,
+    canonical_url: str,
+) -> dict | None:
+    """Return article row as {article_id, source_id, norm} if it exists and has no L2 summary, else None."""
     row = await conn.fetchrow(
         """
-        INSERT INTO articles (article_id, source_id, url, canonical_url, published_at, fetched_at,
-            lang_original, title_raw, title_en, content_en, translation_status, translation_provider,
-            translation_confidence, content_hash, metadata)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-        ON CONFLICT (article_id) DO NOTHING
-        RETURNING article_id
+        SELECT a.article_id, a.source_id, a.url, a.canonical_url, a.published_at, a.fetched_at,
+               a.title_en, a.content_en, a.metadata
+        FROM articles a
+        WHERE (a.article_id = $1 OR a.canonical_url = $2)
+          AND NOT EXISTS (
+              SELECT 1 FROM summaries s
+              WHERE s.object_type = 'article' AND s.object_id = a.article_id AND s.level = 'L2'
+          )
+        LIMIT 1
         """,
-        art["article_id"],
-        art["source_id"],
-        art["url"],
-        art["canonical_url"],
-        art.get("published_at"),
-        art["fetched_at"],
-        art.get("lang_original"),
-        art.get("title_raw"),
-        art["title_en"],
-        art.get("content_en"),
-        art.get("translation_status", "ok"),
-        art.get("translation_provider"),
-        art.get("translation_confidence"),
-        art.get("content_hash"),
-        json.dumps(art.get("metadata", {})),
+        article_id_hint,
+        canonical_url,
     )
-    return row["article_id"] if row else None
+    if not row:
+        return None
+    norm = {
+        "source_id": row["source_id"],
+        "url": row["url"],
+        "canonical_url": row["canonical_url"],
+        "title_en": row["title_en"] or "",
+        "content_en": row["content_en"] or "",
+        "published_at": row["published_at"].isoformat() if row["published_at"] else "",
+        "fetched_at": row["fetched_at"].isoformat() if row["fetched_at"] else "",
+        "metadata": row["metadata"] or {},
+    }
+    return {"article_id": row["article_id"], "source_id": row["source_id"], "norm": norm}
 
 
 async def insert_cluster(

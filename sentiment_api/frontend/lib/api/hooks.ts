@@ -5,6 +5,7 @@ import { z } from "zod";
 import { apiGetData, apiPostData } from "./client";
 import {
   HealthData,
+  StatusData,
   OpsStatus,
   LogsData,
   BackfillResult,
@@ -31,6 +32,17 @@ export function useHealth() {
     queryFn: async () => {
       const res = await apiGetData("/v1/health", HealthData);
       return res.data as z.infer<typeof HealthData>;
+    },
+    refetchInterval: 10_000
+  });
+}
+
+export function useStatus() {
+  return useQuery<z.infer<typeof StatusData>>({
+    queryKey: ["status"],
+    queryFn: async () => {
+      const res = await apiGetData("/v1/status", StatusData);
+      return res.data as z.infer<typeof StatusData>;
     },
     refetchInterval: 10_000
   });

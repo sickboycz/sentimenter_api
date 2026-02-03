@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { StatusPill } from "./ui/StatusPill";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
-import { useHealth, useSources, useImpactTickers, useOpsStatus } from "@/lib/api/hooks";
+import { useHealth, useStatus, useSources, useImpactTickers, useOpsStatus } from "@/lib/api/hooks";
 
 function getApiKey(): string {
   if (typeof window === "undefined") return "";
@@ -13,6 +13,7 @@ function getApiKey(): string {
 
 export function Topbar() {
   const health = useHealth();
+  const status = useStatus();
 
   const [key, setKey] = useState("");
   const hasKey = key.trim().length >= 16;
@@ -25,20 +26,9 @@ export function Topbar() {
   useEffect(() => setKey(getApiKey()), []);
 
   const apiStatus = health.data?.status ?? "unknown";
-  const ingestionStatus = !hasKey
-    ? "unknown"
-    : sourcesWithKey.isError
-      ? "down"
-      : (sourcesWithKey.data?.sources?.length ?? 0) > 0
-        ? "ok"
-        : "unknown";
-  const allocationStatus = !hasKey
-    ? "unknown"
-    : tickersWithKey.isError
-      ? "down"
-      : (tickersWithKey.data?.winners?.length ?? 0) > 0
-        ? "ok"
-        : "unknown";
+  const ingestionStatus = status.data?.ingestion ?? "unknown";
+  const allocationStatus = status.data?.allocation ?? "unknown";
+  const researchStatus = status.data?.research ?? "unknown";
 
   const authStatus = useMemo(() => {
     if (!hasKey) return "down";
@@ -54,9 +44,9 @@ export function Topbar() {
       { label: "Auth", status: authStatus },
       { label: "Ingestion", status: ingestionStatus },
       { label: "Allocation", status: allocationStatus },
-      { label: "Research", status: "unknown" }
+      { label: "Research", status: researchStatus }
     ];
-  }, [apiStatus, authStatus, ingestionStatus, allocationStatus]);
+  }, [apiStatus, authStatus, ingestionStatus, allocationStatus, researchStatus]);
 
   const queueTotal = useMemo(() => {
     const q = ops.data?.queues || {};

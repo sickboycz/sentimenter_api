@@ -10,6 +10,14 @@ export const HealthData = z.object({
   checks: z.array(z.any()).default([])
 });
 
+export const StatusData = z.object({
+  api: z.enum(["ok","degraded","down"]),
+  ingestion: z.enum(["ok","degraded","unknown"]),
+  allocation: z.enum(["ok","degraded","unknown"]),
+  research: z.enum(["ok","degraded","unknown"]),
+  as_of: z.string(),
+});
+
 export const OpsRun = z.object({
   run_type: z.string(),
   status: z.string().optional(),
