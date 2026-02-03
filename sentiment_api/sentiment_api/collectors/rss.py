@@ -53,7 +53,8 @@ class RSSCollector:
                     content = val
                     break
                 if isinstance(val, list) and val:
-                    content = val[0].get("value", "")
+                    first = val[0]
+                    content = first.get("value", str(first)) if isinstance(first, dict) else str(first)
                     break
             yield RawItem(
                 source_id=source.source_id,

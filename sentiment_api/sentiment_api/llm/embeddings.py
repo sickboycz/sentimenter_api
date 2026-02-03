@@ -51,10 +51,12 @@ def embed_text(text: str, model_id: str | None = None) -> list[float]:
                 model="text-embedding-3-large",
                 input=text[:8000],
             )
-            return resp.data[0].embedding
+            if resp.data and len(resp.data) > 0:
+                return resp.data[0].embedding
+            logger.warning("OpenAI embeddings returned empty data")
         except Exception as e:
             logger.warning("Embedding failed: %s", e)
-            provider = "sentence_transformers"
+        provider = "sentence_transformers"
     if provider == "sentence_transformers" and client:
         try:
             vec = client.encode(text[:8000], convert_to_numpy=True).tolist()

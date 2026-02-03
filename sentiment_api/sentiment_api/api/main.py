@@ -140,11 +140,14 @@ async def metrics_middleware(request, call_next):
 
 
 def _get_registry():
-    """Load registry; fail gracefully if path invalid."""
+    """Load registry; fail gracefully if path invalid or parse error."""
+    import logging
+    import yaml
     settings = get_settings()
     try:
         return load_registry(settings.source_registry_path)
-    except RegistryError as e:
+    except (RegistryError, json.JSONDecodeError, yaml.YAMLError, OSError) as e:
+        logging.getLogger("sentiment_api").debug("Registry load failed: %s", e)
         return None
 
 

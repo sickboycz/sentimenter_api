@@ -39,7 +39,10 @@ def _load_json_schema() -> dict:
     )
     if not schema_path.exists():
         return {}
-    return json.loads(schema_path.read_text())
+    try:
+        return json.loads(schema_path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return {}
 
 
 def _validate_json_schema(data: dict) -> list[str]:

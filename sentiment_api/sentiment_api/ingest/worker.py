@@ -302,7 +302,16 @@ async def run_worker() -> None:
                     continue
                 queue_name, data = result
                 await _record_job(queue_client, queue_name)
-                payload = json.loads(data) if isinstance(data, str) else data
+                try:
+                    if isinstance(data, bytes):
+                        payload = json.loads(data.decode("utf-8"))
+                    elif isinstance(data, str):
+                        payload = json.loads(data)
+                    else:
+                        payload = data
+                except json.JSONDecodeError as e:
+                    logger.warning("Malformed queue payload (JSON decode failed): %s", e)
+                    continue
                 if queue_name == QUEUE_SUMMARIZE and "article_id" in payload and "norm" in payload:
                     await process_summarize(payload)
                 elif queue_name == QUEUE_INDEX and "cluster_id" in payload:

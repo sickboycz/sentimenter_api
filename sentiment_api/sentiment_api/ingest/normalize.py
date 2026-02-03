@@ -109,12 +109,14 @@ def normalize_item(
     if published and published.tzinfo is None:
         published = published.replace(tzinfo=timezone.utc)
     content_hash = hashlib.sha256((title_en + content_en).encode()).hexdigest()[:64]
+    fetched_at = item.fetched_at or datetime.now(timezone.utc)
+    fetched_at = fetched_at.replace(tzinfo=timezone.utc) if getattr(fetched_at, "tzinfo", None) is None else fetched_at
     return {
         "source_id": item.source_id,
         "url": url,
         "canonical_url": url,
         "published_at": published,
-        "fetched_at": item.fetched_at.replace(tzinfo=timezone.utc) if item.fetched_at.tzinfo is None else item.fetched_at,
+        "fetched_at": fetched_at,
         "lang_original": lang,
         "title_raw": item.title_raw,
         "title_en": title_en,

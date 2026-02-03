@@ -66,35 +66,33 @@ async def insert_article_body(
 
 
 async def insert_article(conn: asyncpg.Connection, art: dict) -> str | None:
-    """Insert article; return article_id or None if duplicate."""
-    try:
-        await conn.execute(
-            """
-            INSERT INTO articles (article_id, source_id, url, canonical_url, published_at, fetched_at,
-                lang_original, title_raw, title_en, content_en, translation_status, translation_provider,
-                translation_confidence, content_hash, metadata)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-            ON CONFLICT (article_id) DO NOTHING
-            """,
-            art["article_id"],
-            art["source_id"],
-            art["url"],
-            art["canonical_url"],
-            art.get("published_at"),
-            art["fetched_at"],
-            art.get("lang_original"),
-            art.get("title_raw"),
-            art["title_en"],
-            art.get("content_en"),
-            art.get("translation_status", "ok"),
-            art.get("translation_provider"),
-            art.get("translation_confidence"),
-            art.get("content_hash"),
-            json.dumps(art.get("metadata", {})),
-        )
-        return art["article_id"]
-    except asyncpg.UniqueViolationError:
-        return None
+    """Insert article; return article_id if inserted, None if duplicate."""
+    row = await conn.fetchrow(
+        """
+        INSERT INTO articles (article_id, source_id, url, canonical_url, published_at, fetched_at,
+            lang_original, title_raw, title_en, content_en, translation_status, translation_provider,
+            translation_confidence, content_hash, metadata)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        ON CONFLICT (article_id) DO NOTHING
+        RETURNING article_id
+        """,
+        art["article_id"],
+        art["source_id"],
+        art["url"],
+        art["canonical_url"],
+        art.get("published_at"),
+        art["fetched_at"],
+        art.get("lang_original"),
+        art.get("title_raw"),
+        art["title_en"],
+        art.get("content_en"),
+        art.get("translation_status", "ok"),
+        art.get("translation_provider"),
+        art.get("translation_confidence"),
+        art.get("content_hash"),
+        json.dumps(art.get("metadata", {})),
+    )
+    return row["article_id"] if row else None
 
 
 async def insert_cluster(

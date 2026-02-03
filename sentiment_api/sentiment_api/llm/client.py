@@ -36,7 +36,8 @@ def call_chat(
                 ],
                 temperature=temperature,
             )
-            out = (resp.choices[0].message.content or "").strip()
+            choices = getattr(resp, "choices", None) or []
+            out = (choices[0].message.content or "").strip() if choices else ""
             if out:
                 return out
         except Exception as e:
