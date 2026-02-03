@@ -53,7 +53,12 @@ Pipeline: **ingest → normalize → summarize → (cluster + event + embedding)
 
 ```bash
 # 1. Worker logs (look for DB/cluster errors)
-docker compose -f docker-compose.yml -f docker-compose.production.yml logs worker --tail 200
+# If "logs worker" hangs or returns nothing, use the container name:
+docker ps -a --format "{{.Names}}" | grep worker
+docker logs <worker_container_name> --tail 300
+
+# Or with compose (from sentiment_api/):
+docker compose -f docker-compose.yml -f docker-compose.production.yml logs worker --tail 200 2>&1 | cat
 
 # Look for:
 # - "DB connection OK (clusters and embeddings tables present)"  → startup check passed

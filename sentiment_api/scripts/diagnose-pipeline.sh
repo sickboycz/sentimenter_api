@@ -65,4 +65,10 @@ echo "--- Worker last job (Redis) ---"
 "${COMPOSE_CMD[@]}" exec -T redis redis-cli HGETALL sentiment_api:ops:worker_last_job 2>/dev/null || echo "  (redis unreachable)"
 echo ""
 
+# --- How to get worker logs (file, not stdout until next deploy) ---
+echo "--- Worker logs (from file in container) ---"
+echo "  Run: docker exec \$(docker ps -q -f name=worker) tail -200 /data/logs/worker.log"
+echo "  Or:  docker exec \$(docker ps -q -f name=worker) grep -E 'Clustering DB error|Worker error|DB connection OK' /data/logs/worker.log | tail -50"
+echo ""
+
 echo "=== end diagnostics ==="
