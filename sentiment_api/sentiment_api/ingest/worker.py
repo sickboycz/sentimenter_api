@@ -190,13 +190,17 @@ async def process_summarize(payload: dict) -> None:
         raise
     imp = score_impact(cid, l3, source_count, "reputable_media")
     tone = l2.get("tone", {"polarity": 0, "subjectivity": 0.5})
-    async with acquire() as conn:
-        await insert_cluster(
-            conn, cid, headline, ckey, topics, l2.get("regions", []),
-            source_count, source_urls, tone, imp, imp.get("risk_vector", {})
-        )
-        await add_cluster_member(conn, cid, art_id)
-        await insert_embedding(conn, "cluster", cid, settings.model_embedding_id, embedding)
+    try:
+        async with acquire() as conn:
+            await insert_cluster(
+                conn, cid, headline, ckey, topics, l2.get("regions", []),
+                source_count, source_urls, tone, imp, imp.get("risk_vector", {})
+            )
+            await add_cluster_member(conn, cid, art_id)
+            await insert_embedding(conn, "cluster", cid, settings.model_embedding_id, embedding)
+    except Exception as e:
+        logger.exception("Clustering DB error (insert_cluster/add_cluster_member/insert_embedding): %s", e)
+        raise
     event_type = (topics + imp.get("reason_codes", []))[0] if (topics or imp.get("reason_codes")) else "OTHER"
     ev_id = _event_id(cid, event_type)
     async with acquire() as conn:
@@ -244,10 +248,29 @@ async def process_index(payload: dict) -> None:
         logger.debug("Outcomes measurement skipped: %s", e)
 
 
+async def _verify_db_connection() -> None:
+    """Verify DB is reachable and clustering tables exist. Raises on failure."""
+    async with acquire() as conn:
+        await conn.fetchval("SELECT 1")
+        has_clusters = await conn.fetchval(
+            "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'clusters')"
+        )
+        has_embeddings = await conn.fetchval(
+            "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'embeddings')"
+        )
+        if not has_clusters or not has_embeddings:
+            raise RuntimeError(
+                "Clustering tables missing: clusters=%s embeddings=%s. Run DB migrations."
+                % (has_clusters, has_embeddings)
+            )
+    logger.info("DB connection OK (clusters and embeddings tables present)")
+
+
 async def run_worker() -> None:
     """Main worker loop."""
     settings = get_settings()
     await init_pool(settings.database_url)
+    await _verify_db_connection()
     queue_client = await get_queue(settings.redis_url)
     heartbeat_task = asyncio.create_task(_heartbeat_loop(queue_client))
     reg = load_registry(settings.source_registry_path)

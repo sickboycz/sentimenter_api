@@ -1,11 +1,13 @@
 """Async Postgres connection pool."""
 
+import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 import asyncio
 import asyncpg
 
+logger = logging.getLogger("sentiment_api.db.pool")
 
 _pool: asyncpg.Pool | None = None
 _init_lock = asyncio.Lock()
@@ -14,13 +16,18 @@ _init_lock = asyncio.Lock()
 async def init_pool(database_url: str, min_size: int = 2, max_size: int = 10) -> asyncpg.Pool:
     """Create connection pool."""
     global _pool
-    _pool = await asyncpg.create_pool(
-        database_url,
-        min_size=min_size,
-        max_size=max_size,
-        command_timeout=60,
-    )
-    return _pool
+    try:
+        _pool = await asyncpg.create_pool(
+            database_url,
+            min_size=min_size,
+            max_size=max_size,
+            command_timeout=60,
+        )
+        logger.info("DB pool initialized (min=%s, max=%s)", min_size, max_size)
+        return _pool
+    except Exception as e:
+        logger.error("DB pool init failed: %s", e, exc_info=True)
+        raise
 
 
 async def ensure_pool(database_url: str | None = None) -> asyncpg.Pool:
@@ -34,13 +41,18 @@ async def ensure_pool(database_url: str | None = None) -> asyncpg.Pool:
         if database_url is None:
             from sentiment_api.config import get_settings
             database_url = get_settings().database_url
-        _pool = await asyncpg.create_pool(
-            database_url,
-            min_size=2,
-            max_size=10,
-            command_timeout=60,
-        )
-        return _pool
+        try:
+            _pool = await asyncpg.create_pool(
+                database_url,
+                min_size=2,
+                max_size=10,
+                command_timeout=60,
+            )
+            logger.info("DB pool initialized (lazy)")
+            return _pool
+        except Exception as e:
+            logger.error("DB pool init failed: %s", e, exc_info=True)
+            raise
 
 
 async def close_pool() -> None:
