@@ -96,7 +96,29 @@ This prints: Postgres counts (articles, clusters, events, summaries, runs, embed
 
 ---
 
-## 4. Quick checklist
+## 4. Fix-everything script
+
+From the **server** (run as root or with sudo):
+
+```bash
+cd /srv/sentimenter/repo/sentiment_api
+sudo ./scripts/fix-everything.sh --production --fix-git --pull --rebuild --restart
+```
+
+This script can:
+
+- **--fix-git** — Add repo to `git safe.directory` (fixes "dubious ownership" when pulling)
+- **--pull** — `git fetch` + `git pull`
+- **--rebuild** — `docker compose build --no-cache` (all services)
+- **--rebuild-worker** — Rebuild only the worker image (faster after worker-only code changes)
+- **--restart** — `docker compose up -d` and restart `sentimenter-docker` unit
+- **--no-diagnose** — Skip running the pipeline diagnostics at the end
+
+Without options it only runs diagnostics. Full one-shot deploy: `--production --fix-git --pull --rebuild --restart`.
+
+---
+
+## 5. Quick checklist (manual)
 
 | Check | Command / action |
 |-------|-------------------|
@@ -109,7 +131,7 @@ This prints: Postgres counts (articles, clusters, events, summaries, runs, embed
 
 ---
 
-## 5. Ingestion / Allocation "unknown"
+## 6. Ingestion / Allocation "unknown"
 
 Topbar status pills often derive from:
 
