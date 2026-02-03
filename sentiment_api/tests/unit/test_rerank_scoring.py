@@ -23,8 +23,8 @@ def test_cosine_similarity_orthogonal():
 
 def test_fake_provider_deterministic():
     prov = FakeEmbeddingProvider()
-    v1 = prov.embed_query("tierB_large", "hello")
-    v2 = prov.embed_query("tierB_large", "hello")
+    v1 = prov.embed_query("tierB", "hello")
+    v2 = prov.embed_query("tierB", "hello")
     assert v1 == v2
     assert len(v1) == 768
 
@@ -34,6 +34,17 @@ def test_fake_provider_different_text_different_vector():
     v1 = prov.embed_query("tierB", "hello")
     v2 = prov.embed_query("tierB", "world")
     assert v1 != v2
+
+
+def test_fake_provider_3072_dim():
+    """Tier B large (3072 dim) supported for on-the-fly rerank."""
+    prov = FakeEmbeddingProvider()
+    v = prov.embed_query("openai:text-embedding-3-large:3072", "hello")
+    assert len(v) == 3072
+    v2 = prov.embed_query("tierb_large", "hello")
+    assert len(v2) == 3072
+    # Same model_id + text => same vector (deterministic)
+    assert prov.embed_query("tierb_large", "hello") == v2
 
 
 def test_parse_weights():

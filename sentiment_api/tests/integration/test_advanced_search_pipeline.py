@@ -75,7 +75,7 @@ def golden_candidates():
 
 def test_tierb_rerank_deterministic(fake_provider, temp_cache, golden_candidates):
     """Rerank with fake provider: ranking must be deterministic."""
-    results, latency_ms, hits, misses = rerank_with_tierb(
+    results, latency_ms, hits, misses, _ = rerank_with_tierb(
         query_text="markets and bonds",
         candidates=golden_candidates,
         top_n=3,
@@ -87,7 +87,7 @@ def test_tierb_rerank_deterministic(fake_provider, temp_cache, golden_candidates
     assert latency_ms >= 0
     # Second run: same query/candidates -> cache hits for all 3 doc vectors
     temp_cache.reset_stats()
-    results2, _, hits2, misses2 = rerank_with_tierb(
+    results2, _, hits2, misses2, _ = rerank_with_tierb(
         query_text="markets and bonds",
         candidates=golden_candidates,
         top_n=3,
@@ -101,7 +101,7 @@ def test_tierb_rerank_deterministic(fake_provider, temp_cache, golden_candidates
 
 
 def test_tierb_rerank_score_breakdown_present(fake_provider, temp_cache, golden_candidates):
-    results, _, _, _ = rerank_with_tierb(
+    results, _, _, _, _ = rerank_with_tierb(
         query_text="test",
         candidates=golden_candidates[:2],
         top_n=2,

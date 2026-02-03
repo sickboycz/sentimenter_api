@@ -1,0 +1,156 @@
+version: 1
+channels:
+- rates
+- inflation
+- growth
+- liquidity
+- credit_stress
+- geopolitics
+- energy_supply
+- trade_controls
+- regulation
+- risk_appetite
+sectors:
+  TECH:
+    sector_name_en: Technology
+    beta:
+      rates: -0.75
+      inflation: -0.25
+      growth: 0.55
+      liquidity: 0.45
+      credit_stress: -0.3
+      geopolitics: -0.15
+      energy_supply: -0.1
+      trade_controls: -0.45
+      regulation: -0.2
+      risk_appetite: 0.8
+  HEALTH:
+    sector_name_en: Healthcare
+    beta:
+      rates: -0.15
+      inflation: -0.05
+      growth: 0.1
+      liquidity: 0.1
+      credit_stress: 0.2
+      geopolitics: 0.05
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.2
+      risk_appetite: 0.25
+  FIN:
+    sector_name_en: Financials
+    beta:
+      rates: 0.35
+      inflation: 0.05
+      growth: 0.25
+      liquidity: 0.2
+      credit_stress: -0.7
+      geopolitics: -0.1
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.25
+      risk_appetite: 0.25
+  IND:
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  CONS_DISC:
+    sector_name_en: Consumer Discretionary
+    beta:
+      rates: -0.35
+      inflation: -0.45
+      growth: 0.55
+      liquidity: 0.3
+      credit_stress: -0.4
+      geopolitics: -0.1
+      energy_supply: -0.3
+      trade_controls: -0.1
+      regulation: -0.05
+      risk_appetite: 0.55
+  CONS_STAP:
+    sector_name_en: Consumer Staples
+    beta:
+      rates: -0.1
+      inflation: -0.35
+      growth: -0.05
+      liquidity: 0.05
+      credit_stress: 0.25
+      geopolitics: 0.1
+      energy_supply: -0.1
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.1
+  ENERGY:
+    sector_name_en: Energy
+    beta:
+      rates: -0.05
+      inflation: 0.25
+      growth: 0.1
+      liquidity: 0.1
+      credit_stress: -0.2
+      geopolitics: 0.35
+      energy_supply: 0.9
+      trade_controls: 0.05
+      regulation: -0.2
+      risk_appetite: 0.15
+  MAT:
+    sector_name_en: Materials
+    beta:
+      rates: -0.2
+      inflation: 0.3
+      growth: 0.35
+      liquidity: 0.15
+      credit_stress: -0.25
+      geopolitics: 0.05
+      energy_supply: -0.05
+      trade_controls: -0.2
+      regulation: -0.05
+      risk_appetite: 0.25
+  UTIL:
+    sector_name_en: Utilities
+    beta:
+      rates: -0.55
+      inflation: -0.2
+      growth: -0.15
+      liquidity: 0.1
+      credit_stress: 0.3
+      geopolitics: 0.1
+      energy_supply: -0.1
+      trade_controls: 0.0
+      regulation: -0.1
+      risk_appetite: -0.05
+  REAL:
+    sector_name_en: Real Estate
+    beta:
+      rates: -0.7
+      inflation: -0.25
+      growth: 0.15
+      liquidity: 0.25
+      credit_stress: -0.45
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.2
+  COMM:
+    sector_name_en: Communication Services
+    beta:
+      rates: -0.3
+      inflation: -0.1
+      growth: 0.35
+      liquidity: 0.2
+      credit_stress: -0.2
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: -0.15
+      regulation: -0.25
+      risk_appetite: 0.45

@@ -50,7 +50,14 @@ vector-weaviate = [
 testpaths = ["tests"]
 pythonpath = ["."]
 asyncio_mode = "auto"
+addopts = "-p no:unraisableexception -W error"
 markers = ["e2e: end-to-end tests (set SENTIMENT_E2E=1, needs Postgres + Redis)"]
+filterwarnings = [
+    "ignore::ResourceWarning",
+    "ignore::UserWarning",
+    "ignore::pytest.PytestUnraisableExceptionWarning",
+    "ignore::DeprecationWarning"
+]
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -45,4 +45,11 @@ if [[ -f "$MIGRATIONS_DIR/v1.2_embedding_dim_768.sql" ]]; then
   run_psql -f - < "$MIGRATIONS_DIR/v1.2_embedding_dim_768.sql" || { echo "[!] Failed: v1.2_embedding_dim_768.sql"; exit 1; }
 fi
 
+for f in v1.4_llm_call_cache.sql v1.4_asset_allocations.sql v1.4_forward_eval_asset.sql; do
+  if [[ -f "$MIGRATIONS_DIR/$f" ]]; then
+    echo "[*] Applying $f..."
+    run_psql -f - < "$MIGRATIONS_DIR/$f" || { echo "[!] Failed: $f"; exit 1; }
+  fi
+done
+
 echo "[+] Schema from zero applied successfully."

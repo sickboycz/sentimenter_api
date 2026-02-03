@@ -2,12 +2,18 @@
 
 import json
 import logging
+from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sentiment_api.db.pool import acquire
 
 logger = logging.getLogger("sentiment_api.engines.asset_targeting")
+
+# Resolve registry/llm_asset_targeting relative to project root (sentiment_api/)
+def _llm_registry_dir() -> Path:
+    root = Path(__file__).resolve().parent.parent.parent
+    return root / "registry" / "llm_asset_targeting"
 
 
 def _filter_to_whitelist(bundle: dict, valid_symbols: set[str]) -> dict:
@@ -35,6 +41,186 @@ async def _get_valid_symbols(conn, universes: list[str]) -> set[str]:
 
 # Map RiskOn/RiskOff to Up/Down for asset direction
 DIRECTION_MAP = {"RiskOn": "Up", "RiskOff": "Down", "Neutral": "Neutral", "Mixed": "Mixed", "Unknown": "Unknown"}
+
+
+def _signed_to_direction(signed_score: float) -> str:
+    """Map signed_score to Up/Down/Neutral."""
+    if signed_score > 0:
+        return "Up"
+    if signed_score < 0:
+        return "Down"
+    return "Neutral"
+
+
+def _allocation_to_bundle(
+    alloc: Any,
+    cluster_id: str,
+    scope: dict,
+    source_urls: list[str],
+) -> dict:
+    """Convert ChunkedAssetTargetingRunner AllocationResult to AssetImpactBundle format."""
+    as_of = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+    markets: list[dict] = []
+    for m in alloc.markets:
+        markets.append({
+            "market_id": m.market_id,
+            "direction": _signed_to_direction(m.signed_score),
+            "impact_score": abs(m.signed_score),
+            "confidence": m.confidence,
+            "horizon": m.horizon or "unknown",
+            "channels": m.channels or [],
+            "rationale_bullets_en": [m.rationale_en] if m.rationale_en else [],
+            "evidence_urls": source_urls,
+        })
+
+    sectors: list[dict] = []
+    for s in alloc.sectors:
+        sectors.append({
+            "sector_id": s.sector_id,
+            "sector_name_en": s.sector_name_en,
+            "direction": _signed_to_direction(s.signed_score),
+            "impact_score": s.impact_score,
+            "confidence": s.confidence,
+            "horizon": s.horizon or "unknown",
+            "channels": s.channels or [],
+            "rationale_bullets_en": [s.rationale_en] if s.rationale_en else [],
+        })
+
+    winners: list[dict] = []
+    for t in alloc.winners:
+        winners.append({
+            "symbol": t.symbol,
+            "direction": "Up",
+            "impact_score": abs(t.signed_score),
+            "expected_return_bps": t.expected_return_bps,
+            "confidence": t.confidence,
+            "horizon": t.horizon or "unknown",
+            "universe_memberships": [t.universe] if t.universe else [],
+            "channels": t.drivers or [],
+            "rationale_bullets_en": [t.rationale_en] if t.rationale_en else [],
+        })
+
+    losers: list[dict] = []
+    for t in alloc.losers:
+        losers.append({
+            "symbol": t.symbol,
+            "direction": "Down",
+            "impact_score": abs(t.signed_score),
+            "expected_return_bps": t.expected_return_bps,
+            "confidence": t.confidence,
+            "horizon": t.horizon or "unknown",
+            "universe_memberships": [t.universe] if t.universe else [],
+            "channels": t.drivers or [],
+            "rationale_bullets_en": [t.rationale_en] if t.rationale_en else [],
+        })
+
+    most_affected = markets[0] if markets else {
+        "market_id": "SP500",
+        "direction": "Neutral",
+        "impact_score": 0,
+        "confidence": 0,
+        "horizon": "unknown",
+        "channels": [],
+        "rationale_bullets_en": [],
+        "evidence_urls": source_urls,
+    }
+
+    return {
+        "as_of": as_of,
+        "scope": scope,
+        "most_affected_market": most_affected,
+        "markets": markets,
+        "sectors": sectors,
+        "winners": winners,
+        "losers": losers,
+        "notes_en": alloc.diagnostics.get("notes_en", f"Chunked LLM allocation for {cluster_id}"),
+    }
+
+
+async def _run_chunked_llm_targeting(
+    cluster_id: str,
+    row: dict,
+    imp: dict,
+    scope: dict,
+    source_urls: list[str],
+    valid_symbols: set[str],
+    universes: list[str],
+) -> dict | None:
+    """Run ChunkedAssetTargetingRunner, persist allocations, return AssetImpactBundle or None."""
+    import os
+
+    if not os.environ.get("OPENAI_API_KEY"):
+        return None
+
+    reg_dir = _llm_registry_dir()
+    if not (reg_dir / "beta_market.yaml").exists():
+        logger.debug("Chunked LLM: registry/llm_asset_targeting not found")
+        return None
+
+    from sentiment_api.db.repo import get_cluster_l3_summary
+    from sentiment_api.engines.llm_asset_targeting.packet_builder import build_cluster_packet
+    from sentiment_api.engines.llm_asset_targeting.runner import ChunkedAssetTargetingRunner
+    from sentiment_api.engines.llm_asset_targeting.openai_provider import OpenAIResponsesProvider
+    from sentiment_api.engines.llm_asset_targeting.cache_store_postgres import AsyncPostgresLLMCacheStore
+    from sentiment_api.engines.llm_asset_targeting.security_master import DBSecurityMaster
+    from sentiment_api.engines.llm_asset_targeting.store_allocations_postgres import store_allocations
+
+    async with acquire() as conn:
+        l3 = await get_cluster_l3_summary(conn, cluster_id)
+
+    summary_bullets: list[str] = []
+    if l3 and isinstance(l3.get("summary_bullets_en"), list):
+        summary_bullets = l3["summary_bullets_en"]
+
+    evidence_rows = [
+        {"url": u, "text_en": "", "relevance_score": 0.9}
+        for u in (row.get("source_urls") or [])[:6]
+    ]
+
+    packet, packet_hash = build_cluster_packet(
+        cluster_id=cluster_id,
+        cluster_version=1,
+        headline_en=row.get("headline_en") or "",
+        summary_bullets_en=summary_bullets,
+        topics=list(row.get("topics") or []),
+        regions=list(row.get("regions") or []),
+        impact_score=float(imp.get("impact_score", 0) or 0),
+        impact_level=str(imp.get("impact_level", "L0")),
+        expected_direction=str(imp.get("expected_direction", "Unknown")),
+        confidence=float(imp.get("confidence", 0.5) or 0.5),
+        evidence_rows=evidence_rows,
+    )
+
+    provider = OpenAIResponsesProvider()
+    cache = AsyncPostgresLLMCacheStore()
+    security_master = DBSecurityMaster()
+
+    runner = ChunkedAssetTargetingRunner(
+        provider=provider,
+        cache=cache,
+        security_master=security_master,
+        rulesets_path=str(reg_dir / "channel_rulesets.yaml"),
+        schema_dir=str(reg_dir),
+        beta_market_path=str(reg_dir / "beta_market.yaml"),
+        beta_sector_path=str(reg_dir / "beta_sector.yaml"),
+        exposures_csv_path=str(reg_dir / "ticker_exposures.csv"),
+    )
+
+    alloc = await runner.run(packet, packet_hash)
+
+    if alloc.diagnostics.get("skipped"):
+        return None
+
+    await store_allocations(
+        alloc,
+        model_version=provider.model,
+        config_hash=runner.config_hash,
+    )
+
+    bundle = _allocation_to_bundle(alloc, cluster_id, scope, source_urls)
+    bundle["as_of"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return _filter_to_whitelist(bundle, valid_symbols)
 
 
 def _empty_bundle(as_of: datetime, scope: dict) -> dict:
@@ -84,38 +270,32 @@ async def get_asset_impacts_for_cluster(
     if not row:
         return _empty_bundle(datetime.now(timezone.utc), scope)
     imp = row["impact"] or {}
+    if isinstance(imp, str):
+        try:
+            imp = json.loads(imp)
+        except json.JSONDecodeError:
+            logger.warning("Asset targeting: impact field not valid JSON for cluster %s", cluster_id)
+            imp = {}
     direction = DIRECTION_MAP.get(imp.get("expected_direction", "Unknown"), "Unknown")
     score = float(imp.get("impact_score", 0) or 0)
     source_urls = list(row["source_urls"] or [])[:10]
-    # Optional: try LLM-based targeting when API key set and not cost_effective (fallback to rule-based)
+    # Chunked LLM asset targeting (cached A/B/C + deterministic allocator) when not cost_effective
     from sentiment_api.config import get_settings
     if score >= 20 and not get_settings().cost_effective:
         try:
-            from sentiment_api.llm.asset_targeting import try_llm_asset_targeting
-            async with acquire() as conn2:
-                sector_rows = await conn2.fetch("SELECT sector_id, name_en FROM sectors ORDER BY sector_id LIMIT $1", limit_sectors)
-                ticker_rows = await conn2.fetch(
-                    """SELECT s.symbol, s.name, s.sector_id, sec.name_en as sector_name_en
-                    FROM universe_memberships um JOIN securities s ON s.symbol = um.symbol
-                    LEFT JOIN sectors sec ON sec.sector_id = s.sector_id
-                    WHERE um.universe_id = ANY($1) AND (um.effective_to IS NULL OR um.effective_to >= current_date)
-                    ORDER BY s.symbol LIMIT $2""",
-                    universes, limit_tickers,
-                )
-            sectors_data = [{"sector_id": r["sector_id"], "name_en": r["name_en"]} for r in sector_rows]
-            tickers_data = [{"symbol": r["symbol"], "name": r["name"], "sector_id": r["sector_id"]} for r in ticker_rows]
-            llm_bundle = try_llm_asset_targeting(
-                cluster_id, row["headline_en"] or "", list(row.get("topics", []) or []),
-                score, imp.get("expected_direction", "Unknown"), source_urls,
-                tickers_data, sectors_data,
+            bundle_out = await _run_chunked_llm_targeting(
+                cluster_id=cluster_id,
+                row=dict(row),
+                imp=imp,
+                scope=scope,
+                source_urls=source_urls,
+                valid_symbols=valid_symbols,
+                universes=universes,
             )
-            if llm_bundle and llm_bundle.get("markets") and llm_bundle.get("sectors"):
-                llm_bundle["scope"] = scope
-                llm_bundle["as_of"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-                llm_bundle = _filter_to_whitelist(llm_bundle, valid_symbols)
-                return llm_bundle
+            if bundle_out:
+                return bundle_out
         except Exception as ex:
-            logger.debug("LLM asset targeting skipped: %s", ex)
+            logger.debug("Chunked LLM asset targeting skipped: %s", ex)
     most_affected = {
         "market_id": "SP500" if score > 40 else "NASDAQ_COMPOSITE",
         "direction": direction,

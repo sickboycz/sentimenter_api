@@ -9,14 +9,7 @@ import tempfile
 
 import pytest
 
-# Skip unless explicitly requested
-pytestmark = [
-    pytest.mark.e2e,
-    pytest.mark.skipif(
-        not os.environ.get("SENTIMENT_E2E"),
-        reason="Set SENTIMENT_E2E=1 to run (needs Postgres + Redis)",
-    ),
-]
+pytestmark = [pytest.mark.e2e]
 
 
 @pytest.fixture
@@ -125,8 +118,7 @@ async def test_ingest_summarize_creates_cluster(db_url, redis_url, tmp_path):
 
             # Ingest should have pushed to summarize if article was new
             len_sum = await queue.llen(QUEUE_SUMMARIZE)
-            if len_sum == 0:
-                pytest.skip("Ingest did not push (duplicate article or registry issue)")
+            assert len_sum > 0, "Ingest did not push to summarize (duplicate article or registry issue)"
 
             # Pop and process one summarize job
             _, data = await queue.blpop(QUEUE_SUMMARIZE, timeout=2)

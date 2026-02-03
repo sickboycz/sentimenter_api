@@ -15,8 +15,9 @@ from sentiment_api.retrieval.provider import EmbeddingProvider, get_embedding_pr
 logger = logging.getLogger("sentiment_api.retrieval.tiera")
 
 
-# Tier A dimension (small model: 384 or 768)
-TIER_A_DIM = 768
+def _tier_a_dim_from_model(model_id: str) -> int:
+    """Infer Tier A vector dimension from model_id (384 or 768)."""
+    return 384 if "384" in (model_id or "") else 768
 
 
 def _get_weaviate_client():
@@ -26,7 +27,7 @@ def _get_weaviate_client():
     return store._get_client()
 
 
-def _ensure_chunk_collection(client, class_name: str, dim: int = TIER_A_DIM):
+def _ensure_chunk_collection(client, class_name: str, dim: int):
     """Create RetrievalChunk collection if not exists: self-provided vector + text for BM25."""
     from weaviate.classes.config import Configure, Property, DataType
     if client.collections.exists(class_name):
@@ -69,10 +70,11 @@ def retrieve_candidates(
     class_name = settings.weaviate_chunk_class or "RetrievalChunk"
     filters = filters or {}
 
+    tier_a_dim = _tier_a_dim_from_model(model_id)
     t0 = time.perf_counter()
     try:
         client = _get_weaviate_client()
-        _ensure_chunk_collection(client, class_name, TIER_A_DIM)
+        _ensure_chunk_collection(client, class_name, tier_a_dim)
         coll = client.collections.get(class_name)
 
         # Embed query with Tier A
@@ -89,6 +91,15 @@ def retrieve_candidates(
                 conditions.append(Filter.by_property("source").equal(str(src)))
             if "language" in filters and filters["language"]:
                 conditions.append(Filter.by_property("language").equal(str(filters["language"])))
+            if "published_after" in filters and filters["published_after"]:
+                conditions.append(Filter.by_property("published_at").greater_or_equal(str(filters["published_after"])))
+            if "published_before" in filters and filters["published_before"]:
+                conditions.append(Filter.by_property("published_at").less_or_equal(str(filters["published_before"])))
+            if "tickers" in filters and filters["tickers"]:
+                tickers = filters["tickers"]
+                one = (tickers[0] if isinstance(tickers, list) else tickers).strip()
+                if one:
+                    conditions.append(Filter.by_property("tickers").like(f"%{one}%"))
             if conditions:
                 wvc_filter = conditions[0]
                 for c in conditions[1:]:

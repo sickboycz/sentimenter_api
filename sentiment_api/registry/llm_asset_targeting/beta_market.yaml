@@ -1,0 +1,128 @@
+version: 1
+channel_sign_semantics:
+  rates: +1=higher yields / hawkish, -1=lower yields / dovish
+  inflation: +1=inflation up surprise, -1=inflation cooling
+  growth: +1=growth improving, -1=growth deteriorating
+  liquidity: +1=liquidity easing, -1=liquidity tightening
+  credit_stress: +1=stress rising / spreads widening, -1=stress easing
+  geopolitics: +1=escalation, -1=de-escalation
+  energy_supply: +1=supply tightness / price pressure, -1=easing
+  trade_controls: +1=tightening controls, -1=easing
+  regulation: +1=tightening regulation, -1=deregulation
+  risk_appetite: +1=risk-on flow, -1=risk-off flow
+channels:
+- rates
+- inflation
+- growth
+- liquidity
+- credit_stress
+- geopolitics
+- energy_supply
+- trade_controls
+- regulation
+- risk_appetite
+markets:
+  SP500:
+    label_en: S&P 500
+    beta:
+      rates: -0.35
+      inflation: -0.25
+      growth: 0.4
+      liquidity: 0.35
+      credit_stress: -0.45
+      geopolitics: -0.3
+      energy_supply: -0.15
+      trade_controls: -0.2
+      regulation: -0.1
+      risk_appetite: 0.55
+  NASDAQ_COMP:
+    label_en: Nasdaq Composite
+    beta:
+      rates: -0.6
+      inflation: -0.3
+      growth: 0.55
+      liquidity: 0.45
+      credit_stress: -0.35
+      geopolitics: -0.25
+      energy_supply: -0.05
+      trade_controls: -0.25
+      regulation: -0.12
+      risk_appetite: 0.7
+  USD:
+    label_en: USD
+    beta:
+      rates: 0.35
+      inflation: -0.15
+      growth: 0.05
+      liquidity: -0.2
+      credit_stress: 0.35
+      geopolitics: 0.25
+      energy_supply: 0.05
+      trade_controls: 0.1
+      regulation: 0.0
+      risk_appetite: -0.35
+  US_RATES:
+    label_en: US Rates (10Y proxy)
+    beta:
+      rates: 0.85
+      inflation: 0.35
+      growth: 0.25
+      liquidity: -0.2
+      credit_stress: -0.3
+      geopolitics: -0.2
+      energy_supply: 0.1
+      trade_controls: 0.0
+      regulation: 0.0
+      risk_appetite: 0.15
+  OIL:
+    label_en: OIL
+    beta:
+      rates: -0.05
+      inflation: 0.2
+      growth: 0.15
+      liquidity: 0.05
+      credit_stress: -0.1
+      geopolitics: 0.3
+      energy_supply: 0.7
+      trade_controls: 0.1
+      regulation: 0.1
+      risk_appetite: 0.1
+  GOLD:
+    label_en: GOLD
+    beta:
+      rates: -0.25
+      inflation: 0.3
+      growth: -0.05
+      liquidity: 0.15
+      credit_stress: 0.35
+      geopolitics: 0.35
+      energy_supply: 0.05
+      trade_controls: 0.0
+      regulation: 0.0
+      risk_appetite: -0.25
+  CREDIT:
+    label_en: Credit (spreads / risk)
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.25
+      liquidity: 0.3
+      credit_stress: -0.8
+      geopolitics: -0.2
+      energy_supply: -0.05
+      trade_controls: -0.05
+      regulation: -0.05
+      risk_appetite: 0.35
+  VIX:
+    label_en: VIX
+    beta:
+      rates: 0.1
+      inflation: 0.1
+      growth: -0.2
+      liquidity: -0.25
+      credit_stress: 0.7
+      geopolitics: 0.55
+      energy_supply: 0.15
+      trade_controls: 0.1
+      regulation: 0.05
+      risk_appetite: -0.85

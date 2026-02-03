@@ -1,0 +1,8 @@
+# Publish worker debug port 5679 (use with 1 worker only).
+# Example: docker compose -f docker-compose.yml -f docker-compose.debug.yml -f docker-compose.debug-worker-attach.yml up -d
+# Then attach in Cursor to 127.0.0.1:5679.
+
+services:
+  worker:
+    ports:
+      - "5679:5679"

@@ -831,12 +831,29 @@ async def get_cluster_by_id(
                         "relevance_score": 0.9,
                     })
     asset_impacts = None
+    market_impacts: list = []
+    sector_impacts: list = []
+    ticker_impacts: list = []
     if include_asset_impacts:
         try:
             from sentiment_api.engines.asset_targeting import get_asset_impacts_for_cluster
             asset_impacts = await get_asset_impacts_for_cluster(cluster_id)
+            if asset_impacts:
+                market_impacts = asset_impacts.get("markets") or []
+                sector_impacts = asset_impacts.get("sectors") or []
+                ticker_impacts = list(asset_impacts.get("winners") or []) + list(asset_impacts.get("losers") or [])
         except Exception as e:
             _api_log.warning("Asset impacts for cluster %s failed: %s", cluster_id, e)
+
+    historical_analogs_list: list[dict] = []
+    if include_analogs:
+        try:
+            from sentiment_api.db.repo import get_similar_clusters
+            async with acquire() as conn:
+                historical_analogs_list = await get_similar_clusters(conn, cluster_id, limit=20, min_similarity=0.5)
+        except Exception as e:
+            _api_log.debug("Historical analogs for cluster %s failed: %s", cluster_id, e)
+
     return {
         "meta": meta(),
         "data": {
@@ -844,11 +861,14 @@ async def get_cluster_by_id(
             "articles": articles,
             "evidence": evidence,
             "asset_impacts": asset_impacts,
+            "market_impacts": market_impacts,
+            "sector_impacts": sector_impacts,
+            "ticker_impacts": ticker_impacts,
             "what_changed_en": what_changed_en,
             "why_it_matters_en": why_it_matters_en,
             "what_to_watch_en": what_to_watch_en,
             "impact_explanation_en": impact_explanation_en,
-            "historical_analogs": [] if include_analogs else None,
+            "historical_analogs": historical_analogs_list if include_analogs else None,
         },
         "errors": [],
     }
@@ -1661,6 +1681,176 @@ async def admin_summarize_run(
 # -----------------------------------------------------------------------------
 _LOG_DIR = Path("/data/logs")
 _ALLOWED_LOG_SOURCES = frozenset({"api", "worker", "daemon"})
+
+
+# -----------------------------------------------------------------------------
+# GET /v1/debug/asset_targeting/{cluster_id} — Debug chunked LLM asset targeting
+# -----------------------------------------------------------------------------
+@app.get("/v1/debug/asset_targeting/{cluster_id}")
+async def debug_asset_targeting(
+    _: Annotated[str, Depends(validate_api_key)],
+    cluster_id: str,
+):
+    """
+    Debug endpoint for chunked LLM asset targeting.
+    Returns: packet + hashes, cache status for A/B/C, allocations, diagnostics.
+    """
+    from sentiment_api.db.pool import acquire
+    from sentiment_api.db.repo import get_cluster_l3_summary
+
+    if not cluster_id.startswith("clu_") or len(cluster_id) < 14:
+        raise HTTPException(status_code=400, detail="Invalid cluster_id format")
+
+    async with acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM clusters WHERE cluster_id = $1", cluster_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Cluster not found")
+
+    imp = _ensure_dict(row.get("impact"))
+    l3 = None
+    try:
+        async with acquire() as conn:
+            l3 = await get_cluster_l3_summary(conn, cluster_id)
+    except Exception:
+        pass
+
+    summary_bullets = []
+    if l3 and isinstance(l3.get("summary_bullets_en"), list):
+        summary_bullets = l3["summary_bullets_en"]
+    evidence_rows = [{"url": u, "text_en": "", "relevance_score": 0.9} for u in (row.get("source_urls") or [])[:6]]
+
+    try:
+        from sentiment_api.engines.llm_asset_targeting.packet_builder import build_cluster_packet, sha256_str, canonical_json
+        packet, packet_hash = build_cluster_packet(
+            cluster_id=cluster_id,
+            cluster_version=1,
+            headline_en=row["headline_en"] or "",
+            summary_bullets_en=summary_bullets,
+            topics=list(row.get("topics") or []),
+            regions=list(row.get("regions") or []),
+            impact_score=float(imp.get("impact_score", 0) or 0),
+            impact_level=str(imp.get("impact_level", "L0")),
+            expected_direction=str(imp.get("expected_direction", "Unknown")),
+            confidence=float(imp.get("confidence", 0.5) or 0.5),
+            evidence_rows=evidence_rows,
+        )
+        packet_dump = packet.model_dump()
+    except Exception as e:
+        packet_dump = {}
+        packet_hash = ""
+        import logging
+        logging.getLogger("sentiment_api").debug("Packet build failed: %s", e)
+
+    cache_status: dict = {}
+    cache_keys: dict = {}
+    prompt_hashes: dict = {}
+    schema_hashes: dict = {}
+    call_a: dict = {}
+    call_b: dict = {}
+    call_c: dict = {}
+    channels: dict = {}
+    candidate_diagnostics: dict = {}
+    allocations: dict = {"markets": [], "sectors": [], "winners": [], "losers": []}
+    try:
+        async with acquire() as conn:
+            cache_rows = await conn.fetch(
+                """SELECT step, status, error_code, error_message, cache_key, prompt_hash, schema_hash, parsed_json
+                   FROM llm_call_cache WHERE cluster_id = $1""",
+                cluster_id,
+            )
+            for r in cache_rows:
+                step = r["step"]
+                cache_status[step] = {"status": r["status"], "error_code": r["error_code"], "error_message": r["error_message"]}
+                cache_keys[step] = r["cache_key"]
+                if r.get("prompt_hash"):
+                    prompt_hashes[step] = r["prompt_hash"]
+                if r.get("schema_hash"):
+                    schema_hashes[step] = r["schema_hash"]
+                parsed = r.get("parsed_json")
+                if parsed and r["status"] == "ok":
+                    if isinstance(parsed, str):
+                        import json as _json
+                        try:
+                            parsed = _json.loads(parsed)
+                        except Exception:
+                            parsed = None
+                    if parsed:
+                        if step == "channel_infer":
+                            call_a = parsed
+                            channels = {c.get("name"): float(c.get("sign", 0)) * float(c.get("strength", 0)) for c in parsed.get("channels", [])}
+                        elif step == "sector_map":
+                            call_b = parsed
+                        elif step == "ticker_select":
+                            call_c = parsed
+
+            # Populate candidate_diagnostics when call_a/call_b and packet available
+            if call_a and call_b and packet_dump and packet_dump.get("cluster_id"):
+                try:
+                    from pathlib import Path
+                    from sentiment_api.engines.llm_asset_targeting.candidate_generator import build_allowed_symbols
+                    from sentiment_api.engines.llm_asset_targeting.schemas import ChannelInferResult, SectorMapResult, ClusterPacket
+                    from sentiment_api.engines.llm_asset_targeting.security_master import DBSecurityMaster
+                    reg_dir = Path(__file__).resolve().parent.parent.parent / "registry" / "llm_asset_targeting"
+                    if (reg_dir / "channel_rulesets.yaml").exists():
+                        ca = ChannelInferResult(**call_a)
+                        sb = SectorMapResult(**call_b)
+                        pkt = ClusterPacket(**packet_dump)
+                        sec = DBSecurityMaster()
+                        _, cand_diag = await build_allowed_symbols(
+                            packet=pkt, call_a=ca, call_b=sb,
+                            security_master=sec, rulesets_path=str(reg_dir / "channel_rulesets.yaml"),
+                        )
+                        candidate_diagnostics = cand_diag.__dict__
+                except Exception as _cd_ex:
+                    import logging
+                    logging.getLogger("sentiment_api").debug("Candidate diagnostics build failed: %s", _cd_ex)
+
+            market_rows = await conn.fetch(
+                "SELECT * FROM cluster_market_allocations WHERE cluster_id = $1",
+                cluster_id,
+            )
+            sector_rows = await conn.fetch(
+                "SELECT * FROM cluster_sector_allocations WHERE cluster_id = $1",
+                cluster_id,
+            )
+            ticker_rows = await conn.fetch(
+                "SELECT * FROM cluster_ticker_allocations WHERE cluster_id = $1",
+                cluster_id,
+            )
+        for r in market_rows:
+            allocations["markets"].append(dict(r))
+        for r in sector_rows:
+            allocations["sectors"].append(dict(r))
+        for r in ticker_rows:
+            d = dict(r)
+            if d.get("signed_score", 0) >= 0:
+                allocations["winners"].append(d)
+            else:
+                allocations["losers"].append(d)
+    except Exception as e:
+        import logging
+        logging.getLogger("sentiment_api.api").debug("Debug asset_targeting cache/allocations fetch failed for %s: %s", cluster_id, e)
+
+    return {
+        "meta": meta(),
+        "data": {
+            "cluster_id": cluster_id,
+            "packet": packet_dump,
+            "packet_hash": packet_hash,
+            "prompt_hashes": prompt_hashes,
+            "schema_hashes": schema_hashes,
+            "cache_status": cache_status,
+            "cache_keys": cache_keys,
+            "channels": channels,
+            "call_a": call_a,
+            "call_b": call_b,
+            "call_c": call_c,
+            "candidate_diagnostics": candidate_diagnostics,
+            "allocations": allocations,
+            "invariant_violations": [],
+        },
+        "errors": [],
+    }
 
 
 @app.get("/v1/admin/logs")

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { Shell } from "@/components/Shell";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -9,9 +10,19 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/Table";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useClusterDetail } from "@/lib/api/hooks";
 
+function useImpacts(detail: ReturnType<typeof useClusterDetail>) {
+  const sectorImpacts = detail.data?.sector_impacts ?? [];
+  const tickerImpacts = detail.data?.ticker_impacts ?? [];
+  const winners = tickerImpacts.filter((t: { direction: string }) => t.direction === "Up");
+  const losers = tickerImpacts.filter((t: { direction: string }) => t.direction === "Down");
+  return { sectorImpacts, winners, losers };
+}
+
 export default function ClusterDetailPage({ params }: { params: { clusterId: string } }) {
-  const detail = useClusterDetail(params.clusterId);
+  const detail = useClusterDetail(params.clusterId, true, { includeAssetImpacts: true, includeAnalogs: true });
   const c = detail.data?.cluster;
+  const { sectorImpacts, winners, losers } = useImpacts(detail);
+  const historicalAnalogs = detail.data?.historical_analogs ?? [];
 
   return (
     <Shell>
@@ -32,23 +43,31 @@ export default function ClusterDetailPage({ params }: { params: { clusterId: str
 
           <Card title="Summary" subtitle="Key bullets distilled from evidence.">
             <div className="text-sm opacity-85">
-              {(c?.summary_bullets_en ?? []).map((b: string, i: number) => (
-                <div key={i}>• {b}</div>
-              ))}
+              {(c?.summary_bullets_en ?? []).length > 0 ? (
+                (c?.summary_bullets_en ?? []).map((b: string, i: number) => (
+                  <div key={i}>• {b}</div>
+                ))
+              ) : (
+                <div className="opacity-70">No summary bullets yet.</div>
+              )}
             </div>
           </Card>
 
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-[var(--grid-gap)]">
             <Card className="xl:col-span-6" title="Evidence" subtitle="Audit trail (snippets).">
               <div className="space-y-2 text-sm opacity-85">
-                {(detail.data?.evidence ?? []).slice(0, 12).map((e: any, i: number) => (
-                  <div key={i} className="glass p-3">
-                    <a className="text-xs opacity-70 break-all hover:underline" href={e.url} target="_blank" rel="noreferrer">
-                      {e.url}
-                    </a>
-                    <div className="mt-1">{e.text_en}</div>
-                  </div>
-                ))}
+                {(detail.data?.evidence ?? []).length > 0 ? (
+                  (detail.data?.evidence ?? []).slice(0, 12).map((e: { url: string; text_en: string }, i: number) => (
+                    <div key={i} className="glass p-3">
+                      <a className="text-xs opacity-70 break-all hover:underline" href={e.url} target="_blank" rel="noreferrer">
+                        {e.url}
+                      </a>
+                      <div className="mt-1">{e.text_en}</div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="opacity-70">No evidence yet.</div>
+                )}
               </div>
             </Card>
 
@@ -65,13 +84,17 @@ export default function ClusterDetailPage({ params }: { params: { clusterId: str
                       </TR>
                     </THead>
                     <TBody>
-                      {(c?.top_sectors ?? []).slice(0, 8).map((s: any) => (
-                        <TR key={s.sector_id}>
-                          <TD className="font-medium">{s.sector_name_en}</TD>
-                          <TD className="text-right opacity-80">{s.expected_direction}</TD>
-                          <TD className="text-right">{Math.round(s.impact_score)}</TD>
-                        </TR>
-                      ))}
+                      {sectorImpacts.length > 0 ? (
+                        sectorImpacts.slice(0, 8).map((s: { sector_id: string; sector_name_en: string; direction: string; impact_score: number }) => (
+                          <TR key={s.sector_id}>
+                            <TD className="font-medium">{s.sector_name_en}</TD>
+                            <TD className="text-right opacity-80">{s.direction}</TD>
+                            <TD className="text-right">{Math.round(s.impact_score)}</TD>
+                          </TR>
+                        ))
+                      ) : (
+                        <TR><TD colSpan={3} className="opacity-70">No sector impacts.</TD></TR>
+                      )}
                     </TBody>
                   </Table>
                 </div>
@@ -81,21 +104,29 @@ export default function ClusterDetailPage({ params }: { params: { clusterId: str
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
                       <div className="opacity-70 mb-1">Winners</div>
-                      {(c?.top_tickers_winners ?? []).slice(0, 10).map((t: any) => (
-                        <div key={t.symbol} className="flex justify-between">
-                          <span className="font-medium">{t.symbol}</span>
-                          <span className="opacity-80">+{Math.round(t.expected_return_bps)}</span>
-                        </div>
-                      ))}
+                      {winners.length > 0 ? (
+                        winners.slice(0, 10).map((t: { symbol: string; impact_score?: number; expected_return_bps?: number }) => (
+                          <div key={t.symbol} className="flex justify-between">
+                            <span className="font-medium">{t.symbol}</span>
+                            <span className="opacity-80">+{Math.round(t.expected_return_bps ?? t.impact_score ?? 0)}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="opacity-70">—</div>
+                      )}
                     </div>
                     <div>
                       <div className="opacity-70 mb-1">Losers</div>
-                      {(c?.top_tickers_losers ?? []).slice(0, 10).map((t: any) => (
-                        <div key={t.symbol} className="flex justify-between">
-                          <span className="font-medium">{t.symbol}</span>
-                          <span className="opacity-80">{Math.round(t.expected_return_bps)}</span>
-                        </div>
-                      ))}
+                      {losers.length > 0 ? (
+                        losers.slice(0, 10).map((t: { symbol: string; impact_score?: number; expected_return_bps?: number }) => (
+                          <div key={t.symbol} className="flex justify-between">
+                            <span className="font-medium">{t.symbol}</span>
+                            <span className="opacity-80">{Math.round(t.expected_return_bps ?? -(t.impact_score ?? 0))}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="opacity-70">—</div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -107,6 +138,21 @@ export default function ClusterDetailPage({ params }: { params: { clusterId: str
               </div>
             </Card>
           </div>
+
+          {historicalAnalogs.length > 0 && (
+            <Card title="Historically Similar Clusters" subtitle="Embedding-similar past clusters.">
+              <div className="space-y-2">
+                {historicalAnalogs.slice(0, 10).map((a: { cluster_id: string; similarity: number; label_en: string; date: string }) => (
+                  <Link key={a.cluster_id} href={`/clusters/${a.cluster_id}`} className="block glass p-3 hover:opacity-90 transition">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium truncate flex-1">{a.label_en || a.cluster_id}</span>
+                      <span className="opacity-70 text-xs whitespace-nowrap ml-2">sim {(a.similarity * 100).toFixed(1)}% • {a.date}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </Card>
+          )}
         </>
       )}
     </Shell>

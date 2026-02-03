@@ -1,0 +1,2188 @@
+version: 1
+channels:
+- rates
+- inflation
+- growth
+- liquidity
+- credit_stress
+- geopolitics
+- energy_supply
+- trade_controls
+- regulation
+- risk_appetite
+industries:
+  biotechnology:
+    industry_name_en: Biotechnology
+    sector_id: HEALTH
+    sector_name_en: Healthcare
+    beta:
+      rates: -0.25
+      inflation: -0.05
+      growth: 0.1
+      liquidity: 0.15000000000000002
+      credit_stress: 0.2
+      geopolitics: 0.05
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.30000000000000004
+      risk_appetite: 0.3
+  banks_regional:
+    industry_name_en: Banks - Regional
+    sector_id: FIN
+    sector_name_en: Financials
+    beta:
+      rates: 0.5
+      inflation: 0.05
+      growth: 0.25
+      liquidity: 0.2
+      credit_stress: -0.85
+      geopolitics: -0.1
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.35
+      risk_appetite: 0.25
+  software_application:
+    industry_name_en: Software - Application
+    sector_id: TECH
+    sector_name_en: Technology
+    beta:
+      rates: -0.85
+      inflation: -0.25
+      growth: 0.55
+      liquidity: 0.55
+      credit_stress: -0.3
+      geopolitics: -0.15
+      energy_supply: -0.1
+      trade_controls: -0.6
+      regulation: -0.2
+      risk_appetite: 0.9
+  shell_companies:
+    industry_name_en: Shell Companies
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  software_infrastructure:
+    industry_name_en: Software - Infrastructure
+    sector_id: TECH
+    sector_name_en: Technology
+    beta:
+      rates: -0.85
+      inflation: -0.25
+      growth: 0.55
+      liquidity: 0.55
+      credit_stress: -0.3
+      geopolitics: -0.15
+      energy_supply: -0.1
+      trade_controls: -0.6
+      regulation: -0.2
+      risk_appetite: 0.9
+  medical_devices:
+    industry_name_en: Medical Devices
+    sector_id: HEALTH
+    sector_name_en: Healthcare
+    beta:
+      rates: -0.25
+      inflation: -0.05
+      growth: 0.1
+      liquidity: 0.15000000000000002
+      credit_stress: 0.2
+      geopolitics: 0.05
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.30000000000000004
+      risk_appetite: 0.3
+  asset_management:
+    industry_name_en: Asset Management
+    sector_id: FIN
+    sector_name_en: Financials
+    beta:
+      rates: 0.35
+      inflation: 0.05
+      growth: 0.25
+      liquidity: 0.2
+      credit_stress: -0.7
+      geopolitics: -0.1
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.25
+      risk_appetite: 0.25
+  capital_markets:
+    industry_name_en: Capital Markets
+    sector_id: FIN
+    sector_name_en: Financials
+    beta:
+      rates: 0.5
+      inflation: 0.05
+      growth: 0.25
+      liquidity: 0.2
+      credit_stress: -0.85
+      geopolitics: -0.1
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.35
+      risk_appetite: 0.25
+  drug_manufacturers_specialty_generic:
+    industry_name_en: Drug Manufacturers - Specialty & Generic
+    sector_id: HEALTH
+    sector_name_en: Healthcare
+    beta:
+      rates: -0.25
+      inflation: -0.05
+      growth: 0.1
+      liquidity: 0.15000000000000002
+      credit_stress: 0.2
+      geopolitics: 0.05
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.30000000000000004
+      risk_appetite: 0.3
+  aerospace_defense:
+    industry_name_en: Aerospace & Defense
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.5
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.3
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  specialty_industrial_machinery:
+    industry_name_en: Specialty Industrial Machinery
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  oil_gas_exploration_production:
+    industry_name_en: Oil & Gas Exploration & Production
+    sector_id: ENERGY
+    sector_name_en: Energy
+    beta:
+      rates: -0.05
+      inflation: 0.3
+      growth: 0.1
+      liquidity: 0.1
+      credit_stress: -0.2
+      geopolitics: 0.44999999999999996
+      energy_supply: 0.95
+      trade_controls: 0.05
+      regulation: -0.30000000000000004
+      risk_appetite: 0.15
+  internet_content_information:
+    industry_name_en: Internet Content & Information
+    sector_id: COMM
+    sector_name_en: Communication Services
+    beta:
+      rates: -0.4
+      inflation: -0.1
+      growth: 0.35
+      liquidity: 0.30000000000000004
+      credit_stress: -0.2
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: -0.3
+      regulation: -0.25
+      risk_appetite: 0.55
+  information_technology_services:
+    industry_name_en: Information Technology Services
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  semiconductors:
+    industry_name_en: Semiconductors
+    sector_id: TECH
+    sector_name_en: Technology
+    beta:
+      rates: -0.85
+      inflation: -0.25
+      growth: 0.55
+      liquidity: 0.55
+      credit_stress: -0.3
+      geopolitics: -0.15
+      energy_supply: -0.1
+      trade_controls: -0.6
+      regulation: -0.2
+      risk_appetite: 0.9
+  packaged_foods:
+    industry_name_en: Packaged Foods
+    sector_id: CONS_STAP
+    sector_name_en: Consumer Staples
+    beta:
+      rates: -0.1
+      inflation: -0.44999999999999996
+      growth: -0.05
+      liquidity: 0.05
+      credit_stress: 0.25
+      geopolitics: 0.1
+      energy_supply: -0.1
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.1
+  specialty_chemicals:
+    industry_name_en: Specialty Chemicals
+    sector_id: MAT
+    sector_name_en: Materials
+    beta:
+      rates: -0.2
+      inflation: 0.44999999999999996
+      growth: 0.44999999999999996
+      liquidity: 0.15
+      credit_stress: -0.25
+      geopolitics: 0.05
+      energy_supply: -0.05
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.25
+  medical_instruments_supplies:
+    industry_name_en: Medical Instruments & Supplies
+    sector_id: HEALTH
+    sector_name_en: Healthcare
+    beta:
+      rates: -0.25
+      inflation: -0.05
+      growth: 0.1
+      liquidity: 0.15000000000000002
+      credit_stress: 0.2
+      geopolitics: 0.05
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.30000000000000004
+      risk_appetite: 0.3
+  oil_gas_midstream:
+    industry_name_en: Oil & Gas Midstream
+    sector_id: ENERGY
+    sector_name_en: Energy
+    beta:
+      rates: -0.05
+      inflation: 0.3
+      growth: 0.1
+      liquidity: 0.1
+      credit_stress: -0.2
+      geopolitics: 0.44999999999999996
+      energy_supply: 0.95
+      trade_controls: 0.05
+      regulation: -0.30000000000000004
+      risk_appetite: 0.15
+  restaurants:
+    industry_name_en: Restaurants
+    sector_id: CONS_DISC
+    sector_name_en: Consumer Discretionary
+    beta:
+      rates: -0.39999999999999997
+      inflation: -0.55
+      growth: 0.65
+      liquidity: 0.3
+      credit_stress: -0.4
+      geopolitics: -0.1
+      energy_supply: -0.3
+      trade_controls: -0.1
+      regulation: -0.05
+      risk_appetite: 0.55
+  auto_parts:
+    industry_name_en: Auto Parts
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.2
+      inflation: -0.2
+      growth: 0.5
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  engineering_construction:
+    industry_name_en: Engineering & Construction
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  credit_services:
+    industry_name_en: Credit Services
+    sector_id: FIN
+    sector_name_en: Financials
+    beta:
+      rates: 0.24999999999999997
+      inflation: 0.05
+      growth: 0.25
+      liquidity: 0.30000000000000004
+      credit_stress: -0.7
+      geopolitics: -0.1
+      energy_supply: 0.0
+      trade_controls: -0.15
+      regulation: -0.25
+      risk_appetite: 0.35
+  telecom_services:
+    industry_name_en: Telecom Services
+    sector_id: COMM
+    sector_name_en: Communication Services
+    beta:
+      rates: -0.3
+      inflation: -0.1
+      growth: 0.35
+      liquidity: 0.2
+      credit_stress: -0.2
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: -0.15
+      regulation: -0.25
+      risk_appetite: 0.45
+  medical_care_facilities:
+    industry_name_en: Medical Care Facilities
+    sector_id: HEALTH
+    sector_name_en: Healthcare
+    beta:
+      rates: -0.25
+      inflation: -0.05
+      growth: 0.1
+      liquidity: 0.15000000000000002
+      credit_stress: 0.2
+      geopolitics: 0.05
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.30000000000000004
+      risk_appetite: 0.3
+  oil_gas_equipment_services:
+    industry_name_en: Oil & Gas Equipment & Services
+    sector_id: ENERGY
+    sector_name_en: Energy
+    beta:
+      rates: -0.05
+      inflation: 0.3
+      growth: 0.1
+      liquidity: 0.1
+      credit_stress: -0.2
+      geopolitics: 0.44999999999999996
+      energy_supply: 0.95
+      trade_controls: 0.05
+      regulation: -0.30000000000000004
+      risk_appetite: 0.15
+  diagnostics_research:
+    industry_name_en: Diagnostics & Research
+    sector_id: HEALTH
+    sector_name_en: Healthcare
+    beta:
+      rates: -0.25
+      inflation: -0.05
+      growth: 0.1
+      liquidity: 0.15000000000000002
+      credit_stress: 0.2
+      geopolitics: 0.05
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.30000000000000004
+      risk_appetite: 0.3
+  gold:
+    industry_name_en: Gold
+    sector_id: MAT
+    sector_name_en: Materials
+    beta:
+      rates: -0.30000000000000004
+      inflation: 0.5
+      growth: 0.35
+      liquidity: 0.15
+      credit_stress: -0.25
+      geopolitics: 0.2
+      energy_supply: -0.05
+      trade_controls: -0.2
+      regulation: -0.05
+      risk_appetite: 0.25
+  specialty_retail:
+    industry_name_en: Specialty Retail
+    sector_id: CONS_DISC
+    sector_name_en: Consumer Discretionary
+    beta:
+      rates: -0.39999999999999997
+      inflation: -0.55
+      growth: 0.65
+      liquidity: 0.3
+      credit_stress: -0.4
+      geopolitics: -0.1
+      energy_supply: -0.3
+      trade_controls: -0.1
+      regulation: -0.05
+      risk_appetite: 0.55
+  entertainment:
+    industry_name_en: Entertainment
+    sector_id: COMM
+    sector_name_en: Communication Services
+    beta:
+      rates: -0.3
+      inflation: -0.1
+      growth: 0.35
+      liquidity: 0.2
+      credit_stress: -0.2
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: -0.15
+      regulation: -0.25
+      risk_appetite: 0.45
+  health_information_services:
+    industry_name_en: Health Information Services
+    sector_id: HEALTH
+    sector_name_en: Healthcare
+    beta:
+      rates: -0.25
+      inflation: -0.05
+      growth: 0.1
+      liquidity: 0.15000000000000002
+      credit_stress: 0.2
+      geopolitics: 0.05
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.30000000000000004
+      risk_appetite: 0.3
+  electrical_equipment_parts:
+    industry_name_en: Electrical Equipment & Parts
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  electronic_components:
+    industry_name_en: Electronic Components
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  specialty_business_services:
+    industry_name_en: Specialty Business Services
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  insurance_property_casualty:
+    industry_name_en: Insurance - Property & Casualty
+    sector_id: REAL
+    sector_name_en: Real Estate
+    beta:
+      rates: -0.5499999999999999
+      inflation: -0.25
+      growth: 0.15
+      liquidity: 0.25
+      credit_stress: -0.6
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: 0.0
+      regulation: -0.15000000000000002
+      risk_appetite: 0.2
+  other_industrial_metals_mining:
+    industry_name_en: Other Industrial Metals & Mining
+    sector_id: MAT
+    sector_name_en: Materials
+    beta:
+      rates: -0.2
+      inflation: 0.44999999999999996
+      growth: 0.44999999999999996
+      liquidity: 0.15
+      credit_stress: -0.25
+      geopolitics: 0.05
+      energy_supply: -0.05
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.25
+  communication_equipment:
+    industry_name_en: Communication Equipment
+    sector_id: COMM
+    sector_name_en: Communication Services
+    beta:
+      rates: -0.3
+      inflation: -0.1
+      growth: 0.35
+      liquidity: 0.2
+      credit_stress: -0.2
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: -0.15
+      regulation: -0.25
+      risk_appetite: 0.45
+  real_estate_services:
+    industry_name_en: Real Estate Services
+    sector_id: REAL
+    sector_name_en: Real Estate
+    beta:
+      rates: -0.7999999999999999
+      inflation: -0.25
+      growth: 0.15
+      liquidity: 0.35
+      credit_stress: -0.55
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.2
+  education_training_services:
+    industry_name_en: Education & Training Services
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  utilities_regulated_electric:
+    industry_name_en: Utilities - Regulated Electric
+    sector_id: UTIL
+    sector_name_en: Utilities
+    beta:
+      rates: -0.65
+      inflation: -0.2
+      growth: -0.15
+      liquidity: 0.1
+      credit_stress: 0.4
+      geopolitics: 0.1
+      energy_supply: -0.1
+      trade_controls: 0.0
+      regulation: -0.1
+      risk_appetite: -0.05
+  reit_mortgage:
+    industry_name_en: REIT - Mortgage
+    sector_id: REAL
+    sector_name_en: Real Estate
+    beta:
+      rates: -0.7999999999999999
+      inflation: -0.25
+      growth: 0.15
+      liquidity: 0.35
+      credit_stress: -0.55
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.2
+  advertising_agencies:
+    industry_name_en: Advertising Agencies
+    sector_id: COMM
+    sector_name_en: Communication Services
+    beta:
+      rates: -0.3
+      inflation: -0.1
+      growth: 0.35
+      liquidity: 0.2
+      credit_stress: -0.2
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: -0.15
+      regulation: -0.25
+      risk_appetite: 0.45
+  internet_retail:
+    industry_name_en: Internet Retail
+    sector_id: TECH
+    sector_name_en: Technology
+    beta:
+      rates: -0.9
+      inflation: -0.35
+      growth: 0.65
+      liquidity: 0.55
+      credit_stress: -0.3
+      geopolitics: -0.15
+      energy_supply: -0.1
+      trade_controls: -0.6
+      regulation: -0.2
+      risk_appetite: 0.9
+  marine_shipping:
+    industry_name_en: Marine Shipping
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.5
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: -0.05
+      energy_supply: -0.3
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  computer_hardware:
+    industry_name_en: Computer Hardware
+    sector_id: TECH
+    sector_name_en: Technology
+    beta:
+      rates: -0.85
+      inflation: -0.25
+      growth: 0.55
+      liquidity: 0.55
+      credit_stress: -0.3
+      geopolitics: -0.15
+      energy_supply: -0.1
+      trade_controls: -0.6
+      regulation: -0.2
+      risk_appetite: 0.9
+  building_products_equipment:
+    industry_name_en: Building Products & Equipment
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  leisure:
+    industry_name_en: Leisure
+    sector_id: CONS_DISC
+    sector_name_en: Consumer Discretionary
+    beta:
+      rates: -0.39999999999999997
+      inflation: -0.55
+      growth: 0.65
+      liquidity: 0.3
+      credit_stress: -0.4
+      geopolitics: -0.1
+      energy_supply: -0.3
+      trade_controls: -0.1
+      regulation: -0.05
+      risk_appetite: 0.55
+  furnishings_fixtures_appliances:
+    industry_name_en: Furnishings, Fixtures & Appliances
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  scientific_technical_instruments:
+    industry_name_en: Scientific & Technical Instruments
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  household_personal_products:
+    industry_name_en: Household & Personal Products
+    sector_id: CONS_STAP
+    sector_name_en: Consumer Staples
+    beta:
+      rates: -0.1
+      inflation: -0.44999999999999996
+      growth: -0.05
+      liquidity: 0.05
+      credit_stress: 0.25
+      geopolitics: 0.1
+      energy_supply: -0.1
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.1
+  apparel_retail:
+    industry_name_en: Apparel Retail
+    sector_id: CONS_DISC
+    sector_name_en: Consumer Discretionary
+    beta:
+      rates: -0.39999999999999997
+      inflation: -0.55
+      growth: 0.65
+      liquidity: 0.3
+      credit_stress: -0.4
+      geopolitics: -0.1
+      energy_supply: -0.3
+      trade_controls: -0.1
+      regulation: -0.05
+      risk_appetite: 0.55
+  integrated_freight_logistics:
+    industry_name_en: Integrated Freight & Logistics
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.5
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: -0.05
+      energy_supply: -0.3
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  semiconductor_equipment_materials:
+    industry_name_en: Semiconductor Equipment & Materials
+    sector_id: TECH
+    sector_name_en: Technology
+    beta:
+      rates: -0.85
+      inflation: -0.25
+      growth: 0.55
+      liquidity: 0.55
+      credit_stress: -0.3
+      geopolitics: -0.15
+      energy_supply: -0.1
+      trade_controls: -0.6
+      regulation: -0.2
+      risk_appetite: 0.9
+  auto_manufacturers:
+    industry_name_en: Auto Manufacturers
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.2
+      inflation: -0.2
+      growth: 0.5
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  reit_retail:
+    industry_name_en: REIT - Retail
+    sector_id: REAL
+    sector_name_en: Real Estate
+    beta:
+      rates: -0.85
+      inflation: -0.35
+      growth: 0.25
+      liquidity: 0.35
+      credit_stress: -0.55
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.2
+  auto_truck_dealerships:
+    industry_name_en: Auto & Truck Dealerships
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.2
+      inflation: -0.2
+      growth: 0.5
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  farm_heavy_construction_machinery:
+    industry_name_en: Farm & Heavy Construction Machinery
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  conglomerates:
+    industry_name_en: Conglomerates
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  consulting_services:
+    industry_name_en: Consulting Services
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  insurance_brokers:
+    industry_name_en: Insurance Brokers
+    sector_id: FIN
+    sector_name_en: Financials
+    beta:
+      rates: 0.5
+      inflation: 0.05
+      growth: 0.25
+      liquidity: 0.2
+      credit_stress: -0.85
+      geopolitics: -0.1
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.35
+      risk_appetite: 0.25
+  packaging_containers:
+    industry_name_en: Packaging & Containers
+    sector_id: MAT
+    sector_name_en: Materials
+    beta:
+      rates: -0.2
+      inflation: 0.3
+      growth: 0.35
+      liquidity: 0.15
+      credit_stress: -0.25
+      geopolitics: 0.05
+      energy_supply: -0.05
+      trade_controls: -0.2
+      regulation: -0.05
+      risk_appetite: 0.25
+  steel:
+    industry_name_en: Steel
+    sector_id: MAT
+    sector_name_en: Materials
+    beta:
+      rates: -0.2
+      inflation: 0.44999999999999996
+      growth: 0.44999999999999996
+      liquidity: 0.15
+      credit_stress: -0.25
+      geopolitics: 0.05
+      energy_supply: -0.05
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.25
+  apparel_manufacturing:
+    industry_name_en: Apparel Manufacturing
+    sector_id: CONS_DISC
+    sector_name_en: Consumer Discretionary
+    beta:
+      rates: -0.39999999999999997
+      inflation: -0.55
+      growth: 0.65
+      liquidity: 0.3
+      credit_stress: -0.4
+      geopolitics: -0.1
+      energy_supply: -0.3
+      trade_controls: -0.1
+      regulation: -0.05
+      risk_appetite: 0.55
+  industrial_distribution:
+    industry_name_en: Industrial Distribution
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  solar:
+    industry_name_en: Solar
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  electronic_gaming_multimedia:
+    industry_name_en: Electronic Gaming & Multimedia
+    sector_id: COMM
+    sector_name_en: Communication Services
+    beta:
+      rates: -0.3
+      inflation: -0.1
+      growth: 0.35
+      liquidity: 0.2
+      credit_stress: -0.2
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: -0.15
+      regulation: -0.25
+      risk_appetite: 0.45
+  security_protection_services:
+    industry_name_en: Security & Protection Services
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  drug_manufacturers_general:
+    industry_name_en: Drug Manufacturers - General
+    sector_id: HEALTH
+    sector_name_en: Healthcare
+    beta:
+      rates: -0.25
+      inflation: -0.05
+      growth: 0.1
+      liquidity: 0.15000000000000002
+      credit_stress: 0.2
+      geopolitics: 0.05
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.30000000000000004
+      risk_appetite: 0.3
+  farm_products:
+    industry_name_en: Farm Products
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  rental_leasing_services:
+    industry_name_en: Rental & Leasing Services
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  utilities_renewable:
+    industry_name_en: Utilities - Renewable
+    sector_id: UTIL
+    sector_name_en: Utilities
+    beta:
+      rates: -0.65
+      inflation: -0.2
+      growth: -0.15
+      liquidity: 0.1
+      credit_stress: 0.4
+      geopolitics: 0.1
+      energy_supply: -0.1
+      trade_controls: 0.0
+      regulation: -0.1
+      risk_appetite: -0.05
+  reit_residential:
+    industry_name_en: REIT - Residential
+    sector_id: REAL
+    sector_name_en: Real Estate
+    beta:
+      rates: -0.7999999999999999
+      inflation: -0.25
+      growth: 0.15
+      liquidity: 0.35
+      credit_stress: -0.55
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.2
+  reit_office:
+    industry_name_en: REIT - Office
+    sector_id: REAL
+    sector_name_en: Real Estate
+    beta:
+      rates: -0.7999999999999999
+      inflation: -0.25
+      growth: 0.15
+      liquidity: 0.35
+      credit_stress: -0.55
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.2
+  residential_construction:
+    industry_name_en: Residential Construction
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  waste_management:
+    industry_name_en: Waste Management
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  travel_services:
+    industry_name_en: Travel Services
+    sector_id: CONS_DISC
+    sector_name_en: Consumer Discretionary
+    beta:
+      rates: -0.39999999999999997
+      inflation: -0.55
+      growth: 0.65
+      liquidity: 0.3
+      credit_stress: -0.4
+      geopolitics: -0.1
+      energy_supply: -0.3
+      trade_controls: -0.1
+      regulation: -0.05
+      risk_appetite: 0.55
+  insurance_life:
+    industry_name_en: Insurance - Life
+    sector_id: FIN
+    sector_name_en: Financials
+    beta:
+      rates: 0.5
+      inflation: 0.05
+      growth: 0.25
+      liquidity: 0.2
+      credit_stress: -0.85
+      geopolitics: -0.1
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.35
+      risk_appetite: 0.25
+  consumer_electronics:
+    industry_name_en: Consumer Electronics
+    sector_id: TECH
+    sector_name_en: Technology
+    beta:
+      rates: -0.85
+      inflation: -0.25
+      growth: 0.55
+      liquidity: 0.55
+      credit_stress: -0.3
+      geopolitics: -0.15
+      energy_supply: -0.1
+      trade_controls: -0.6
+      regulation: -0.2
+      risk_appetite: 0.9
+  banks_diversified:
+    industry_name_en: Banks - Diversified
+    sector_id: FIN
+    sector_name_en: Financials
+    beta:
+      rates: 0.5
+      inflation: 0.05
+      growth: 0.25
+      liquidity: 0.2
+      credit_stress: -0.85
+      geopolitics: -0.1
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.35
+      risk_appetite: 0.25
+  oil_gas_integrated:
+    industry_name_en: Oil & Gas Integrated
+    sector_id: ENERGY
+    sector_name_en: Energy
+    beta:
+      rates: -0.05
+      inflation: 0.3
+      growth: 0.1
+      liquidity: 0.1
+      credit_stress: -0.2
+      geopolitics: 0.44999999999999996
+      energy_supply: 0.95
+      trade_controls: 0.05
+      regulation: -0.30000000000000004
+      risk_appetite: 0.15
+  airlines:
+    industry_name_en: Airlines
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.5
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: -0.05
+      energy_supply: -0.3
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  chemicals:
+    industry_name_en: Chemicals
+    sector_id: MAT
+    sector_name_en: Materials
+    beta:
+      rates: -0.2
+      inflation: 0.44999999999999996
+      growth: 0.44999999999999996
+      liquidity: 0.15
+      credit_stress: -0.25
+      geopolitics: 0.05
+      energy_supply: -0.05
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.25
+  beverages_non_alcoholic:
+    industry_name_en: Beverages - Non-Alcoholic
+    sector_id: CONS_STAP
+    sector_name_en: Consumer Staples
+    beta:
+      rates: -0.1
+      inflation: -0.44999999999999996
+      growth: -0.05
+      liquidity: 0.05
+      credit_stress: 0.25
+      geopolitics: 0.1
+      energy_supply: -0.1
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.1
+  reit_specialty:
+    industry_name_en: REIT - Specialty
+    sector_id: REAL
+    sector_name_en: Real Estate
+    beta:
+      rates: -0.7999999999999999
+      inflation: -0.25
+      growth: 0.15
+      liquidity: 0.35
+      credit_stress: -0.55
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.2
+  staffing_employment_services:
+    industry_name_en: Staffing & Employment Services
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  resorts_casinos:
+    industry_name_en: Resorts & Casinos
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  oil_gas_refining_marketing:
+    industry_name_en: Oil & Gas Refining & Marketing
+    sector_id: ENERGY
+    sector_name_en: Energy
+    beta:
+      rates: -0.05
+      inflation: 0.3
+      growth: 0.1
+      liquidity: 0.1
+      credit_stress: -0.2
+      geopolitics: 0.44999999999999996
+      energy_supply: 0.95
+      trade_controls: 0.05
+      regulation: -0.30000000000000004
+      risk_appetite: 0.15
+  insurance_specialty:
+    industry_name_en: Insurance - Specialty
+    sector_id: FIN
+    sector_name_en: Financials
+    beta:
+      rates: 0.5
+      inflation: 0.05
+      growth: 0.25
+      liquidity: 0.2
+      credit_stress: -0.85
+      geopolitics: -0.1
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.35
+      risk_appetite: 0.25
+  pollution_treatment_controls:
+    industry_name_en: Pollution & Treatment Controls
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  metal_fabrication:
+    industry_name_en: Metal Fabrication
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: 0.04999999999999999
+      growth: 0.5
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.3
+      regulation: -0.05
+      risk_appetite: 0.4
+  recreational_vehicles:
+    industry_name_en: Recreational Vehicles
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  reit_industrial:
+    industry_name_en: REIT - Industrial
+    sector_id: REAL
+    sector_name_en: Real Estate
+    beta:
+      rates: -0.7999999999999999
+      inflation: -0.25
+      growth: 0.15
+      liquidity: 0.35
+      credit_stress: -0.55
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.2
+  reit_diversified:
+    industry_name_en: REIT - Diversified
+    sector_id: REAL
+    sector_name_en: Real Estate
+    beta:
+      rates: -0.7999999999999999
+      inflation: -0.25
+      growth: 0.15
+      liquidity: 0.35
+      credit_stress: -0.55
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.2
+  reit_healthcare_facilities:
+    industry_name_en: REIT - Healthcare Facilities
+    sector_id: REAL
+    sector_name_en: Real Estate
+    beta:
+      rates: -0.8999999999999999
+      inflation: -0.25
+      growth: 0.15
+      liquidity: 0.4
+      credit_stress: -0.55
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: 0.0
+      regulation: -0.15000000000000002
+      risk_appetite: 0.25
+  reit_hotel_motel:
+    industry_name_en: REIT - Hotel & Motel
+    sector_id: REAL
+    sector_name_en: Real Estate
+    beta:
+      rates: -0.7999999999999999
+      inflation: -0.25
+      growth: 0.15
+      liquidity: 0.35
+      credit_stress: -0.55
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.2
+  trucking:
+    industry_name_en: Trucking
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.5
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: -0.05
+      energy_supply: -0.3
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  utilities_regulated_gas:
+    industry_name_en: Utilities - Regulated Gas
+    sector_id: UTIL
+    sector_name_en: Utilities
+    beta:
+      rates: -0.65
+      inflation: -0.15000000000000002
+      growth: -0.15
+      liquidity: 0.1
+      credit_stress: 0.4
+      geopolitics: 0.2
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.2
+      risk_appetite: -0.05
+  building_materials:
+    industry_name_en: Building Materials
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  real_estate_development:
+    industry_name_en: Real Estate - Development
+    sector_id: REAL
+    sector_name_en: Real Estate
+    beta:
+      rates: -0.7999999999999999
+      inflation: -0.25
+      growth: 0.15
+      liquidity: 0.35
+      credit_stress: -0.55
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.2
+  footwear_accessories:
+    industry_name_en: Footwear & Accessories
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  other_precious_metals_mining:
+    industry_name_en: Other Precious Metals & Mining
+    sector_id: MAT
+    sector_name_en: Materials
+    beta:
+      rates: -0.30000000000000004
+      inflation: 0.6499999999999999
+      growth: 0.44999999999999996
+      liquidity: 0.15
+      credit_stress: -0.25
+      geopolitics: 0.2
+      energy_supply: -0.05
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.25
+  financial_data_stock_exchanges:
+    industry_name_en: Financial Data & Stock Exchanges
+    sector_id: FIN
+    sector_name_en: Financials
+    beta:
+      rates: 0.4
+      inflation: 0.05
+      growth: 0.25
+      liquidity: 0.30000000000000004
+      credit_stress: -0.85
+      geopolitics: -0.1
+      energy_supply: 0.0
+      trade_controls: -0.15
+      regulation: -0.35
+      risk_appetite: 0.35
+  agricultural_inputs:
+    industry_name_en: Agricultural Inputs
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  broadcasting:
+    industry_name_en: Broadcasting
+    sector_id: COMM
+    sector_name_en: Communication Services
+    beta:
+      rates: -0.3
+      inflation: -0.1
+      growth: 0.35
+      liquidity: 0.2
+      credit_stress: -0.2
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: -0.15
+      regulation: -0.25
+      risk_appetite: 0.45
+  personal_services:
+    industry_name_en: Personal Services
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.2
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  gambling:
+    industry_name_en: Gambling
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  food_distribution:
+    industry_name_en: Food Distribution
+    sector_id: CONS_STAP
+    sector_name_en: Consumer Staples
+    beta:
+      rates: -0.1
+      inflation: -0.44999999999999996
+      growth: -0.05
+      liquidity: 0.05
+      credit_stress: 0.25
+      geopolitics: 0.1
+      energy_supply: -0.1
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.1
+  utilities_regulated_water:
+    industry_name_en: Utilities - Regulated Water
+    sector_id: UTIL
+    sector_name_en: Utilities
+    beta:
+      rates: -0.65
+      inflation: -0.2
+      growth: -0.15
+      liquidity: 0.1
+      credit_stress: 0.4
+      geopolitics: 0.1
+      energy_supply: -0.1
+      trade_controls: 0.0
+      regulation: -0.1
+      risk_appetite: -0.05
+  mortgage_finance:
+    industry_name_en: Mortgage Finance
+    sector_id: REAL
+    sector_name_en: Real Estate
+    beta:
+      rates: -0.7999999999999999
+      inflation: -0.25
+      growth: 0.15
+      liquidity: 0.35
+      credit_stress: -0.55
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.2
+  medical_distribution:
+    industry_name_en: Medical Distribution
+    sector_id: HEALTH
+    sector_name_en: Healthcare
+    beta:
+      rates: -0.25
+      inflation: -0.05
+      growth: 0.1
+      liquidity: 0.15000000000000002
+      credit_stress: 0.2
+      geopolitics: 0.05
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.30000000000000004
+      risk_appetite: 0.3
+  lodging:
+    industry_name_en: Lodging
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  railroads:
+    industry_name_en: Railroads
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.5
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: -0.05
+      energy_supply: -0.3
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  grocery_stores:
+    industry_name_en: Grocery Stores
+    sector_id: CONS_STAP
+    sector_name_en: Consumer Staples
+    beta:
+      rates: -0.1
+      inflation: -0.35
+      growth: -0.05
+      liquidity: 0.05
+      credit_stress: 0.25
+      geopolitics: 0.1
+      energy_supply: -0.1
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.1
+  uranium:
+    industry_name_en: Uranium
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  beverages_wineries_distilleries:
+    industry_name_en: Beverages - Wineries & Distilleries
+    sector_id: CONS_STAP
+    sector_name_en: Consumer Staples
+    beta:
+      rates: -0.1
+      inflation: -0.44999999999999996
+      growth: -0.05
+      liquidity: 0.05
+      credit_stress: 0.25
+      geopolitics: 0.1
+      energy_supply: -0.1
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.1
+  healthcare_plans:
+    industry_name_en: Healthcare Plans
+    sector_id: HEALTH
+    sector_name_en: Healthcare
+    beta:
+      rates: -0.25
+      inflation: -0.05
+      growth: 0.1
+      liquidity: 0.15000000000000002
+      credit_stress: 0.2
+      geopolitics: 0.05
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.30000000000000004
+      risk_appetite: 0.3
+  luxury_goods:
+    industry_name_en: Luxury Goods
+    sector_id: CONS_DISC
+    sector_name_en: Consumer Discretionary
+    beta:
+      rates: -0.39999999999999997
+      inflation: -0.55
+      growth: 0.65
+      liquidity: 0.3
+      credit_stress: -0.4
+      geopolitics: -0.1
+      energy_supply: -0.3
+      trade_controls: -0.1
+      regulation: -0.05
+      risk_appetite: 0.55
+  tobacco:
+    industry_name_en: Tobacco
+    sector_id: CONS_STAP
+    sector_name_en: Consumer Staples
+    beta:
+      rates: -0.1
+      inflation: -0.44999999999999996
+      growth: -0.05
+      liquidity: 0.05
+      credit_stress: 0.25
+      geopolitics: 0.1
+      energy_supply: -0.1
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.1
+  insurance_diversified:
+    industry_name_en: Insurance - Diversified
+    sector_id: FIN
+    sector_name_en: Financials
+    beta:
+      rates: 0.5
+      inflation: 0.05
+      growth: 0.25
+      liquidity: 0.2
+      credit_stress: -0.85
+      geopolitics: -0.1
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.35
+      risk_appetite: 0.25
+  tools_accessories:
+    industry_name_en: Tools & Accessories
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  discount_stores:
+    industry_name_en: Discount Stores
+    sector_id: CONS_STAP
+    sector_name_en: Consumer Staples
+    beta:
+      rates: -0.1
+      inflation: -0.35
+      growth: -0.05
+      liquidity: 0.05
+      credit_stress: 0.25
+      geopolitics: 0.1
+      energy_supply: -0.1
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.1
+  oil_gas_drilling:
+    industry_name_en: Oil & Gas Drilling
+    sector_id: ENERGY
+    sector_name_en: Energy
+    beta:
+      rates: -0.05
+      inflation: 0.3
+      growth: 0.1
+      liquidity: 0.1
+      credit_stress: -0.2
+      geopolitics: 0.44999999999999996
+      energy_supply: 0.95
+      trade_controls: 0.05
+      regulation: -0.30000000000000004
+      risk_appetite: 0.15
+  utilities_independent_power_producers:
+    industry_name_en: Utilities - Independent Power Producers
+    sector_id: UTIL
+    sector_name_en: Utilities
+    beta:
+      rates: -0.65
+      inflation: -0.2
+      growth: -0.15
+      liquidity: 0.1
+      credit_stress: 0.4
+      geopolitics: 0.1
+      energy_supply: -0.1
+      trade_controls: 0.0
+      regulation: -0.1
+      risk_appetite: -0.05
+  beverages_brewers:
+    industry_name_en: Beverages - Brewers
+    sector_id: CONS_STAP
+    sector_name_en: Consumer Staples
+    beta:
+      rates: -0.1
+      inflation: -0.44999999999999996
+      growth: -0.05
+      liquidity: 0.05
+      credit_stress: 0.25
+      geopolitics: 0.1
+      energy_supply: -0.1
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.1
+  utilities_diversified:
+    industry_name_en: Utilities - Diversified
+    sector_id: UTIL
+    sector_name_en: Utilities
+    beta:
+      rates: -0.65
+      inflation: -0.2
+      growth: -0.15
+      liquidity: 0.1
+      credit_stress: 0.4
+      geopolitics: 0.1
+      energy_supply: -0.1
+      trade_controls: 0.0
+      regulation: -0.1
+      risk_appetite: -0.05
+  electronics_computer_distribution:
+    industry_name_en: Electronics & Computer Distribution
+    sector_id: TECH
+    sector_name_en: Technology
+    beta:
+      rates: -0.85
+      inflation: -0.25
+      growth: 0.55
+      liquidity: 0.55
+      credit_stress: -0.3
+      geopolitics: -0.15
+      energy_supply: -0.1
+      trade_controls: -0.6
+      regulation: -0.2
+      risk_appetite: 0.9
+  airports_air_services:
+    industry_name_en: Airports & Air Services
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  publishing:
+    industry_name_en: Publishing
+    sector_id: COMM
+    sector_name_en: Communication Services
+    beta:
+      rates: -0.3
+      inflation: -0.1
+      growth: 0.35
+      liquidity: 0.2
+      credit_stress: -0.2
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: -0.15
+      regulation: -0.25
+      risk_appetite: 0.45
+  insurance_reinsurance:
+    industry_name_en: Insurance - Reinsurance
+    sector_id: FIN
+    sector_name_en: Financials
+    beta:
+      rates: 0.5
+      inflation: 0.05
+      growth: 0.25
+      liquidity: 0.2
+      credit_stress: -0.85
+      geopolitics: -0.1
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.35
+      risk_appetite: 0.25
+  home_improvement_retail:
+    industry_name_en: Home Improvement Retail
+    sector_id: CONS_DISC
+    sector_name_en: Consumer Discretionary
+    beta:
+      rates: -0.39999999999999997
+      inflation: -0.55
+      growth: 0.65
+      liquidity: 0.3
+      credit_stress: -0.4
+      geopolitics: -0.1
+      energy_supply: -0.3
+      trade_controls: -0.1
+      regulation: -0.05
+      risk_appetite: 0.55
+  pharmaceutical_retailers:
+    industry_name_en: Pharmaceutical Retailers
+    sector_id: HEALTH
+    sector_name_en: Healthcare
+    beta:
+      rates: -0.3
+      inflation: -0.15000000000000002
+      growth: 0.2
+      liquidity: 0.15000000000000002
+      credit_stress: 0.2
+      geopolitics: 0.05
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.30000000000000004
+      risk_appetite: 0.3
+  coking_coal:
+    industry_name_en: Coking Coal
+    sector_id: ENERGY
+    sector_name_en: Energy
+    beta:
+      rates: -0.05
+      inflation: 0.3
+      growth: 0.1
+      liquidity: 0.1
+      credit_stress: -0.2
+      geopolitics: 0.44999999999999996
+      energy_supply: 0.95
+      trade_controls: 0.05
+      regulation: -0.30000000000000004
+      risk_appetite: 0.15
+  thermal_coal:
+    industry_name_en: Thermal Coal
+    sector_id: ENERGY
+    sector_name_en: Energy
+    beta:
+      rates: -0.05
+      inflation: 0.3
+      growth: 0.1
+      liquidity: 0.1
+      credit_stress: -0.2
+      geopolitics: 0.44999999999999996
+      energy_supply: 0.95
+      trade_controls: 0.05
+      regulation: -0.30000000000000004
+      risk_appetite: 0.15
+  lumber_wood_production:
+    industry_name_en: Lumber & Wood Production
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  copper:
+    industry_name_en: Copper
+    sector_id: MAT
+    sector_name_en: Materials
+    beta:
+      rates: -0.2
+      inflation: 0.44999999999999996
+      growth: 0.44999999999999996
+      liquidity: 0.15
+      credit_stress: -0.25
+      geopolitics: 0.05
+      energy_supply: -0.05
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.25
+  financial_conglomerates:
+    industry_name_en: Financial Conglomerates
+    sector_id: FIN
+    sector_name_en: Financials
+    beta:
+      rates: 0.5
+      inflation: 0.05
+      growth: 0.25
+      liquidity: 0.2
+      credit_stress: -0.85
+      geopolitics: -0.1
+      energy_supply: 0.0
+      trade_controls: 0.0
+      regulation: -0.35
+      risk_appetite: 0.25
+  business_equipment_supplies:
+    industry_name_en: Business Equipment & Supplies
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  silver:
+    industry_name_en: Silver
+    sector_id: MAT
+    sector_name_en: Materials
+    beta:
+      rates: -0.30000000000000004
+      inflation: 0.5
+      growth: 0.35
+      liquidity: 0.15
+      credit_stress: -0.25
+      geopolitics: 0.2
+      energy_supply: -0.05
+      trade_controls: -0.2
+      regulation: -0.05
+      risk_appetite: 0.25
+  paper_paper_products:
+    industry_name_en: Paper & Paper Products
+    sector_id: MAT
+    sector_name_en: Materials
+    beta:
+      rates: -0.2
+      inflation: 0.44999999999999996
+      growth: 0.44999999999999996
+      liquidity: 0.15
+      credit_stress: -0.25
+      geopolitics: 0.05
+      energy_supply: -0.05
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.25
+  confectioners:
+    industry_name_en: Confectioners
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  aluminum:
+    industry_name_en: Aluminum
+    sector_id: MAT
+    sector_name_en: Materials
+    beta:
+      rates: -0.2
+      inflation: 0.44999999999999996
+      growth: 0.44999999999999996
+      liquidity: 0.15
+      credit_stress: -0.25
+      geopolitics: 0.05
+      energy_supply: -0.05
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.25
+  textile_manufacturing:
+    industry_name_en: Textile Manufacturing
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  department_stores:
+    industry_name_en: Department Stores
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  infrastructure_operations:
+    industry_name_en: Infrastructure Operations
+    sector_id: IND
+    sector_name_en: Industrials
+    beta:
+      rates: -0.15
+      inflation: -0.1
+      growth: 0.4
+      liquidity: 0.2
+      credit_stress: -0.3
+      geopolitics: 0.05
+      energy_supply: -0.15
+      trade_controls: -0.25
+      regulation: -0.05
+      risk_appetite: 0.4
+  real_estate_diversified:
+    industry_name_en: Real Estate - Diversified
+    sector_id: REAL
+    sector_name_en: Real Estate
+    beta:
+      rates: -0.7999999999999999
+      inflation: -0.25
+      growth: 0.15
+      liquidity: 0.35
+      credit_stress: -0.55
+      geopolitics: -0.05
+      energy_supply: -0.05
+      trade_controls: 0.0
+      regulation: -0.05
+      risk_appetite: 0.2

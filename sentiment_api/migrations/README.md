@@ -11,9 +11,13 @@ Apply in this order on an **empty** database:
 | 2b | `v1.1_add_industries.sql` | Industries table (GICS industries under sectors; idempotent) |
 | 3 | `v1.1_asset_targeting_audit.sql` | cluster_asset_targeting_audit table (idempotent) |
 | 4 | `v1.1_retention_tombstone.sql` | deleted_at on articles for retention (idempotent) |
-| 5 | `v1.2_embedding_dim_768.sql` | Drops and recreates embeddings with vector(768) (for DBs created with 3072) |
+| 5 | `v1.2_embedding_dim_768.sql` | Optional: drops and recreates embeddings with vector(768) (Tier B) |
+| 6 | `v1.3_embedding_dim_384.sql` | Optional: drops and recreates embeddings with vector(384) (cost-effective default; base schema is already 384) |
+| 7 | `v1.4_llm_call_cache.sql` | LLM call cache for chunked asset targeting (channel_infer, sector_map, ticker_select) |
+| 8 | `v1.4_asset_allocations.sql` | cluster_market/sector/ticker_allocations tables |
+| 9 | `v1.4_forward_eval_asset.sql` | asset_prediction_ledger for forward evaluation |
 
-All scripts are **safe to re-run** (CREATE IF NOT EXISTS, etc.). After changing to 768 dim, **restart DB** (e.g. `./scripts/reset_db_fresh.sh`) then run seeding so embeddings are 768-dim.
+All scripts are **safe to re-run** (CREATE IF NOT EXISTS, etc.). Base schema uses **vector(384)** (cost-effective). Use v1.2 only if you want 768-dim.
 
 ## Full fresh start (no debugging)
 
@@ -55,7 +59,7 @@ done
 
 ## Embedding dimensions (Tier A 384, Tier B 768)
 
-We use **OpenAI text-embedding-3-small** with **Tier A = 384 dim** and **Tier B = 768 dim**. The `embeddings` table stores **768-dimensional** vectors (`vector(768)`). Clustering and DB use Tier B (768). With 768 dimensions, pgvector **can** use IVFFlat/HNSW indexes if you add them later (768 &lt; 2000).
+We use **OpenAI text-embedding-3-small** with **Tier A = 384 dim** (cost-effective default) and **Tier B = 768 dim**. The `embeddings` table in **base schema** is **vector(384)**. For 768-dim run `v1.2_embedding_dim_768.sql` after base. Clustering and pipeline use the dimension defined in the table; set `MODEL_EMBEDDING_ID` to match (e.g. `openai:text-embedding-3-small:384`).
 
 ## Reserved keywords
 

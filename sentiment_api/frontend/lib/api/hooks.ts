@@ -225,11 +225,18 @@ export function useClusters(enabled: boolean = true) {
   });
 }
 
-export function useClusterDetail(clusterId: string, enabled: boolean = true) {
+export function useClusterDetail(clusterId: string, enabled: boolean = true, opts?: { includeAssetImpacts?: boolean; includeAnalogs?: boolean }) {
+  const includeAssetImpacts = opts?.includeAssetImpacts ?? true;
+  const includeAnalogs = opts?.includeAnalogs ?? true;
+  const params = new URLSearchParams();
+  params.set("include_articles", "true");
+  params.set("include_evidence", "true");
+  if (includeAssetImpacts) params.set("include_asset_impacts", "true");
+  if (includeAnalogs) params.set("include_analogs", "true");
   return useQuery<z.infer<typeof ClusterDetail>>({
-    queryKey: ["clusterDetail", clusterId],
+    queryKey: ["clusterDetail", clusterId, includeAssetImpacts, includeAnalogs],
     queryFn: async () => {
-      const res = await apiGetData(`/v1/news/clusters/${clusterId}?include_articles=true&include_evidence=true`, ClusterDetail);
+      const res = await apiGetData(`/v1/news/clusters/${clusterId}?${params}`, ClusterDetail);
       return res.data as z.infer<typeof ClusterDetail>;
     },
     enabled

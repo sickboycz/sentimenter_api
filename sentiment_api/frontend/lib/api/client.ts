@@ -73,8 +73,33 @@ export async function apiGetData<T>(
     if (path.startsWith("/v1/topics/index")) return { data: dataSchema.parse(d.topics) };
     if (path.startsWith("/v1/news/clusters/") && !path.endsWith("/impacts")) {
       const id = path.split("/v1/news/clusters/")[1].split("?")[0];
+      const qs = path.includes("?") ? path.split("?")[1] : "";
+      const params = new URLSearchParams(qs);
+      const includeAssetImpacts = params.get("include_asset_impacts") === "true";
+      const includeAnalogs = params.get("include_analogs") === "true";
       const clu = d.clusters.find((x: any) => x.cluster_id === id) || d.clusters[0];
-      const detail = { cluster: clu, evidence: [{ url: "https://example.com/a", text_en: "Demo evidence passage.", relevance_score: 0.9 }], articles: [] };
+      const detail: Record<string, unknown> = {
+        cluster: clu,
+        evidence: [{ url: "https://example.com/a", text_en: "Demo evidence passage.", relevance_score: 0.9 }],
+        articles: [],
+        what_changed_en: "Demo narrative.",
+        why_it_matters_en: "Demo why it matters.",
+        what_to_watch_en: null,
+        impact_explanation_en: null,
+      };
+      if (includeAssetImpacts) {
+        detail.market_impacts = clu.top_markets || [];
+        detail.sector_impacts = clu.top_sectors || [];
+        detail.ticker_impacts = [...(clu.top_tickers_winners || []), ...(clu.top_tickers_losers || [])];
+      }
+      if (includeAnalogs) {
+        detail.historical_analogs = d.clusters.slice(0, 3).filter((x: any) => x.cluster_id !== id).map((x: any) => ({
+          cluster_id: x.cluster_id,
+          similarity: 0.85,
+          label_en: x.headline_en || x.cluster_id,
+          date: x.last_seen?.slice(0, 10) || ""
+        }));
+      }
       return { data: dataSchema.parse(detail) };
     }
     if (path.startsWith("/v1/news/clusters")) return { data: dataSchema.parse(d.clusters) };

@@ -1,4 +1,4 @@
-"""Pinecone vector store (stub — implement per docs/PINECONE_WEAVIATE_INTEGRATION.md)."""
+"""Pinecone vector store (optional; not used in production). Clustering uses Weaviate or pgvector only."""
 
 from sentiment_api.config import get_settings
 
@@ -74,11 +74,5 @@ class PineconeVectorStore:
         model_id: str,
         limit: int = 500,
     ) -> list[tuple[str, list[float]]]:
-        # Pinecone list/fetch: list index and fetch vectors for object_type=cluster.
-        # list() returns vector ids; fetch(ids) returns vectors. Filter by metadata requires a query per chunk or use list + fetch.
-        idx = self._get_index()
-        result = []
-        # Pinecone serverless/list returns ids; then fetch. For "get all clusters" we list with prefix or filter.
-        # Pinecone gRPC list() with filter might not be available in all plans. Fallback: query with a zero vector and high top_k to get many (not ideal).
-        # Stub: return empty; worker falls back to pgvector if needed, or implement list+fetch.
-        return result
+        # Clustering is not supported with Pinecone backend. Use VECTOR_STORE_BACKEND=weaviate or pgvector for clustering.
+        return []

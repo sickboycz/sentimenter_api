@@ -324,14 +324,14 @@ CREATE TABLE IF NOT EXISTS outcomes (
 );
 
 -- -----------------------------------------------------------------------------
--- Embeddings (pgvector). Tier B = 768 dim (text-embedding-3-small:768). IVFFlat/HNSW possible at 768.
+-- Embeddings (pgvector). Cost-effective default = 384 dim (text-embedding-3-small:384). Use v1.2 for 768.
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS embeddings (
   object_type      object_type NOT NULL,
   object_id        text NOT NULL,
   model            text NOT NULL,
-  dims             integer NOT NULL DEFAULT 768,
-  embedding        vector(768) NOT NULL,
+  dims             integer NOT NULL DEFAULT 384,
+  embedding        vector(384) NOT NULL,
   metadata         jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at       timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (object_type, object_id, model)

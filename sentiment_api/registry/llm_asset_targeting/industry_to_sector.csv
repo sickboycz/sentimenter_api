@@ -1,0 +1,146 @@
+industry_id,industry_name_en,sector_id,sector_name_en
+biotechnology,Biotechnology,HEALTH,Healthcare
+banks_regional,Banks - Regional,FIN,Financials
+software_application,Software - Application,TECH,Technology
+shell_companies,Shell Companies,IND,Industrials
+software_infrastructure,Software - Infrastructure,TECH,Technology
+medical_devices,Medical Devices,HEALTH,Healthcare
+asset_management,Asset Management,FIN,Financials
+capital_markets,Capital Markets,FIN,Financials
+drug_manufacturers_specialty_generic,Drug Manufacturers - Specialty & Generic,HEALTH,Healthcare
+aerospace_defense,Aerospace & Defense,IND,Industrials
+specialty_industrial_machinery,Specialty Industrial Machinery,IND,Industrials
+oil_gas_exploration_production,Oil & Gas Exploration & Production,ENERGY,Energy
+internet_content_information,Internet Content & Information,COMM,Communication Services
+information_technology_services,Information Technology Services,IND,Industrials
+semiconductors,Semiconductors,TECH,Technology
+packaged_foods,Packaged Foods,CONS_STAP,Consumer Staples
+specialty_chemicals,Specialty Chemicals,MAT,Materials
+medical_instruments_supplies,Medical Instruments & Supplies,HEALTH,Healthcare
+oil_gas_midstream,Oil & Gas Midstream,ENERGY,Energy
+restaurants,Restaurants,CONS_DISC,Consumer Discretionary
+auto_parts,Auto Parts,IND,Industrials
+engineering_construction,Engineering & Construction,IND,Industrials
+credit_services,Credit Services,FIN,Financials
+telecom_services,Telecom Services,COMM,Communication Services
+medical_care_facilities,Medical Care Facilities,HEALTH,Healthcare
+oil_gas_equipment_services,Oil & Gas Equipment & Services,ENERGY,Energy
+diagnostics_research,Diagnostics & Research,HEALTH,Healthcare
+gold,Gold,MAT,Materials
+specialty_retail,Specialty Retail,CONS_DISC,Consumer Discretionary
+entertainment,Entertainment,COMM,Communication Services
+health_information_services,Health Information Services,HEALTH,Healthcare
+electrical_equipment_parts,Electrical Equipment & Parts,IND,Industrials
+electronic_components,Electronic Components,IND,Industrials
+specialty_business_services,Specialty Business Services,IND,Industrials
+insurance_property_casualty,Insurance - Property & Casualty,REAL,Real Estate
+other_industrial_metals_mining,Other Industrial Metals & Mining,MAT,Materials
+communication_equipment,Communication Equipment,COMM,Communication Services
+real_estate_services,Real Estate Services,REAL,Real Estate
+education_training_services,Education & Training Services,IND,Industrials
+utilities_regulated_electric,Utilities - Regulated Electric,UTIL,Utilities
+reit_mortgage,REIT - Mortgage,REAL,Real Estate
+advertising_agencies,Advertising Agencies,COMM,Communication Services
+internet_retail,Internet Retail,TECH,Technology
+marine_shipping,Marine Shipping,IND,Industrials
+computer_hardware,Computer Hardware,TECH,Technology
+building_products_equipment,Building Products & Equipment,IND,Industrials
+leisure,Leisure,CONS_DISC,Consumer Discretionary
+furnishings_fixtures_appliances,"Furnishings, Fixtures & Appliances",IND,Industrials
+scientific_technical_instruments,Scientific & Technical Instruments,IND,Industrials
+household_personal_products,Household & Personal Products,CONS_STAP,Consumer Staples
+apparel_retail,Apparel Retail,CONS_DISC,Consumer Discretionary
+integrated_freight_logistics,Integrated Freight & Logistics,IND,Industrials
+semiconductor_equipment_materials,Semiconductor Equipment & Materials,TECH,Technology
+auto_manufacturers,Auto Manufacturers,IND,Industrials
+reit_retail,REIT - Retail,REAL,Real Estate
+auto_truck_dealerships,Auto & Truck Dealerships,IND,Industrials
+farm_heavy_construction_machinery,Farm & Heavy Construction Machinery,IND,Industrials
+conglomerates,Conglomerates,IND,Industrials
+consulting_services,Consulting Services,IND,Industrials
+insurance_brokers,Insurance Brokers,FIN,Financials
+packaging_containers,Packaging & Containers,MAT,Materials
+steel,Steel,MAT,Materials
+apparel_manufacturing,Apparel Manufacturing,CONS_DISC,Consumer Discretionary
+industrial_distribution,Industrial Distribution,IND,Industrials
+solar,Solar,IND,Industrials
+electronic_gaming_multimedia,Electronic Gaming & Multimedia,COMM,Communication Services
+security_protection_services,Security & Protection Services,IND,Industrials
+drug_manufacturers_general,Drug Manufacturers - General,HEALTH,Healthcare
+farm_products,Farm Products,IND,Industrials
+rental_leasing_services,Rental & Leasing Services,IND,Industrials
+utilities_renewable,Utilities - Renewable,UTIL,Utilities
+reit_residential,REIT - Residential,REAL,Real Estate
+reit_office,REIT - Office,REAL,Real Estate
+residential_construction,Residential Construction,IND,Industrials
+waste_management,Waste Management,IND,Industrials
+travel_services,Travel Services,CONS_DISC,Consumer Discretionary
+insurance_life,Insurance - Life,FIN,Financials
+consumer_electronics,Consumer Electronics,TECH,Technology
+banks_diversified,Banks - Diversified,FIN,Financials
+oil_gas_integrated,Oil & Gas Integrated,ENERGY,Energy
+airlines,Airlines,IND,Industrials
+chemicals,Chemicals,MAT,Materials
+beverages_non_alcoholic,Beverages - Non-Alcoholic,CONS_STAP,Consumer Staples
+reit_specialty,REIT - Specialty,REAL,Real Estate
+staffing_employment_services,Staffing & Employment Services,IND,Industrials
+resorts_casinos,Resorts & Casinos,IND,Industrials
+oil_gas_refining_marketing,Oil & Gas Refining & Marketing,ENERGY,Energy
+insurance_specialty,Insurance - Specialty,FIN,Financials
+pollution_treatment_controls,Pollution & Treatment Controls,IND,Industrials
+metal_fabrication,Metal Fabrication,IND,Industrials
+recreational_vehicles,Recreational Vehicles,IND,Industrials
+reit_industrial,REIT - Industrial,REAL,Real Estate
+reit_diversified,REIT - Diversified,REAL,Real Estate
+reit_healthcare_facilities,REIT - Healthcare Facilities,REAL,Real Estate
+reit_hotel_motel,REIT - Hotel & Motel,REAL,Real Estate
+trucking,Trucking,IND,Industrials
+utilities_regulated_gas,Utilities - Regulated Gas,UTIL,Utilities
+building_materials,Building Materials,IND,Industrials
+real_estate_development,Real Estate - Development,REAL,Real Estate
+footwear_accessories,Footwear & Accessories,IND,Industrials
+other_precious_metals_mining,Other Precious Metals & Mining,MAT,Materials
+financial_data_stock_exchanges,Financial Data & Stock Exchanges,FIN,Financials
+agricultural_inputs,Agricultural Inputs,IND,Industrials
+broadcasting,Broadcasting,COMM,Communication Services
+personal_services,Personal Services,IND,Industrials
+gambling,Gambling,IND,Industrials
+food_distribution,Food Distribution,CONS_STAP,Consumer Staples
+utilities_regulated_water,Utilities - Regulated Water,UTIL,Utilities
+mortgage_finance,Mortgage Finance,REAL,Real Estate
+medical_distribution,Medical Distribution,HEALTH,Healthcare
+lodging,Lodging,IND,Industrials
+railroads,Railroads,IND,Industrials
+grocery_stores,Grocery Stores,CONS_STAP,Consumer Staples
+uranium,Uranium,IND,Industrials
+beverages_wineries_distilleries,Beverages - Wineries & Distilleries,CONS_STAP,Consumer Staples
+healthcare_plans,Healthcare Plans,HEALTH,Healthcare
+luxury_goods,Luxury Goods,CONS_DISC,Consumer Discretionary
+tobacco,Tobacco,CONS_STAP,Consumer Staples
+insurance_diversified,Insurance - Diversified,FIN,Financials
+tools_accessories,Tools & Accessories,IND,Industrials
+discount_stores,Discount Stores,CONS_STAP,Consumer Staples
+oil_gas_drilling,Oil & Gas Drilling,ENERGY,Energy
+utilities_independent_power_producers,Utilities - Independent Power Producers,UTIL,Utilities
+beverages_brewers,Beverages - Brewers,CONS_STAP,Consumer Staples
+utilities_diversified,Utilities - Diversified,UTIL,Utilities
+electronics_computer_distribution,Electronics & Computer Distribution,TECH,Technology
+airports_air_services,Airports & Air Services,IND,Industrials
+publishing,Publishing,COMM,Communication Services
+insurance_reinsurance,Insurance - Reinsurance,FIN,Financials
+home_improvement_retail,Home Improvement Retail,CONS_DISC,Consumer Discretionary
+pharmaceutical_retailers,Pharmaceutical Retailers,HEALTH,Healthcare
+coking_coal,Coking Coal,ENERGY,Energy
+thermal_coal,Thermal Coal,ENERGY,Energy
+lumber_wood_production,Lumber & Wood Production,IND,Industrials
+copper,Copper,MAT,Materials
+financial_conglomerates,Financial Conglomerates,FIN,Financials
+business_equipment_supplies,Business Equipment & Supplies,IND,Industrials
+silver,Silver,MAT,Materials
+paper_paper_products,Paper & Paper Products,MAT,Materials
+confectioners,Confectioners,IND,Industrials
+aluminum,Aluminum,MAT,Materials
+textile_manufacturing,Textile Manufacturing,IND,Industrials
+department_stores,Department Stores,IND,Industrials
+infrastructure_operations,Infrastructure Operations,IND,Industrials
+real_estate_diversified,Real Estate - Diversified,REAL,Real Estate

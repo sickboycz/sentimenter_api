@@ -50,10 +50,18 @@ for f in \
     echo "[!] Missing: $f"; exit 1
   fi
 done
-if [[ -f "$MIGRATIONS_DIR/v1.2_embedding_dim_768.sql" ]]; then
-  echo "[*] Applying v1.2_embedding_dim_768.sql..."
-  run_psql -f - < "$MIGRATIONS_DIR/v1.2_embedding_dim_768.sql" || { echo "[!] Failed: v1.2_embedding_dim_768.sql"; exit 1; }
+# Default: 384 dim (base schema). For 768-dim run v1.2_embedding_dim_768.sql manually; then v1.3 to switch back to 384.
+if [[ -f "$MIGRATIONS_DIR/v1.3_embedding_dim_384.sql" ]]; then
+  echo "[*] Applying v1.3_embedding_dim_384.sql (embeddings 384)..."
+  run_psql -f - < "$MIGRATIONS_DIR/v1.3_embedding_dim_384.sql" || { echo "[!] Failed: v1.3_embedding_dim_384.sql"; exit 1; }
 fi
+
+for f in v1.4_llm_call_cache.sql v1.4_asset_allocations.sql v1.4_forward_eval_asset.sql; do
+  if [[ -f "$MIGRATIONS_DIR/$f" ]]; then
+    echo "[*] Applying $f..."
+    run_psql -f - < "$MIGRATIONS_DIR/$f" || { echo "[!] Failed: $f"; exit 1; }
+  fi
+done
 
 echo "[*] Seeding universes (sectors, industries, S&P 500, Nasdaq-100)..."
 docker compose $COMPOSE_FILES exec -T api python -c "

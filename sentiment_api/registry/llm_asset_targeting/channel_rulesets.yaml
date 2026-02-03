@@ -1,0 +1,14 @@
+version: 1
+rules:
+  energy_supply:
+    include_sectors: ["ENERGY"]
+    include_symbols: ["XOM","CVX","SLB","HAL"]
+  geopolitics:
+    include_sectors: ["IND"]
+    include_symbols: ["LMT","NOC","RTX"]
+  trade_controls:
+    include_sectors: ["TECH"]
+    include_symbols: ["NVDA","AMD","INTC","TSM"]
+  rates:
+    include_sectors: ["TECH","REAL","UTIL"]
+    include_symbols: ["MSFT","AAPL","NVDA","VNQ","XLU"]

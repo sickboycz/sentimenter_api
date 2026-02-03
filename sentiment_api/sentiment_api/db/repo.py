@@ -374,6 +374,27 @@ async def insert_event(
     )
 
 
+async def get_cluster_l3_summary(conn: asyncpg.Connection, cluster_id: str) -> dict | None:
+    """Fetch latest L3 summary for a cluster (what_changed_en, why_it_matters_en, what_to_watch_en, etc.)."""
+    row = await conn.fetchrow(
+        """
+        SELECT content FROM summaries
+        WHERE object_type = 'cluster' AND object_id = $1 AND level = 'L3'
+        ORDER BY created_at DESC LIMIT 1
+        """,
+        cluster_id,
+    )
+    if not row or not row.get("content"):
+        return None
+    raw = row["content"]
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except (TypeError, json.JSONDecodeError):
+            return None
+    return raw if isinstance(raw, dict) else None
+
+
 async def insert_summary(
     conn: asyncpg.Connection,
     object_type: str,
@@ -519,3 +540,108 @@ async def get_clusters_for_embedding(conn: asyncpg.Connection, limit: int = 500,
     pairs = await store.get_cluster_vectors(model_id=model_id, limit=limit)
     # External store has no last_seen; use min datetime so ordering is unchanged
     return [(cid, emb, datetime.min) for cid, emb in pairs]
+
+
+async def get_similar_clusters(
+    conn: asyncpg.Connection,
+    cluster_id: str,
+    limit: int = 20,
+    min_similarity: float = 0.5,
+    model_id: str | None = None,
+) -> list[dict]:
+    """Return historically similar clusters by embedding cosine similarity.
+    Excludes the current cluster. Each item: cluster_id, similarity, label_en, date."""
+    import math
+
+    settings = get_settings()
+    model_id = model_id or settings.model_embedding_id or "openai:text-embedding-3-small:384"
+    backend = (settings.vector_store_backend or "pgvector").strip().lower()
+
+    if backend != "pgvector":
+        return []
+
+    # Get current cluster embedding
+    row = await conn.fetchrow(
+        """
+        SELECT e.embedding, c.headline_en, c.last_seen
+        FROM embeddings e
+        JOIN clusters c ON c.cluster_id = e.object_id
+        WHERE e.object_type = 'cluster' AND e.object_id = $1 AND e.model = $2
+        """,
+        cluster_id,
+        model_id,
+    )
+    if not row or not row["embedding"]:
+        return []
+
+    vec0 = row["embedding"]
+    if hasattr(vec0, "tolist"):
+        vec0 = vec0.tolist()
+    elif isinstance(vec0, str):
+        try:
+            vec0 = json.loads(vec0)
+        except (json.JSONDecodeError, TypeError):
+            return []
+    if not isinstance(vec0, list) or not vec0:
+        return []
+
+    try:
+        vec0 = [float(x) for x in vec0]
+    except (TypeError, ValueError):
+        return []
+
+    norm0 = math.sqrt(sum(x * x for x in vec0))
+    if norm0 == 0:
+        return []
+
+    # Get other clusters with embeddings (exclude self)
+    rows = await conn.fetch(
+        """
+        SELECT e.object_id as cluster_id, e.embedding, c.headline_en, c.last_seen
+        FROM embeddings e
+        JOIN clusters c ON c.cluster_id = e.object_id
+        WHERE e.object_type = 'cluster' AND e.object_id != $1 AND e.model = $2
+        ORDER BY c.last_seen DESC
+        LIMIT $3
+        """,
+        cluster_id,
+        model_id,
+        limit * 3,
+    )
+
+    scored: list[tuple[str, float, str, datetime]] = []
+    for r in rows:
+        emb = r["embedding"]
+        if hasattr(emb, "tolist"):
+            emb = emb.tolist()
+        elif isinstance(emb, str):
+            try:
+                emb = json.loads(emb)
+            except (json.JSONDecodeError, TypeError):
+                continue
+        if not isinstance(emb, list) or len(emb) != len(vec0):
+            continue
+        try:
+            emb = [float(x) for x in emb]
+        except (TypeError, ValueError):
+            continue
+        dot = sum(a * b for a, b in zip(vec0, emb))
+        norm = math.sqrt(sum(x * x for x in emb))
+        if norm == 0:
+            continue
+        sim = dot / (norm0 * norm)
+        sim = max(0.0, min(1.0, sim))
+        if sim >= min_similarity:
+            scored.append((r["cluster_id"], sim, r["headline_en"] or r["cluster_id"], r["last_seen"]))
+
+    scored.sort(key=lambda x: -x[1])
+    result = []
+    for cid, sim, label, dt in scored[:limit]:
+        date_str = dt.date().isoformat() if dt and hasattr(dt, "date") else ""
+        result.append({
+            "cluster_id": cid,
+            "similarity": round(sim, 4),
+            "label_en": (label or "")[:200],
+            "date": date_str,
+        })
+    return result

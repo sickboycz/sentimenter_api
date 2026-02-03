@@ -13,20 +13,19 @@ try:
 except ImportError:
     pass
 
-# Use env API keys for tests (bypasses DB)
-os.environ.setdefault(
-    "SENTIMENT_API_API_KEYS",
-    "test_key_1234567890abcdef,rate_limit_test_key_12345678901234"
-)
+# Force test API keys (overrides .env to ensure auth succeeds in tests)
+os.environ["SENTIMENT_API_API_KEYS"] = "test_key_1234567890abcdef,rate_limit_test_key_12345678901234"
 
 
 @pytest.fixture(scope="function")
 def client():
     """Function scope so each test gets a fresh event loop (avoids 'Event loop is closed' after SSE/DB tests)."""
     from sentiment_api.api.main import app
+
     c = TestClient(app)
     yield c
-    # Clear global DB pool so next test's loop creates a fresh pool (avoids "Event loop is closed").
+
+    # Clear global DB pool so next test's loop creates a fresh pool.
     import sentiment_api.db.pool as _pool_mod
     _pool_mod._pool = None
 

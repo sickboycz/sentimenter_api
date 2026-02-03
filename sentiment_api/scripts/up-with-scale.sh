@@ -10,7 +10,7 @@ if [ -f .env ]; then
   source .env
   set +a
 fi
-WORKER_REPLICAS=${WORKER_REPLICAS:-8}
+WORKER_REPLICAS=${WORKER_REPLICAS:-12}
 export WORKER_REPLICAS
-echo "Starting stack with worker scale=${WORKER_REPLICAS} (from .env WORKER_REPLICAS, default 8)."
+echo "Starting stack with worker scale=${WORKER_REPLICAS} (from .env WORKER_REPLICAS, default 12)."
 docker compose up -d --scale worker="${WORKER_REPLICAS}"

@@ -248,6 +248,13 @@ export const ArticleRef = z.object({
   lang_original: z.string()
 });
 
+export const HistoricalAnalog = z.object({
+  cluster_id: z.string(),
+  similarity: z.number().min(0).max(1),
+  label_en: z.string(),
+  date: z.string()
+});
+
 export const ClusterDetail = z.object({
   cluster: ClusterSummary,
   articles: z.array(ArticleRef).default([]),
@@ -259,7 +266,9 @@ export const ClusterDetail = z.object({
 
   market_impacts: z.array(MarketImpact).optional().default([]),
   sector_impacts: z.array(SectorImpact).optional().default([]),
-  ticker_impacts: z.array(TickerImpact).optional().default([])
+  ticker_impacts: z.array(TickerImpact).optional().default([]),
+  asset_impacts: z.any().optional().nullable(),
+  historical_analogs: z.array(HistoricalAnalog).optional().nullable()
 });
 
 export function unwrapEnvelope(json: any): { data: any; meta?: any; errors?: any[] } {

@@ -1,0 +1,41 @@
+# Debug overlay: use with
+#   docker compose -f docker-compose.yml -f docker-compose.debug.yml up -d
+# Attach API from Cursor to 127.0.0.1:5678.
+# Worker: debugpy in image but no port published by default (so you can --scale worker=4).
+# To attach to one worker: add -f docker-compose.debug-worker-attach.yml and do not scale.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        INSTALL_DEBUGPY: "1"
+    ports:
+      - "8080:8080"
+      - "5678:5678"
+    environment:
+      DEBUG_ATTACH: "1"
+    volumes:
+      - ./registry:/etc/sentiment_api:ro
+      - artifacts:/data/artifacts
+      - logs:/data/logs
+      - embedding_cache:/var/lib/sentiment_api
+      - .:/app
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        INSTALL_DEBUGPY: "1"
+    environment:
+      DEBUG_ATTACH: "1"
+      DEBUG_ATTACH_PORT: "5679"
+    # no ports here so --scale worker=N works; use docker-compose.debug-worker-attach.yml to publish 5679 for 1 worker
+    volumes:
+      - ./registry:/etc/sentiment_api:ro
+      - artifacts:/data/artifacts
+      - logs:/data/logs
+      - embedding_cache:/var/lib/sentiment_api
+      - .:/app

@@ -234,7 +234,7 @@ class Settings(BaseSettings):
     )
     retrieval_tierb_model_id: str = Field(
         default="openai:text-embedding-3-small:768",
-        description="RETRIEVAL_TIERB_MODEL_ID: tier-B rerank (768 dim)",
+        description="RETRIEVAL_TIERB_MODEL_ID: tier-B rerank (768 or 3072 dim for large)",
     )
     retrieval_topn: int = Field(default=200, description="RETRIEVAL_TOPN: candidate count from hybrid search")
     retrieval_rerankn: int = Field(default=80, description="RETRIEVAL_RERANKN: top-N after tierB rerank")
@@ -250,6 +250,26 @@ class Settings(BaseSettings):
     weaviate_chunk_class: str = Field(
         default="RetrievalChunk",
         description="WEAVIATE_CHUNK_CLASS: collection for 2-tier chunk retrieval",
+    )
+    retrieval_cross_top_m: int = Field(
+        default=20,
+        ge=0,
+        description="RETRIEVAL_CROSS_TOP_M: run cross-encoder on top M results (0=disabled)",
+    )
+    cross_encoder_model: str | None = Field(
+        default=None,
+        description="CROSS_ENCODER_MODEL: sentence-transformers model e.g. cross-encoder/ms-marco-MiniLM-L-6-v2; when set, enables real reranker (else NoOp)",
+        validation_alias=AliasChoices("CROSS_ENCODER_MODEL", "SENTIMENT_API_CROSS_ENCODER_MODEL"),
+    )
+    retrieval_embedding_timeout_sec: float = Field(
+        default=30.0,
+        gt=0,
+        description="RETRIEVAL_EMBEDDING_TIMEOUT_SEC: timeout for embedding provider calls",
+    )
+    retrieval_embedding_retries: int = Field(
+        default=2,
+        ge=0,
+        description="RETRIEVAL_EMBEDDING_RETRIES: retries for embedding provider on failure",
     )
 
     def resolve_paths(self) -> None:

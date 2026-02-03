@@ -127,7 +127,7 @@ async def _get_workers_per_queue(queue_client) -> tuple[dict[str, int], int]:
                 counts[q] = counts.get(q, 0) + 1
         except (json.JSONDecodeError, TypeError, ValueError):
             continue
-    return counts
+    return counts, len(keys)
 
 
 def _resolve_caps_for_worker_count(settings, current_workers: int) -> dict[str, int]:
