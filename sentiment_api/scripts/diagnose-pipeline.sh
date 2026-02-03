@@ -40,9 +40,10 @@ echo ""
 
 # --- Registry (API container) ---
 echo "--- Registry (API) ---"
-if "${COMPOSE_CMD[@]}" exec -T api test -r /etc/sentiment_api/source_registry.yaml 2>/dev/null; then
-  lines=$("${COMPOSE_CMD[@]}" exec -T api wc -l < /etc/sentiment_api/source_registry.yaml 2>/dev/null || echo "0")
-  sources=$("${COMPOSE_CMD[@]}" exec -T api grep -c "source_id:" /etc/sentiment_api/source_registry.yaml 2>/dev/null || echo "0")
+reg_out=$("${COMPOSE_CMD[@]}" exec -T api sh -c 'test -r /etc/sentiment_api/source_registry.yaml && wc -l < /etc/sentiment_api/source_registry.yaml && grep -c "source_id:" /etc/sentiment_api/source_registry.yaml || true' 2>/dev/null)
+if [[ -n "$reg_out" ]]; then
+  lines=$(echo "$reg_out" | head -1)
+  sources=$(echo "$reg_out" | tail -1)
   echo "  file: present ($lines lines, ~$sources source_id entries)"
 else
   echo "  file: missing or unreadable"
