@@ -1,6 +1,7 @@
 """Repository layer for articles, clusters, events, embeddings."""
 
 import json
+import logging
 from datetime import datetime, date
 from typing import Any
 
@@ -8,6 +9,8 @@ import asyncpg
 
 from sentiment_api.config import get_settings
 from sentiment_api.db.pool import acquire
+
+logger = logging.getLogger("sentiment_api.db.repo")
 
 
 async def upsert_sources(conn: asyncpg.Connection, sources: list[dict]) -> None:
@@ -289,8 +292,8 @@ async def insert_event_impacts(
                 float(imp.get("confidence", 0) or 0),
                 json.dumps(imp.get("details", {})),
             )
-        except Exception:
-            pass  # asset_direction enum may not exist in older DBs
+        except Exception as ex:
+            logger.debug("insert_event_impacts skipped (asset_direction enum may be missing): %s", ex)
 
 
 async def insert_event(

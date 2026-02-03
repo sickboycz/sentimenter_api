@@ -21,8 +21,8 @@ logger = logging.getLogger("sentiment_api.daemon")
 try:
     from sentiment_api.logging_file import add_file_handler
     add_file_handler("daemon")
-except Exception:
-    pass
+except Exception as ex:
+    logger.debug("Daemon file handler setup skipped: %s", ex)
 
 _HEARTBEAT_KEY = "sentiment_api:ops:daemon_heartbeat"
 _LAST_CYCLE_KEY = "sentiment_api:ops:daemon_last_cycle"
@@ -111,8 +111,8 @@ async def poll_source(source, queue, rss: RSSCollector, gdelt: GDELTCollector, s
             p = get_pool()
             if p:
                 await _record_run(p, "ingest", source.source_id, "fail", {"items_pushed": 0}, {"message": str(e), "source_id": source.source_id})
-        except Exception:
-            pass
+        except Exception as ex:
+            logger.debug("Daemon record run (fail) skipped: %s", ex)
     finally:
         fetch_duration_seconds(source.source_id, time.perf_counter() - t0)
     if count > 0:
@@ -123,8 +123,8 @@ async def poll_source(source, queue, rss: RSSCollector, gdelt: GDELTCollector, s
             p = get_pool()
             if p:
                 await _record_run(p, "ingest", source.source_id, "ok", {"items_pushed": count})
-        except Exception:
-            pass
+        except Exception as ex:
+            logger.debug("Daemon record run (ok) skipped: %s", ex)
     return count
 
 
@@ -188,6 +188,6 @@ async def run_daemon() -> None:
         heartbeat_task.cancel()
         try:
             await heartbeat_task
-        except Exception:
-            pass
+        except Exception as ex:
+            logger.debug("Daemon heartbeat task cancel: %s", ex)
         await close_pool()

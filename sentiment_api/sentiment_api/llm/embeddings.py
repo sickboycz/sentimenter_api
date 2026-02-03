@@ -55,6 +55,10 @@ def embed_text(text: str, model_id: str | None = None) -> list[float]:
                 return resp.data[0].embedding
             logger.warning("OpenAI embeddings returned empty data")
         except Exception as e:
+            err_str = str(e).lower()
+            if "401" in err_str or "invalid_api_key" in err_str or "authentication" in err_str or "incorrect api key" in err_str:
+                logger.error("OpenAI embedding auth failed (invalid token): %s", e)
+                raise
             logger.warning("Embedding failed: %s", e)
         provider = "sentence_transformers"
     if provider == "sentence_transformers" and client:

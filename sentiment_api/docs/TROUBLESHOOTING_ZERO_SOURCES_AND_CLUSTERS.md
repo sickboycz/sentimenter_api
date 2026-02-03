@@ -142,11 +142,34 @@ cd /srv/sentimenter/repo/sentiment_api
 sudo ./scripts/fix-everything.sh --production --pull --rebuild-worker --restart
 ```
 
-After deploy, new articles will flow: ingest → summarize → clusters/embeddings. Existing articles that were never summarized need a backfill or will be summarized only when they are re-ingested.
+After deploy, new articles will flow: ingest → summarize → clusters/embeddings. Existing articles that were never summarized need a backfill (see below).
 
 ---
 
-## 7. Ingestion / Allocation "unknown"
+## 7. Backfill summarize (existing articles → clusters)
+
+If you have **articles in DB but 0 clusters** (e.g. before the queue-order fix), run `backfill_summarize` to push those articles into the summarize queue. The worker will then process them and create clusters.
+
+```bash
+# From host, inside the api container:
+docker compose -f docker-compose.yml -f docker-compose.production.yml exec api python /app/scripts/backfill_summarize.py
+
+# Dry-run first (log only, no push):
+docker compose ... exec api python /app/scripts/backfill_summarize.py --dry-run
+
+# Limit to 50 articles:
+docker compose ... exec api python /app/scripts/backfill_summarize.py --limit 50
+```
+
+**Forensic logs:** After deploy, worker logs now include `Summarize: starting article X`, `Ingest: article X inserted, pushed to summarize`, `Summarize: cluster Y created`. Use these to trace the pipeline:
+
+```bash
+docker exec $(docker ps -q -f name=worker) grep -E 'Summarize:|Ingest:|Clustering DB error' /data/logs/worker.log | tail -100
+```
+
+---
+
+## 8. Ingestion / Allocation "unknown"
 
 Topbar status pills often derive from:
 

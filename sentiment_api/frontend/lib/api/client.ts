@@ -124,6 +124,8 @@ export async function apiPostData<T>(
   if (getDemoMode()) {
     const d: any = demo;
     if (path.startsWith("/v1/admin/backfill")) return { data: dataSchema.parse(d.backfill) };
+    if (path.startsWith("/v1/admin/ingest/run")) return { data: dataSchema.parse({ pushed: 0, sources_polled: 0 }) };
+    if (path.startsWith("/v1/admin/summarize/run")) return { data: dataSchema.parse({ queued: 0 }) };
     return { data: dataSchema.parse({}) };
   }
 

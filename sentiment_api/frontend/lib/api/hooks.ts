@@ -8,6 +8,8 @@ import {
   OpsStatus,
   LogsData,
   BackfillResult,
+  IngestRunResult,
+  SummarizeRunResult,
   MoodNowData,
   IntradayPoint,
   MarketImpact,
@@ -62,6 +64,29 @@ export function useAdminBackfill() {
     mutationFn: async (payload: { from: string; to: string }) => {
       const res = await apiPostData("/v1/admin/backfill", payload, BackfillResult);
       return res.data as z.infer<typeof BackfillResult>;
+    }
+  });
+}
+
+export function useAdminIngestRun() {
+  return useMutation({
+    mutationFn: async (sourceId?: string) => {
+      const url = sourceId ? `/v1/admin/ingest/run?source_id=${encodeURIComponent(sourceId)}` : "/v1/admin/ingest/run";
+      const res = await apiPostData(url, {}, IngestRunResult);
+      return res.data as z.infer<typeof IngestRunResult>;
+    }
+  });
+}
+
+export function useAdminSummarizeRun() {
+  return useMutation({
+    mutationFn: async (params?: { limit?: number; dryRun?: boolean }) => {
+      const sp = new URLSearchParams();
+      if (params?.limit != null) sp.set("limit", String(params.limit));
+      if (params?.dryRun) sp.set("dry_run", "1");
+      const q = sp.toString() ? `?${sp}` : "";
+      const res = await apiPostData(`/v1/admin/summarize/run${q}`, {}, SummarizeRunResult);
+      return res.data as z.infer<typeof SummarizeRunResult>;
     }
   });
 }

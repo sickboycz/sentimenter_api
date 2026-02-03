@@ -8,6 +8,7 @@ ENV PIP_DEFAULT_TIMEOUT=300 PIP_RETRIES=5
 RUN pip install --no-cache-dir --timeout 300 -e .
 
 COPY sentiment_api ./sentiment_api
+COPY scripts ./scripts
 
 ENV PYTHONUNBUFFERED=1
 EXPOSE 8080

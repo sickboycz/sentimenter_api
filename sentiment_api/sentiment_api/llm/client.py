@@ -42,6 +42,10 @@ def call_chat(
                 return out
         except Exception as e:
             last_err = e
+            err_str = str(e).lower()
+            if "401" in err_str or "invalid_api_key" in err_str or "authentication" in err_str or "incorrect api key" in err_str:
+                logger.error("OpenAI auth failed (invalid token): %s", e)
+                raise
             logger.warning("LLM %s failed: %s, escalating", model, e)
     if last_err:
         logger.error("All models failed; last: %s", last_err)

@@ -168,8 +168,9 @@ async def metrics():
             from sentiment_api.metrics import queue_depth
             queue_depth(q, d)
         await r.aclose()
-    except Exception:
-        pass
+    except Exception as ex:
+        import logging as _log
+        _log.getLogger("sentiment_api").debug("Metrics queue depth update skipped: %s", ex)
     return PlainTextResponse(collect_metrics(), media_type="text/plain; charset=utf-8")
 
 
@@ -241,16 +242,22 @@ async def health():
     except Exception as e:
         checks.append({"name": "artifacts", "status": "fail", "details": {"error": str(e)}})
 
-    # OpenAI check (optional; fail = LLM disabled)
+    # OpenAI check: validate key by calling API; fail clearly if invalid
     try:
         import os
         key = settings.openai_api_key or os.environ.get("OPENAI_API_KEY", "")
-        if key:
-            checks.append({"name": "openai", "status": "ok", "details": {}})
+        if not key:
+            checks.append({"name": "openai", "status": "fail", "details": {"message": "No API key; set OPENAI_API_KEY"}})
         else:
-            checks.append({"name": "openai", "status": "fail", "details": {"message": "No API key; LLM features disabled"}})
+            from openai import OpenAI
+            client = OpenAI(api_key=key)
+            client.models.list(limit=1)
+            checks.append({"name": "openai", "status": "ok", "details": {}})
     except Exception as e:
-        checks.append({"name": "openai", "status": "fail", "details": {"error": str(e)}})
+        err_str = str(e)
+        is_auth = "401" in err_str or "invalid_api_key" in err_str.lower() or "authentication" in err_str.lower() or "incorrect api key" in err_str.lower()
+        msg = "Invalid or expired API key" if is_auth else err_str
+        checks.append({"name": "openai", "status": "fail", "details": {"error": msg}})
 
     core_names = {"postgres", "redis", "registry", "artifacts"}
     core_checks = [c for c in checks if c["name"] in core_names]
@@ -298,8 +305,9 @@ async def get_status():
                 )
                 if row:
                     allocation_status = "ok" if row["status"] == "ok" else "degraded"
-    except Exception:
-        pass
+    except Exception as ex:
+        import logging as _log
+        _log.getLogger("sentiment_api").debug("Status runs query failed: %s", ex)
 
     return {
         "api": api_status,
@@ -1405,6 +1413,61 @@ async def admin_backfill(
         raise HTTPException(status_code=400, detail="from must be <= to")
     result = await run_backfill(from_d, to_d, source_id)
     out = {"meta": meta(), "data": result, "errors": []}
+    await set_cached(request, 200, out)
+    return out
+
+
+# -----------------------------------------------------------------------------
+# POST /v1/admin/summarize/run — Force summarize (queue articles without L2)
+# -----------------------------------------------------------------------------
+@app.post("/v1/admin/summarize/run")
+async def admin_summarize_run(
+    request: Request,
+    _: Annotated[str, Depends(validate_api_key)],
+    limit: int | None = Query(None, ge=1, le=10000),
+    dry_run: bool = Query(False),
+):
+    """Push articles without L2 summary to summarize queue. Worker will process them."""
+    from sentiment_api.api.idempotency import get_cached, set_cached
+    cached = await get_cached(request)
+    if cached:
+        return JSONResponse(status_code=cached["status"], content=cached["body"])
+    from sentiment_api.db.pool import acquire
+    from sentiment_api.queue.client import get_queue, QUEUE_SUMMARIZE
+    settings = get_settings()
+    queue = await get_queue(settings.redis_url)
+    async with acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT a.article_id, a.source_id, a.url, a.canonical_url, a.published_at, a.fetched_at,
+                   a.title_en, a.content_en, a.metadata
+            FROM articles a
+            WHERE NOT EXISTS (
+                SELECT 1 FROM summaries s
+                WHERE s.object_type = 'article' AND s.object_id = a.article_id AND s.level = 'L2'
+            )
+            ORDER BY a.fetched_at DESC NULLS LAST
+            LIMIT $1
+            """,
+            limit or 10000,
+        )
+    queued = 0
+    for r in rows:
+        norm = {
+            "source_id": r["source_id"],
+            "url": r["url"],
+            "canonical_url": r["canonical_url"],
+            "title_en": r["title_en"] or "",
+            "content_en": r["content_en"] or "",
+            "published_at": r["published_at"].isoformat() if r["published_at"] else "",
+            "fetched_at": r["fetched_at"].isoformat() if r["fetched_at"] else "",
+            "metadata": r["metadata"] or {},
+        }
+        payload = {"article_id": r["article_id"], "source_id": r["source_id"], "norm": norm}
+        if not dry_run:
+            await queue.rpush(QUEUE_SUMMARIZE, json.dumps(payload, default=str))
+        queued += 1
+    out = {"meta": meta(), "data": {"queued": queued, "dry_run": dry_run}, "errors": []}
     await set_cached(request, 200, out)
     return out
 

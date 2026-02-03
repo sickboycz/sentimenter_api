@@ -35,7 +35,11 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("UNIVERSE_REGISTRY_PATH", "SENTIMENT_API_UNIVERSE_REGISTRY_PATH"),
     )
 
-    openai_api_key: str | None = None
+    openai_api_key: str | None = Field(
+        default=None,
+        description="OPENAI_API_KEY for LLM/embeddings",
+        validation_alias=AliasChoices("OPENAI_API_KEY", "SENTIMENT_API_OPENAI_API_KEY"),
+    )
     model_summarizer_id: str = "gpt-5-mini"
     model_embedding_id: str = "openai:text-embedding-3-large"
     # Escalation chain for LLM: try mini → 5.2 → 5.2-pro on failure

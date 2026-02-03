@@ -14,7 +14,9 @@ export default defineConfig({
     reuseExistingServer: true,
     timeout: 120_000,
     env: {
-      NEXT_PUBLIC_DEMO_MODE: "1"
+      NEXT_PUBLIC_DEMO_MODE: process.env.NEXT_PUBLIC_DEMO_MODE ?? "1",
+      NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "",
+      ...process.env
     }
   }
 });

@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
-"""Create an API key and insert into api_keys table."""
+"""Create an API key and insert into api_keys table. Requires DATABASE_URL."""
 
 import asyncio
 import os
 import secrets
 import sys
+from pathlib import Path
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+except ImportError:
+    pass
 
 async def main():
     from sentiment_api.db.pool import init_pool, acquire

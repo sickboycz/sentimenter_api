@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { useHealth, useOpsStatus, useAdminLogs, useAdminBackfill } from "@/lib/api/hooks";
+import { useHealth, useOpsStatus, useAdminLogs, useAdminBackfill, useAdminIngestRun, useAdminSummarizeRun } from "@/lib/api/hooks";
 
 function formatAge(ageSec?: number | null) {
   if (ageSec === null || ageSec === undefined) return "—";
@@ -36,6 +36,9 @@ export default function OpsPage() {
   const ops = useOpsStatus();
   const logs = useAdminLogs();
   const backfill = useAdminBackfill();
+  const ingestRun = useAdminIngestRun();
+  const summarizeRun = useAdminSummarizeRun();
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [fromDate, setFromDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 7);
@@ -58,6 +61,7 @@ export default function OpsPage() {
   const workerTone = workerAge === null ? "neutral" : (workerAlive ? "good" : "bad");
   const daemonAlive = daemonAge !== null && daemonAge < 90;
   const daemonTone = daemonAge === null ? "neutral" : (daemonAlive ? "good" : "bad");
+  const openaiCheck = health.data?.checks?.find((c: { name?: string }) => c?.name === "openai") as { status?: string; details?: { message?: string; error?: string } } | undefined;
 
   const quickRange = (days: number) => {
     const d = new Date();
@@ -79,15 +83,57 @@ export default function OpsPage() {
       <PageHeader
         title="Ops"
         subtitle="System health, pipelines, and live logs."
-        meta="Use this page to validate ingestion and background processing."
+        meta="Use this page to validate ingestion, OpenAI, and background processing."
         actions={(
-          <Button
-            onClick={() => document.getElementById("backfill")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-          >
-            Backfill
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={async () => {
+                setActionMsg(null);
+                try {
+                  const res = await ingestRun.mutateAsync();
+                  setActionMsg(`Force ingest: ${res?.pushed ?? 0} pushed from ${res?.sources_polled ?? 0} sources`);
+                  ops.refetch();
+                } catch (err: any) {
+                  setActionMsg(`Ingest failed: ${err?.message ?? "Unknown error"}`);
+                }
+              }}
+              disabled={ingestRun.isPending}
+            >
+              {ingestRun.isPending ? "Running…" : "Force Ingest"}
+            </Button>
+            <Button
+              onClick={async () => {
+                setActionMsg(null);
+                try {
+                  const res = await summarizeRun.mutateAsync();
+                  setActionMsg(`Force summarize: ${res?.queued ?? 0} queued`);
+                  ops.refetch();
+                } catch (err: any) {
+                  setActionMsg(`Summarize failed: ${err?.message ?? "Unknown error"}`);
+                }
+              }}
+              disabled={summarizeRun.isPending}
+            >
+              {summarizeRun.isPending ? "Running…" : "Force Summarize"}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => { health.refetch(); setActionMsg("Health refreshed. Check OpenAI status above if summarize/clusters fail."); setTimeout(() => setActionMsg(null), 4000); }}
+            >
+              Test Connection
+            </Button>
+            <Button
+              onClick={() => document.getElementById("backfill")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            >
+              Backfill
+            </Button>
+          </div>
         )}
       />
+
+      {actionMsg && (
+        <div className="glass p-3 text-sm text-left">{actionMsg}</div>
+      )}
 
       <Card
         title="System Overview"
@@ -99,6 +145,11 @@ export default function OpsPage() {
             <div className="text-xs opacity-70">API Health</div>
             <div className="font-semibold">{health.data?.status ?? "unknown"}</div>
             <div className="text-xs opacity-70">as of {formatTs(health.data?.as_of)}</div>
+            {openaiCheck?.status === "fail" && (
+              <div className="text-xs text-amber-400 mt-1" title={openaiCheck?.details?.error}>
+                OpenAI: {openaiCheck?.details?.message || openaiCheck?.details?.error || "invalid"}
+              </div>
+            )}
           </div>
           <div className="glass p-3">
             <div className="text-xs opacity-70">Database</div>

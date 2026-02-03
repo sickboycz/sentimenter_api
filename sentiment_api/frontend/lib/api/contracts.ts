@@ -61,6 +61,17 @@ export const BackfillResult = z.object({
   error: z.string().optional()
 });
 
+export const IngestRunResult = z.object({
+  pushed: z.number().optional(),
+  sources_polled: z.number().optional(),
+  error: z.string().optional()
+});
+
+export const SummarizeRunResult = z.object({
+  queued: z.number().optional(),
+  error: z.string().optional()
+});
+
 export const SourceItem = z.object({
   source_id: z.string(),
   name: z.string(),

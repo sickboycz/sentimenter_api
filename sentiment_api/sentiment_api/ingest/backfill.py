@@ -51,8 +51,8 @@ async def run_backfill(from_date: date, to_date: date, source_id: str | None = N
     try:
         async with acquire() as conn:
             run_id = await insert_run(conn, "backfill", None, {"from": str(from_date), "to": str(to_date)})
-    except Exception:
-        pass
+    except Exception as ex:
+        logger.debug("Backfill insert_run skipped: %s", ex)
     start_str = from_date.strftime("%Y-%m-%d")
     end_str = to_date.strftime("%Y-%m-%d")
     for src in sources:
@@ -85,7 +85,7 @@ async def run_backfill(from_date: date, to_date: date, source_id: str | None = N
         try:
             async with acquire() as conn:
                 await finish_run(conn, run_id, "ok", None)
-        except Exception:
-            pass
+        except Exception as ex:
+            logger.debug("Backfill finish_run skipped: %s", ex)
     await close_pool()
     return {"pushed": total, "sources": len(sources), "from": start_str, "to": end_str}

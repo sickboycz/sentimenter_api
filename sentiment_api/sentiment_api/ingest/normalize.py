@@ -99,8 +99,8 @@ def normalize_item(
             try:
                 from sentiment_api.metrics import translation_failures_total
                 translation_failures_total(item.source_id)
-            except Exception:
-                pass
+            except Exception as ex:
+                logger.debug("Translation metrics update skipped: %s", ex)
     if not title_en and content_en:
         title_en = content_en[:200]
     if not title_en:

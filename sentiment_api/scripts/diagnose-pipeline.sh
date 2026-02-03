@@ -32,8 +32,8 @@ echo ""
 
 # --- Redis: queue lengths ---
 echo "--- Redis queue lengths ---"
-for q in ingest normalize summarize score index; do
-  len=$("${COMPOSE_CMD[@]}" exec -T redis redis-cli LLEN "sentiment_api:queue:$q" 2>/dev/null || echo "?")
+for q in sentiment_api:ingest sentiment_api:normalize sentiment_api:summarize sentiment_api:score sentiment_api:index; do
+  len=$("${COMPOSE_CMD[@]}" exec -T redis redis-cli LLEN "$q" 2>/dev/null || echo "?")
   echo "  $q: $len"
 done
 echo ""
@@ -65,10 +65,17 @@ echo "--- Worker last job (Redis) ---"
 "${COMPOSE_CMD[@]}" exec -T redis redis-cli HGETALL sentiment_api:ops:worker_last_job 2>/dev/null || echo "  (redis unreachable)"
 echo ""
 
-# --- How to get worker logs (file, not stdout until next deploy) ---
+# --- Worker logs (file, not stdout until next deploy) ---
 echo "--- Worker logs (from file in container) ---"
 echo "  Run: docker exec \$(docker ps -q -f name=worker) tail -200 /data/logs/worker.log"
-echo "  Or:  docker exec \$(docker ps -q -f name=worker) grep -E 'Clustering DB error|Worker error|DB connection OK' /data/logs/worker.log | tail -50"
+echo "  Or:  docker exec \$(docker ps -q -f name=worker) grep -E 'Clustering DB error|Worker error|DB connection OK|Summarize:|Ingest:' /data/logs/worker.log | tail -50"
+echo ""
+
+# --- Zero clusters? ---
+echo "--- Zero clusters? ---"
+echo "  If articles > 0, clusters = 0, summarize queue = 0: run backfill_summarize to queue existing articles:"
+echo "  docker compose exec api python /app/scripts/backfill_summarize.py"
+echo "  Or: docker compose exec api python /app/scripts/backfill_summarize.py --dry-run"
 echo ""
 
 echo "=== end diagnostics ==="

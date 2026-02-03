@@ -51,8 +51,8 @@ logger = logging.getLogger("sentiment_api.worker")
 try:
     from sentiment_api.logging_file import add_file_handler
     add_file_handler("worker")
-except Exception:
-    pass
+except Exception as ex:
+    logger.debug("Worker file handler setup skipped: %s", ex)
 
 _HEARTBEAT_KEY = "sentiment_api:ops:worker_heartbeat"
 _LAST_JOB_KEY = "sentiment_api:ops:worker_last_job"
@@ -95,8 +95,8 @@ async def process_ingest(payload: dict) -> None:
     try:
         async with acquire() as conn:
             run_id = await insert_run(conn, "ingest", payload.get("source_id"), {"url": payload.get("url", "")[:100]})
-    except Exception:
-        pass
+    except Exception as ex:
+        logger.warning("Ingest insert_run failed (continuing): %s", ex)
     reg = load_registry(settings.source_registry_path)
     norm = normalize_item(
         payload,
@@ -128,6 +128,9 @@ async def process_ingest(payload: dict) -> None:
             await finish_run(conn, run_id, "ok" if inserted else "ok", {"article_id": art_id, "inserted": inserted})
     if inserted:
         await queue.rpush(QUEUE_SUMMARIZE, json.dumps({"article_id": art_id, "source_id": norm["source_id"], "norm": norm}, cls=_DateTimeEncoder))
+        logger.info("Ingest: article %s inserted, pushed to summarize", art_id)
+    else:
+        logger.debug("Ingest: article %s duplicate, skipped summarize", art_id)
 
 
 def _dedupe_key(obj_id: str, text_hash: str, schema_ver: str, model: str) -> str:
@@ -142,6 +145,7 @@ async def process_summarize(payload: dict) -> None:
     art_id = payload.get("article_id")
     norm = payload.get("norm", {})
     if not art_id or not norm:
+        logger.warning("Summarize: skipping job (missing article_id or norm): art_id=%s has_norm=%s", art_id, bool(norm))
         return
     title = norm.get("title_en", "")
     content = norm.get("content_en", "")
@@ -151,6 +155,7 @@ async def process_summarize(payload: dict) -> None:
     run_id = None
     async with acquire() as conn:
         run_id = await insert_run(conn, "summarize", art_id, {"article_id": art_id})
+    logger.info("Summarize: starting article %s (title_len=%d content_len=%d)", art_id, len(title), len(content))
     try:
         l1 = summarize_l1(art_id, title, content, url, pub_str)
         l2 = summarize_l2(art_id, title, content, url, l1)
@@ -166,6 +171,7 @@ async def process_summarize(payload: dict) -> None:
             await insert_embedding(conn, "article", art_id, settings.model_embedding_id, embedding)
             clusters_data = await get_clusters_for_embedding(conn, limit=500, model_id=settings.model_embedding_id)
         nearest = find_nearest_cluster(embedding, clusters_data, threshold=0.82)
+        logger.info("Summarize: article %s embed done, clusters=%d nearest=%s", art_id, len(clusters_data), nearest or "new")
         headline = l2.get("headline_en", title) or title[:200]
         topics = l2.get("topics", []) or ["general"]
         ckey = canonical_story_key(headline, topics)
@@ -234,6 +240,7 @@ async def process_summarize(payload: dict) -> None:
     import json
     queue = await get_queue(settings.redis_url)
     await queue.rpush(QUEUE_INDEX, json.dumps({"cluster_id": cid}))
+    logger.info("Summarize: cluster %s created for article %s, pushed to index", cid, art_id)
 
 
 async def process_index(payload: dict) -> None:
@@ -326,6 +333,6 @@ async def run_worker() -> None:
         heartbeat_task.cancel()
         try:
             await heartbeat_task
-        except Exception:
-            pass
+        except Exception as ex:
+            logger.debug("Worker heartbeat task cancel: %s", ex)
         await close_pool()
