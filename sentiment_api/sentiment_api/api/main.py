@@ -199,14 +199,11 @@ async def health():
 
     # DB check
     try:
-        from sentiment_api.db.pool import get_pool
-        pool = get_pool()
-        if pool is None:
-            checks.append({"name": "postgres", "status": "fail", "details": {"error": "Pool not initialized"}})
-        else:
-            async with pool.acquire() as conn:
-                await conn.fetchval("SELECT 1")
-            checks.append({"name": "postgres", "status": "ok", "details": {}})
+        from sentiment_api.db.pool import ensure_pool
+        pool = await ensure_pool()
+        async with pool.acquire() as conn:
+            await conn.fetchval("SELECT 1")
+        checks.append({"name": "postgres", "status": "ok", "details": {}})
     except Exception as e:
         checks.append({"name": "postgres", "status": "fail", "details": {"error": str(e)}})
 
@@ -1538,65 +1535,63 @@ async def admin_ops(
         data["redis"] = {"status": "fail", "error": str(e)}
 
     # DB: counts + recent runs
-    pool = get_pool()
-    if pool is None:
-        data["db"] = {"status": "fail", "error": "Pool not initialized"}
-    else:
-        try:
-            async with acquire() as conn:
-                counts = data["counts"]
-                latest = data["latest"]
-                try:
-                    counts["articles"] = int(await conn.fetchval("SELECT count(*) FROM articles"))
-                    latest["article_at"] = _to_iso(await conn.fetchval("SELECT max(published_at) FROM articles"))
-                except Exception:
-                    pass
-                try:
-                    counts["clusters"] = int(await conn.fetchval("SELECT count(*) FROM clusters"))
-                    latest["cluster_at"] = _to_iso(await conn.fetchval("SELECT max(last_seen) FROM clusters"))
-                except Exception:
-                    pass
-                try:
-                    counts["events"] = int(await conn.fetchval("SELECT count(*) FROM events"))
-                    latest["event_at"] = _to_iso(await conn.fetchval("SELECT max(created_at) FROM events"))
-                except Exception:
-                    pass
-                try:
-                    counts["summaries"] = int(await conn.fetchval("SELECT count(*) FROM summaries"))
-                except Exception:
-                    pass
-                try:
-                    counts["runs"] = int(await conn.fetchval("SELECT count(*) FROM runs"))
-                except Exception:
-                    pass
+    try:
+        from sentiment_api.db.pool import ensure_pool
+        await ensure_pool()
+        async with acquire() as conn:
+            counts = data["counts"]
+            latest = data["latest"]
+            try:
+                counts["articles"] = int(await conn.fetchval("SELECT count(*) FROM articles"))
+                latest["article_at"] = _to_iso(await conn.fetchval("SELECT max(published_at) FROM articles"))
+            except Exception:
+                pass
+            try:
+                counts["clusters"] = int(await conn.fetchval("SELECT count(*) FROM clusters"))
+                latest["cluster_at"] = _to_iso(await conn.fetchval("SELECT max(last_seen) FROM clusters"))
+            except Exception:
+                pass
+            try:
+                counts["events"] = int(await conn.fetchval("SELECT count(*) FROM events"))
+                latest["event_at"] = _to_iso(await conn.fetchval("SELECT max(created_at) FROM events"))
+            except Exception:
+                pass
+            try:
+                counts["summaries"] = int(await conn.fetchval("SELECT count(*) FROM summaries"))
+            except Exception:
+                pass
+            try:
+                counts["runs"] = int(await conn.fetchval("SELECT count(*) FROM runs"))
+            except Exception:
+                pass
 
-                try:
-                    run_rows = await conn.fetch(
-                        """
-                        SELECT run_type, status, started_at, ended_at, stats, error
-                        FROM runs
-                        ORDER BY started_at DESC
-                        LIMIT 50
-                        """
-                    )
-                    runs: dict[str, dict] = {}
-                    for r in run_rows:
-                        if r["run_type"] in runs:
-                            continue
-                        runs[r["run_type"]] = {
-                            "run_type": r["run_type"],
-                            "status": r["status"],
-                            "started_at": _to_iso(r["started_at"]),
-                            "ended_at": _to_iso(r["ended_at"]) if r["ended_at"] else None,
-                            "stats": r["stats"] or {},
-                            "error": r["error"],
-                        }
-                    data["runs"] = runs
-                except Exception:
-                    pass
-            data["db"] = {"status": "ok"}
-        except Exception as e:
-            data["db"] = {"status": "fail", "error": str(e)}
+            try:
+                run_rows = await conn.fetch(
+                    """
+                    SELECT run_type, status, started_at, ended_at, stats, error
+                    FROM runs
+                    ORDER BY started_at DESC
+                    LIMIT 50
+                    """
+                )
+                runs: dict[str, dict] = {}
+                for r in run_rows:
+                    if r["run_type"] in runs:
+                        continue
+                    runs[r["run_type"]] = {
+                        "run_type": r["run_type"],
+                        "status": r["status"],
+                        "started_at": _to_iso(r["started_at"]),
+                        "ended_at": _to_iso(r["ended_at"]) if r["ended_at"] else None,
+                        "stats": r["stats"] or {},
+                        "error": r["error"],
+                    }
+                data["runs"] = runs
+            except Exception:
+                pass
+        data["db"] = {"status": "ok"}
+    except Exception as e:
+        data["db"] = {"status": "fail", "error": str(e)}
 
     return {"meta": meta(), "data": data, "errors": []}
 

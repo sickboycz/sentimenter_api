@@ -80,6 +80,13 @@ export default function OpsPage() {
         title="Ops"
         subtitle="System health, pipelines, and live logs."
         meta="Use this page to validate ingestion and background processing."
+        actions={(
+          <Button
+            onClick={() => document.getElementById("backfill")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          >
+            Backfill
+          </Button>
+        )}
       />
 
       <Card
@@ -161,7 +168,7 @@ export default function OpsPage() {
         </Card>
       </div>
 
-      <Card title="Backfill" subtitle="Queue historical ingest by date range.">
+      <Card id="backfill" title="Backfill" subtitle="Queue historical ingest by date range.">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
           <div className="md:col-span-4 flex flex-wrap gap-2 text-xs">
             <Button variant="ghost" className="px-2 py-1 text-xs" onClick={() => quickRange(7)}>Last 7 days</Button>

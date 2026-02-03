@@ -7,7 +7,7 @@ from fastapi import Depends, HTTPException
 
 from sentiment_api.api.auth import get_api_key
 from sentiment_api.config import get_settings
-from sentiment_api.db.pool import get_pool, acquire
+from sentiment_api.db.pool import get_pool, acquire, ensure_pool
 
 logger = logging.getLogger("sentiment_api.api.keys")
 
@@ -37,15 +37,18 @@ async def validate_api_key(key: Annotated[str, Depends(get_api_key)]) -> str:
         return key
     pool = get_pool()
     if pool is None:
-        if env_whitelist:
+        try:
+            pool = await ensure_pool()
+        except Exception:
+            if env_whitelist:
+                raise HTTPException(
+                    status_code=401,
+                    detail={"code": "auth_invalid_api_key", "message": "Invalid API key."},
+                )
             raise HTTPException(
-                status_code=401,
-                detail={"code": "auth_invalid_api_key", "message": "Invalid API key."},
+                status_code=503,
+                detail={"code": "service_unavailable", "message": "Service unavailable"},
             )
-        raise HTTPException(
-            status_code=503,
-            detail={"code": "service_unavailable", "message": "Service unavailable"},
-        )
     try:
         async with acquire() as conn:
             rows = await conn.fetch(
