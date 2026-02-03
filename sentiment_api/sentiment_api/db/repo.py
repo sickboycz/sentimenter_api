@@ -77,7 +77,7 @@ async def insert_article(conn: asyncpg.Connection, art: dict) -> str | None:
                 lang_original, title_raw, title_en, content_en, translation_status, translation_provider,
                 translation_confidence, content_hash, metadata)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-            ON CONFLICT (article_id) DO NOTHING
+            ON CONFLICT (canonical_url) DO NOTHING
             RETURNING article_id
             """,
             art["article_id"],

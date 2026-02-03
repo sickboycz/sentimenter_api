@@ -762,10 +762,19 @@ async def get_cluster_by_id(
         async with acquire() as conn:
             l3 = await get_cluster_l3_summary(conn, cluster_id)
         if l3:
-            what_changed_en = (l3.get("what_changed_en") or "").strip() or None
-            why_it_matters_en = (l3.get("why_it_matters_en") or "").strip() or None
-            what_to_watch_en = (l3.get("what_to_watch_en") or "").strip() or None
-            impact_explanation_en = (l3.get("why_it_matters_en") or "").strip()[:500] or None
+            def _l3_str(key: str) -> str | None:
+                v = l3.get(key)
+                if v is None:
+                    return None
+                if isinstance(v, list):
+                    s = " ".join(str(x) for x in v) if v else ""
+                else:
+                    s = str(v) if v else ""
+                return s.strip() or None
+            what_changed_en = _l3_str("what_changed_en")
+            why_it_matters_en = _l3_str("why_it_matters_en")
+            what_to_watch_en = _l3_str("what_to_watch_en")
+            impact_explanation_en = (_l3_str("why_it_matters_en") or "")[:500] or None
             summary_bullets = l3.get("summary_bullets_en") if isinstance(l3.get("summary_bullets_en"), list) else []
     except Exception as e:
         _api_log.debug("Cluster L3 summary fetch failed for %s: %s", cluster_id, e)
