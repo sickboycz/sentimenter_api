@@ -1,8 +1,7 @@
-"""OpenAI LLM client with GPT-5.2 escalation chain."""
+"""OpenAI LLM client — all calls go through openai_gateway (chunking and batching only)."""
 
 import logging
 import os
-from typing import Any
 
 from sentiment_api.config import get_settings
 
@@ -18,35 +17,24 @@ def call_chat(
     models: list[str] | None = None,
     temperature: float = 0.1,
 ) -> str:
-    """Call OpenAI Chat Completions with escalation: try models in order until success."""
+    """
+    Text via Responses API only (no Chat requests). Uses responses_text_batched.
+    """
+    from sentiment_api.llm.openai_gateway import responses_text_batched
+
     key = get_settings().openai_api_key or os.environ.get("OPENAI_API_KEY")
     if not key:
         return ""
-    models = models or getattr(get_settings(), "model_escalation", None) or DEFAULT_ESCALATION
+    model_list = models or getattr(get_settings(), "model_escalation", None) or DEFAULT_ESCALATION
     last_err: Exception | None = None
-    for model in models:
+    for model in model_list:
         try:
-            from openai import OpenAI
-            client = OpenAI(api_key=key)
-            kwargs = {
-                "model": model,
-                "messages": [
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user},
-                ],
-                "temperature": temperature,
-            }
-            try:
-                resp = client.chat.completions.create(**kwargs)
-            except Exception as temp_err:
-                err_str = str(temp_err).lower()
-                if "temperature" in err_str and "unsupported" in err_str:
-                    kwargs["temperature"] = 1.0
-                    resp = client.chat.completions.create(**kwargs)
-                else:
-                    raise
-            choices = getattr(resp, "choices", None) or []
-            out = (choices[0].message.content or "").strip() if choices else ""
+            out = responses_text_batched(
+                system,
+                user,
+                model=model,
+                temperature=temperature,
+            )
             if out:
                 return out
         except Exception as e:

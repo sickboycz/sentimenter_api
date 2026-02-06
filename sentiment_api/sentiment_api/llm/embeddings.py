@@ -29,18 +29,14 @@ def _dim_from_model_id(model_id: str | None) -> int:
 
 
 def get_embedder(model_id: str = "openai:text-embedding-3-small", api_key: str | None = None) -> Any:
-    """Return embedder instance. Priority: OpenAI > sentence-transformers."""
+    """Return embedder instance. OpenAI path uses gateway only (no direct client)."""
     global _model
     if _model is not None:
         return _model
     key = api_key or get_settings().openai_api_key or os.environ.get("OPENAI_API_KEY")
     if key and "openai" in (model_id or ""):
-        try:
-            from openai import OpenAI
-            _model = ("openai", OpenAI(api_key=key), model_id)
-        except Exception as e:
-            logger.warning("OpenAI init failed: %s, using sentence-transformers", e)
-            _model = ("sentence_transformers", None, model_id)
+        # OpenAI: no client here; all calls go through openai_gateway (batching only)
+        _model = ("openai", None, model_id)
     else:
         _model = ("sentence_transformers", None, model_id or "local")
     if _model[0] == "sentence_transformers" and _model[1] is None:
@@ -61,23 +57,14 @@ def _pad_to_dim(vec: list[float], dim: int) -> list[float]:
 
 
 def embed_text(text: str, model_id: str | None = None, dimensions: int | None = None) -> list[float]:
-    """Embed text; returns 768-dim vector by default (Tier B). Use model_id suffix :384 for Tier A."""
+    """Embed text via gateway (batching only). Returns 768-dim by default (Tier B). Use :384 for Tier A."""
     target_dim = dimensions if dimensions is not None else _dim_from_model_id(model_id)
     mid = model_id or get_settings().model_embedding_id or "openai:text-embedding-3-small:384"
     provider, client, _ = get_embedder(mid)
-    if provider == "openai" and client:
+    if provider == "openai":
+        from sentiment_api.llm.openai_gateway import embed_one
         try:
-            # text-embedding-3-small supports dimensions=384 or 768
-            model_name = "text-embedding-3-large" if target_dim > 768 else "text-embedding-3-small"
-            kwargs = {"model": model_name, "input": text[:8000]}
-            if model_name == "text-embedding-3-small" and target_dim in (384, 768):
-                kwargs["dimensions"] = target_dim
-            elif model_name == "text-embedding-3-large" and target_dim in (256, 1024, 3072):
-                kwargs["dimensions"] = target_dim
-            resp = client.embeddings.create(**kwargs)
-            if resp.data and len(resp.data) > 0:
-                return _pad_to_dim(resp.data[0].embedding, target_dim)
-            logger.warning("OpenAI embeddings returned empty data")
+            return embed_one(text, model_id=mid, dimensions=target_dim)
         except Exception as e:
             err_str = str(e).lower()
             if "401" in err_str or "invalid_api_key" in err_str or "authentication" in err_str or "incorrect api key" in err_str:
@@ -96,48 +83,28 @@ def embed_text(text: str, model_id: str | None = None, dimensions: int | None = 
     return [random.gauss(0, 0.1) for _ in range(target_dim)]
 
 
-# Max texts per OpenAI batch (API supports up to 2048; larger = fewer round trips, lower cost)
-_OPENAI_BATCH_SIZE = 256
-
-
 def embed_texts(
     texts: list[str],
     model_id: str | None = None,
     dimensions: int | None = None,
 ) -> list[list[float]]:
-    """Embed multiple texts in batch (single API call per chunk). Returns list of vectors in same order."""
+    """Embed multiple texts via gateway (batching only). Returns list of vectors in same order."""
     if not texts:
         return []
     target_dim = dimensions if dimensions is not None else _dim_from_model_id(model_id)
     mid = model_id or get_settings().model_embedding_id or "openai:text-embedding-3-small:384"
     provider, client, _ = get_embedder(mid)
-    if provider == "openai" and client:
-        out: list[list[float]] = []
-        for i in range(0, len(texts), _OPENAI_BATCH_SIZE):
-            chunk = [t[:8000] for t in texts[i : i + _OPENAI_BATCH_SIZE]]
-            try:
-                model_name = "text-embedding-3-large" if target_dim > 768 else "text-embedding-3-small"
-                kwargs: dict = {"model": model_name, "input": chunk}
-                if model_name == "text-embedding-3-small" and target_dim in (384, 768):
-                    kwargs["dimensions"] = target_dim
-                elif model_name == "text-embedding-3-large" and target_dim in (256, 1024, 3072):
-                    kwargs["dimensions"] = target_dim
-                resp = client.embeddings.create(**kwargs)
-                if resp.data:
-                    for d in sorted(resp.data, key=lambda x: x.index):
-                        out.append(_pad_to_dim(d.embedding, target_dim))
-                else:
-                    for _ in chunk:
-                        out.append([0.0] * target_dim)
-            except Exception as e:
-                err_str = str(e).lower()
-                if "401" in err_str or "invalid_api_key" in err_str or "authentication" in err_str:
-                    logger.error("OpenAI embedding auth failed: %s", e)
-                    raise
-                logger.warning("Batch embed failed, falling back to single calls: %s", e)
-                for t in chunk:
-                    out.append(embed_text(t, model_id, target_dim))
-        return out
+    if provider == "openai":
+        from sentiment_api.llm.openai_gateway import embeddings_batched
+        try:
+            return embeddings_batched(texts, model_id=mid, dimensions=target_dim)
+        except Exception as e:
+            err_str = str(e).lower()
+            if "401" in err_str or "invalid_api_key" in err_str or "authentication" in err_str:
+                logger.error("OpenAI embedding auth failed: %s", e)
+                raise
+            logger.warning("Batch embed failed: %s", e)
+            return [embed_text(t, model_id, target_dim) for t in texts]
     if provider == "sentence_transformers" and client:
         try:
             truncated = [t[:8000] for t in texts]

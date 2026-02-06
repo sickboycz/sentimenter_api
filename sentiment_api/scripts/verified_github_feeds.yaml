@@ -1,0 +1,227 @@
+  - source_id: thehill_rss_syndicator_19110
+    name: "thehill.com"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "http://thehill.com/rss/syndicator/19110"
+
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets", "politics"]
+
+  - source_id: chron_rss_feed_news_270_php
+    name: "chron.com"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.chron.com/rss/feed/News-270.php"
+
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets", "politics"]
+
+  - source_id: theatlantic_feed_all
+    name: "theatlantic.com"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.theatlantic.com/feed/all"
+
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets", "politics"]
+
+  - source_id: chinadaily_rss_world_rss_xml
+    name: "chinadaily.com.cn"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "http://www.chinadaily.com.cn/rss/world_rss.xml"
+
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets", "politics"]
+
+  - source_id: sfgate_rss_feed_business_and_technology_news_44
+    name: "sfgate.com"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.sfgate.com/rss/feed/Business-and-Technology-News-448.php"
+
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets", "politics"]
+
+  - source_id: variety_feed
+    name: "variety.com"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "http://variety.com/feed"
+
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets", "politics"]
+
+  - source_id: news_rss
+    name: "news.yahoo.com"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "http://news.yahoo.com/rss"
+
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets", "politics"]
+
+  - source_id: rss_services_xml_rss_nyt_homepage_xml
+    name: "rss.nytimes.com"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "http://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"
+
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets", "politics"]
+
+  - source_id: feeds_feeds_topstories
+    name: "feeds.nbcnews.com"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "http://feeds.nbcnews.com/feeds/topstories"
+
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets", "politics"]
+
+  - source_id: abcnews_abcnews_topstories
+    name: "abcnews.go.com"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "http://abcnews.go.com/abcnews/topstories"
+
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets", "politics"]
+
+  - source_id: latimes_rss2_0_xml
+    name: "latimes.com"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "http://www.latimes.com/rss2.0.xml"
+
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets", "politics"]
+
+  - source_id: theguardian_business_economics_rss
+    name: "theguardian.com"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.theguardian.com/business/economics/rss"
+
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets", "politics"]
+
+  - source_id: dailymail_articles_rss
+    name: "dailymail.co.uk"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "http://www.dailymail.co.uk/articles.rss"
+
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets", "politics"]
+
+  - source_id: economictimes_markets_rssfeeds_1977021501_cms
+    name: "economictimes.indiatimes.com"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms"
+
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets", "politics"]
+
+  - source_id: huffingtonpost_section_front_page_feed
+    name: "huffingtonpost.com"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.huffingtonpost.com/section/front-page/feed"
+
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets", "politics"]
+
+  - source_id: rt_rss
+    name: "rt.com"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://www.rt.com/rss"
+
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets", "politics"]
+
+  - source_id: feeds_ndtv_latestnews
+    name: "feeds.feedburner.com"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://feeds.feedburner.com/NDTV-LatestNews"
+
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets", "politics"]
+
+  - source_id: telegraph_rss_xml
+    name: "telegraph.co.uk"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "http://www.telegraph.co.uk/rss.xml"
+
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets", "politics"]
+
+  - source_id: gizmodo_rss
+    name: "gizmodo.com"
+    pack: optional_media_rss
+    type: rss
+    enabled: true
+    feed_url: "https://gizmodo.com/rss"
+
+    credibility_tier: reputable_media
+    license_class: open
+    regions: ["GLOBAL"]
+    topics: ["economy", "markets", "politics"]

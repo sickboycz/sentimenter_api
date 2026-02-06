@@ -313,9 +313,8 @@ async def health():
     except Exception as e:
         checks.append({"name": "artifacts", "status": "fail", "details": {"error": str(e)}})
 
-    # OpenAI check: validate key by calling API; fail clearly if invalid
+    # OpenAI check: validate key via gateway only (chunking/batching is the only form of API communication)
     try:
-        import os
         key = (
             settings.openai_api_key
             or os.environ.get("OPENAI_API_KEY")
@@ -325,11 +324,9 @@ async def health():
         if not key:
             checks.append({"name": "openai", "status": "fail", "details": {"message": "No API key; set OPENAI_API_KEY"}})
         else:
-            from openai import OpenAI
-            client = OpenAI(api_key=key)
-            # Validate key: list() has no limit in current client; consume one item
-            next(iter(client.models.list()), None)
-            checks.append({"name": "openai", "status": "ok", "details": {}})
+            from sentiment_api.llm.openai_gateway import responses_text
+            out = responses_text("You are a helper.", "Reply with exactly: OK", "gpt-4o-mini", api_key=key)
+            checks.append({"name": "openai", "status": "ok" if out else "fail", "details": {}})
     except Exception as e:
         err_str = str(e)
         is_auth = "401" in err_str or "invalid_api_key" in err_str.lower() or "authentication" in err_str.lower() or "incorrect api key" in err_str.lower()
@@ -1378,6 +1375,46 @@ async def ask_rag(
         import logging
         logging.getLogger("sentiment_api").exception("RAG failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# -----------------------------------------------------------------------------
+# POST /v1/translate — translate text to English (or other target) via OpenAI
+# -----------------------------------------------------------------------------
+@app.post("/v1/translate")
+async def translate_text(
+    _: Annotated[str, Depends(validate_api_key)],
+    body: dict = Body(default=None),
+):
+    """
+    Translate step using OpenAI API.
+
+    Body: { "text": str (required), "from_lang": str (required, e.g. "fr"), "to_lang": str (optional, default "en") }.
+    Returns: { "text": translated_str, "from_lang", "to_lang", "provider": "openai" }.
+    Requires OPENAI_API_KEY.
+    """
+    payload = body or {}
+    text = payload.get("text")
+    from_lang = (payload.get("from_lang") or "").strip() or None
+    to_lang = (payload.get("to_lang") or "en").strip() or "en"
+    if text is None:
+        raise HTTPException(status_code=400, detail="body.text required")
+    if not from_lang:
+        raise HTTPException(status_code=400, detail="body.from_lang required (e.g. fr, de, zh-cn)")
+    from sentiment_api.llm.translation import translate_step_openai
+    settings = get_settings()
+    if not settings.openai_api_key:
+        raise HTTPException(status_code=503, detail="OPENAI_API_KEY not set; translation unavailable")
+    out = translate_step_openai(
+        str(text),
+        from_lang=from_lang,
+        to_lang=to_lang,
+        api_key=settings.openai_api_key,
+        model=getattr(settings, "model_translation", None),
+        base_url=getattr(settings, "openai_base_url", None),
+    )
+    if out is None:
+        raise HTTPException(status_code=502, detail="Translation failed (OpenAI error or empty response)")
+    return {"meta": meta(), "data": {"text": out, "from_lang": from_lang, "to_lang": to_lang, "provider": "openai"}, "errors": []}
 
 
 # -----------------------------------------------------------------------------

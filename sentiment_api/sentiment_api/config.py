@@ -66,6 +66,33 @@ class Settings(BaseSettings):
             return v
         return v
 
+    # Translation step: OpenAI model and optional base URL (e.g. Azure)
+    model_translation: str = Field(
+        default="gpt-4o-mini",
+        description="MODEL_TRANSLATION: OpenAI model for translate step (e.g. gpt-4o-mini, gpt-4o)",
+        validation_alias=AliasChoices("MODEL_TRANSLATION", "SENTIMENT_API_MODEL_TRANSLATION"),
+    )
+    openai_base_url: str | None = Field(
+        default=None,
+        description="OPENAI_BASE_URL: optional base URL for OpenAI API (e.g. Azure endpoint)",
+        validation_alias=AliasChoices("OPENAI_BASE_URL", "SENTIMENT_API_OPENAI_BASE_URL"),
+    )
+    # Chunking and batching for translation (cost control: one API call per batch of chunks)
+    translation_chunk_chars: int = Field(
+        default=1500,
+        ge=200,
+        le=8000,
+        description="TRANSLATION_CHUNK_CHARS: max chars per chunk; long text is split and sent in batches",
+        validation_alias=AliasChoices("TRANSLATION_CHUNK_CHARS", "SENTIMENT_API_TRANSLATION_CHUNK_CHARS"),
+    )
+    translation_batch_size: int = Field(
+        default=8,
+        ge=1,
+        le=20,
+        description="TRANSLATION_BATCH_SIZE: max chunks per API call; more = fewer calls, larger context",
+        validation_alias=AliasChoices("TRANSLATION_BATCH_SIZE", "SENTIMENT_API_TRANSLATION_BATCH_SIZE"),
+    )
+
     api_host: str = "0.0.0.0"
     api_port: int = 8080
     retention_days: int = 90  # tombstone articles older than N days (AC-M7.3)

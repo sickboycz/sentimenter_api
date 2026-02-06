@@ -255,6 +255,21 @@ services:
       timeout: 5s
       retries: 3
 
+  # Optional: RSS-Bridge — generates RSS for sites without native feeds (e.g. Google News).
+  # Workers/daemon use feed_urls that point to http://rss-bridge/ when this service is running.
+  # Enable sources in pack optional_media_rss_bridge in source_registry.yaml to ingest them.
+  rss-bridge:
+    image: rssbridge/rss-bridge:latest
+    restart: unless-stopped
+    ports:
+      - "8085:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
 volumes:
   pgdata:
   redis_data:
